@@ -68,6 +68,18 @@ sell-my-images/
 - PHP 7.4+
 - SSL certificate (required for payments)
 
+## Important Legal Notice
+
+**Image Rights and Liability Disclaimer**: By using this plugin, you acknowledge and agree that:
+
+- You have the legal right to sell and distribute all images processed through this plugin
+- You are solely responsible for ensuring you own or have proper licensing for all images
+- You are responsible for compliance with copyright laws, model releases, and any other legal requirements
+- The plugin authors and contributors are not responsible for any legal issues, copyright infringement claims, or other problems arising from your use of this plugin
+- It is your responsibility to verify rights and permissions before selling any images
+
+**Use this plugin at your own risk. Always consult with legal counsel if you have questions about image rights and licensing.**
+
 ## License
 
 GPL v2 or later
