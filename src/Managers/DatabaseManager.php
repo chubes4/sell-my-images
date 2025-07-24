@@ -9,7 +9,7 @@
  * @since 1.0.0
  */
 
-namespace SellMyImages\Api;
+namespace SellMyImages\Managers;
 
 // Prevent direct access
 if ( ! defined( 'ABSPATH' ) ) {

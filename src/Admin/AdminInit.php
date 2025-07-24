@@ -231,8 +231,8 @@ class AdminInit {
             wp_send_json_error( __( 'API key is required', 'sell-my-images' ) );
         }
         
-        // Test the API key
-        $result = \SellMyImages\Api\Upscaler::validate_api_key( $api_key );
+        // Test the API key using a flexible approach
+        $result = $this->validate_upscaler_api_key( $api_key );
         
         if ( is_wp_error( $result ) ) {
             wp_send_json_error( $result->get_error_message() );
@@ -241,6 +241,16 @@ class AdminInit {
         wp_send_json_success( __( 'API key is valid!', 'sell-my-images' ) );
     }
     
+    /**
+     * Validate Upscaler API key (dependency injection ready)
+     * 
+     * @param string $api_key API key to validate
+     * @return mixed Result from validation or WP_Error on failure
+     */
+    private function validate_upscaler_api_key( $api_key ) {
+        // Use new Upsampler API client
+        return \SellMyImages\Api\Upsampler::validate_api_key( $api_key );
+    }
     
     /**
      * Add admin notice

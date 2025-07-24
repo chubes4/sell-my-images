@@ -9,7 +9,7 @@
  * @since 1.0.0
  */
 
-namespace SellMyImages\Api;
+namespace SellMyImages\Managers;
 
 // Prevent direct access
 if ( ! defined( 'ABSPATH' ) ) {
@@ -21,10 +21,6 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class DownloadManager {
     
-    /**
-     * Maximum file size for downloads (50MB)
-     */
-    const MAX_DOWNLOAD_SIZE = 52428800;
     
     /**
      * Chunk size for file serving (8KB)
@@ -165,15 +161,8 @@ class DownloadManager {
             exit;
         }
         
-        // Check file size
+        // Get file size for Content-Length header
         $file_size = filesize( $safe_path );
-        $max_size = apply_filters( 'smi_max_download_size', self::MAX_DOWNLOAD_SIZE );
-        
-        if ( $file_size > $max_size ) {
-            error_log( 'SMI DownloadManager: File too large for download: ' . $file_size . ' bytes' );
-            status_header( 413 );
-            exit;
-        }
         
         // Log download attempt
         error_log( 'SMI DownloadManager: Serving download for job ' . $job_id . ', file size: ' . $file_size . ' bytes' );

@@ -18,7 +18,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Main Plugin File**: `sell-my-images.php` - Singleton pattern with Composer autoloader and WordPress hooks initialization
 - **Admin Interface**: `src/Admin/` - Settings page with top-level menu and WordPress Settings API
 - **Content Processing**: `src/Content/` - Gutenberg block-based image detection and button injection
-- **API Layer**: `src/Api/` - REST endpoints, payment processing, file management, and external API integration
+- **Managers Layer**: `src/Managers/` - Data management, file operations, and system coordination
+- **API Layer**: `src/Api/` - REST endpoints, external API integration, and payment processing
 
 ### Class Structure & Responsibilities
 
@@ -27,15 +28,22 @@ All classes follow PSR-4 autoloading under the `SellMyImages\` namespace:
 **Content Layer:**
 - `SellMyImages\Content\BlockProcessor` - Processes Gutenberg blocks using `parse_blocks()` and `serialize_blocks()`, injects buy buttons with `data-attachment-id` and `data-post-id` attributes
 
+**Managers Layer:**
+- `SellMyImages\Managers\DatabaseManager` - Centralized database operations, schema management, and CRUD with auto-formatting
+- `SellMyImages\Managers\JobManager` - Business logic for job lifecycle and status management
+- `SellMyImages\Managers\DownloadManager` - Secure token-based downloads using `wp_generate_password()`
+- `SellMyImages\Managers\FileManager` - File operations with WordPress standards
+- `SellMyImages\Managers\WebhookManager` - Shared webhook utilities and security
+
+**Services Layer:**
+- `SellMyImages\Services\PaymentService` - Payment workflow coordination and business logic, uses StripeApi for HTTP calls
+- `SellMyImages\Services\UpscalingService` - Upscaling workflow coordination and business logic, uses Upsampler for HTTP calls
+
 **API Layer:**
-- `SellMyImages\Api\DatabaseManager` - Centralized database operations, schema management, and CRUD with auto-formatting
-- `SellMyImages\Api\RestApi` - WordPress REST API endpoints under `/wp-json/smi/v1/` namespace
-- `SellMyImages\Api\JobManager` - Business logic for job lifecycle and status management
-- `SellMyImages\Api\DownloadManager` - Secure token-based downloads using `wp_generate_password()`
-- `SellMyImages\Api\StripePayment` - Stripe SDK integration with custom webhook endpoints
+- `SellMyImages\Api\RestApi` - WordPress REST API endpoints under `/wp-json/smi/v1/` namespace, delegates to Services for business logic
+- `SellMyImages\Api\StripeApi` - Pure Stripe HTTP client without business logic
 - `SellMyImages\Api\CostCalculator` - Hardcoded Upsampler pricing ($0.04/credit, 1 credit per 4 megapixels output) with configurable markup and shared upscale factor utilities
-- `SellMyImages\Api\Upscaler` - Upsampler.com API integration
-- `SellMyImages\Api\FileManager` - File operations with WordPress standards
+- `SellMyImages\Api\Upsampler` - Pure Upsampler.com HTTP client without business logic
 
 **Admin Layer:**
 - `SellMyImages\Admin\AdminInit` - Top-level admin menu and settings initialization
@@ -53,10 +61,10 @@ All classes follow PSR-4 autoloading under the `SellMyImages\` namespace:
 **Payment & Processing Workflow:**
 1. Frontend captures attachment_id and post_id directly from button data attributes
 2. **Price Calculation**: `/calculate-all-prices` with both attachment_id and post_id
-3. **Checkout Creation**: `/create-checkout` → creates job with post_id tracking
-4. **Payment Verification**: Stripe webhook → job status 'paid'
-5. **API Processing**: Upsampler API → external job_id linking
-6. **Fulfillment**: Secure download tokens via `wp_generate_password()`
+3. **Checkout Creation**: `/create-checkout` → RestApi → PaymentService → StripeApi → creates job with post_id tracking
+4. **Payment Verification**: Stripe webhook → PaymentService → job status 'paid' → triggers `smi_payment_completed` action
+5. **Upscaling Processing**: UpscalingService handles `smi_payment_completed` → Upsampler API → external job_id linking
+6. **Fulfillment**: DownloadManager → secure download tokens via `wp_generate_password()`
 
 **Webhook System:**
 - Custom rewrite rules bypass WordPress routing: `/smi-webhook/stripe/` and `/smi-webhook/upsampler/`
@@ -158,17 +166,42 @@ Complete job tracking with payment, processing status, and **analytics support**
 
 ### Clean Architecture Principles
 - **Database Layer Separation**: DatabaseManager handles all database operations with type-safe auto-formatting
-- **Business Logic Isolation**: JobManager focuses on business rules, delegates database operations to DatabaseManager
+- **Business Logic Isolation**: Services layer coordinates workflows, Managers handle data operations
+- **API Layer Separation**: API classes are pure HTTP clients without business logic (StripeApi, Upsampler)
+- **Service Coordination**: PaymentService and UpscalingService handle business workflows and use API classes for external calls
 - **Direct Data Access**: Buttons use `data-attachment-id` directly (no complex extraction)
 - **WordPress Standards**: All external operations use WordPress functions
 - **Pay-First Security**: All processing occurs only after payment confirmation
 
-### Data Flow Simplification
+### Data Flow Architecture
 - **Button → JavaScript**: Direct `$button.data('attachment-id')` access
-- **Frontend → API**: Both attachment_id and post_id in all requests
+- **Frontend → RestApi → Services → API/Managers**: Clean separation with RestApi routing to Services for business logic
+- **Services → API Classes**: PaymentService uses StripeApi, UpscalingService uses Upsampler (pure HTTP clients)
+- **Services → Managers**: Business logic delegates data operations to specialized Managers
 - **Database Operations**: All operations go through DatabaseManager with automatic format detection (%s, %d, %f)
 - **Database**: Single jobs table with comprehensive analytics indexes managed by DatabaseManager
 - **Token Generation**: WordPress native `wp_generate_password(64, false, false)`
+
+## Critical Architecture Notes
+
+### Services Layer Pattern
+The Services layer is **essential for separation of concerns** and should never be removed:
+
+- **PaymentService**: Coordinates payment workflow, uses StripeApi for HTTP calls, handles Stripe webhooks
+- **UpscalingService**: Coordinates upscaling workflow, uses Upsampler for HTTP calls, handles Upsampler webhooks  
+- **API Classes**: Pure HTTP clients (StripeApi, Upsampler) with no business logic
+- **RestApi**: Routes requests to appropriate Services, does not contain business logic
+
+### Architectural Boundaries
+- **RestApi** → **Services** → **API Classes/Managers** (correct flow)
+- **Never**: RestApi directly calling API classes or containing business logic
+- **Never**: Removing Services layer - it provides essential workflow coordination
+
+### Payment Data Structure
+PaymentService expects specific CostCalculator output format:
+- `$cost_data['customer_price']` (not `total_price`)
+- `$cost_data['output_dimensions']['width']` and `['height']` (not direct width/height keys)
+- Original dimensions come from `$image_data['width']` and `$image_data['height']`
 
 ## Troubleshooting Common Issues
 

@@ -8,7 +8,7 @@
  * @since 1.0.0
  */
 
-namespace SellMyImages\Api;
+namespace SellMyImages\Managers;
 
 // Prevent direct access
 if ( ! defined( 'ABSPATH' ) ) {
@@ -20,10 +20,6 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class FileManager {
     
-    /**
-     * Maximum file download size (100MB)
-     */
-    const MAX_DOWNLOAD_SIZE = 100 * 1024 * 1024;
     
     /**
      * HTTP timeout for large file downloads (5 minutes)
@@ -119,17 +115,11 @@ class FileManager {
         $file_name = 'smi_' . $job_id . '_' . time() . '.jpg';
         $local_path = self::get_upload_dir() . '/' . $file_name;
         
-        // Set file download limits
-        $max_download_size = apply_filters( 'smi_max_upsampler_download_size', self::MAX_DOWNLOAD_SIZE );
-        
         // Download the file
         $response = wp_remote_get( $upscaled_url, array(
             'timeout' => self::DOWNLOAD_TIMEOUT,
             'stream'  => true,
             'filename' => $local_path,
-            'headers' => array(
-                'Range' => 'bytes=0-' . ( $max_download_size - 1 ), // Limit download size
-            ),
         ) );
         
         if ( is_wp_error( $response ) ) {
@@ -149,13 +139,6 @@ class FileManager {
             return false;
         }
         
-        // Check downloaded file size against limits
-        $downloaded_size = filesize( $local_path );
-        if ( $downloaded_size > $max_download_size ) {
-            unlink( $local_path );
-            error_log( 'SMI FileManager: Downloaded file exceeds size limit: ' . size_format( $downloaded_size ) );
-            return false;
-        }
         
         // Verify it's a valid image
         $image_info = getimagesize( $local_path );

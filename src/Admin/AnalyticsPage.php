@@ -35,51 +35,15 @@ class AnalyticsPage {
     public function get_analytics_data() {
         global $wpdb;
         
-        $jobs_table = \SellMyImages\Api\DatabaseManager::get_jobs_table();
+        $jobs_table = \SellMyImages\Managers\DatabaseManager::get_jobs_table();
         
-        // Get post-level analytics with paid jobs only
+        // Single optimized query to get both post and attachment data
+        // This eliminates the N+1 query problem
         $query = "
             SELECT 
                 j.post_id,
                 p.post_title,
                 p.post_date,
-                COUNT(*) as total_sales,
-                SUM(j.amount_charged) as total_revenue,
-                SUM(j.amount_cost) as total_cost,
-                SUM(j.amount_charged - COALESCE(j.amount_cost, 0)) as total_profit,
-                AVG(j.amount_charged) as avg_sale_price,
-                AVG(j.amount_cost) as avg_cost,
-                COUNT(DISTINCT j.attachment_id) as unique_images_sold
-            FROM {$jobs_table} j
-            LEFT JOIN {$wpdb->posts} p ON j.post_id = p.ID
-            WHERE j.payment_status = 'paid'
-            GROUP BY j.post_id
-            ORDER BY total_revenue DESC
-        ";
-        
-        $post_analytics = $wpdb->get_results( $query );
-        
-        // Get attachment-level data for each post
-        foreach ( $post_analytics as &$post_data ) {
-            $post_data->attachments = $this->get_post_attachment_analytics( $post_data->post_id );
-        }
-        
-        return $post_analytics;
-    }
-    
-    /**
-     * Get attachment analytics for a specific post
-     * 
-     * @param int $post_id Post ID
-     * @return array Attachment analytics data
-     */
-    private function get_post_attachment_analytics( $post_id ) {
-        global $wpdb;
-        
-        $jobs_table = \SellMyImages\Api\DatabaseManager::get_jobs_table();
-        
-        $query = $wpdb->prepare( "
-            SELECT 
                 j.attachment_id,
                 j.image_url,
                 j.image_width,
@@ -91,17 +55,102 @@ class AnalyticsPage {
                 AVG(j.amount_charged) as avg_price,
                 AVG(j.amount_cost) as avg_cost,
                 GROUP_CONCAT(DISTINCT j.resolution ORDER BY j.resolution) as resolutions_sold,
+                GROUP_CONCAT(DISTINCT j.email) as customer_emails,
                 MAX(j.created_at) as last_sale_date,
                 MIN(j.created_at) as first_sale_date
             FROM {$jobs_table} j
-            WHERE j.post_id = %d 
-            AND j.payment_status = 'paid'
+            LEFT JOIN {$wpdb->posts} p ON j.post_id = p.ID
+            WHERE j.payment_status = 'paid'
             AND j.attachment_id IS NOT NULL
-            GROUP BY j.attachment_id, j.image_url
-            ORDER BY revenue DESC
-        ", $post_id );
+            GROUP BY j.post_id, j.attachment_id
+            ORDER BY j.post_id, revenue DESC
+        ";
         
-        return $wpdb->get_results( $query );
+        $raw_data = $wpdb->get_results( $query );
+        
+        // Organize data by post with attachments nested
+        return $this->organize_analytics_data( $raw_data );
+    }
+    
+    /**
+     * Organize raw analytics data by post with nested attachments
+     * 
+     * @param array $raw_data Raw query results
+     * @return array Organized analytics data
+     */
+    private function organize_analytics_data( $raw_data ) {
+        $organized = array();
+        
+        foreach ( $raw_data as $row ) {
+            $post_id = $row->post_id;
+            
+            // Initialize post data if not exists
+            if ( ! isset( $organized[$post_id] ) ) {
+                $organized[$post_id] = (object) array(
+                    'post_id' => $post_id,
+                    'post_title' => $row->post_title,
+                    'post_date' => $row->post_date,
+                    'total_sales' => 0,
+                    'total_revenue' => 0,
+                    'total_cost' => 0,
+                    'total_profit' => 0,
+                    'unique_images_sold' => 0,
+                    'customer_emails' => array(),
+                    'attachments' => array()
+                );
+            }
+            
+            // Add attachment data
+            $attachment_data = (object) array(
+                'attachment_id' => $row->attachment_id,
+                'image_url' => $row->image_url,
+                'image_width' => $row->image_width,
+                'image_height' => $row->image_height,
+                'sales_count' => $row->sales_count,
+                'revenue' => $row->revenue,
+                'total_cost' => $row->total_cost,
+                'profit' => $row->profit,
+                'avg_price' => $row->avg_price,
+                'avg_cost' => $row->avg_cost,
+                'resolutions_sold' => $row->resolutions_sold,
+                'last_sale_date' => $row->last_sale_date,
+                'first_sale_date' => $row->first_sale_date
+            );
+            
+            $organized[$post_id]->attachments[] = $attachment_data;
+            
+            // Aggregate post totals
+            $organized[$post_id]->total_sales += $row->sales_count;
+            $organized[$post_id]->total_revenue += $row->revenue;
+            $organized[$post_id]->total_cost += $row->total_cost;
+            $organized[$post_id]->total_profit += $row->profit;
+            $organized[$post_id]->unique_images_sold++;
+            
+            // Collect unique customer emails
+            if ( ! empty( $row->customer_emails ) ) {
+                $emails = explode( ',', $row->customer_emails );
+                $organized[$post_id]->customer_emails = array_unique( array_merge( 
+                    $organized[$post_id]->customer_emails, 
+                    $emails 
+                ) );
+            }
+        }
+        
+        // Calculate averages and finalize
+        foreach ( $organized as $post_data ) {
+            $post_data->avg_sale_price = $post_data->total_sales > 0 ? 
+                $post_data->total_revenue / $post_data->total_sales : 0;
+            $post_data->avg_cost = $post_data->total_sales > 0 ? 
+                $post_data->total_cost / $post_data->total_sales : 0;
+            $post_data->unique_customers = count( $post_data->customer_emails );
+        }
+        
+        // Sort by total revenue (descending)
+        uasort( $organized, function( $a, $b ) {
+            return $b->total_revenue <=> $a->total_revenue;
+        });
+        
+        return array_values( $organized );
     }
     
     /**
@@ -112,7 +161,7 @@ class AnalyticsPage {
     public function get_summary_stats() {
         global $wpdb;
         
-        $jobs_table = \SellMyImages\Api\DatabaseManager::get_jobs_table();
+        $jobs_table = \SellMyImages\Managers\DatabaseManager::get_jobs_table();
         
         $query = "
             SELECT 

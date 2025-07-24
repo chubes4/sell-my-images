@@ -9,7 +9,7 @@
  * @since 1.0.0
  */
 
-namespace SellMyImages\Api;
+namespace SellMyImages\Managers;
 
 // Prevent direct access
 if ( ! defined( 'ABSPATH' ) ) {
@@ -714,22 +714,7 @@ class JobManager {
      * @return int Number of jobs cleaned up
      */
     private static function cleanup_failed_jobs( $days = 7 ) {
-        global $wpdb;
-        
-        $table = DatabaseManager::get_jobs_table();
-        $cutoff_date = date( 'Y-m-d H:i:s', strtotime( "-{$days} days" ) );
-        
-        // Use raw SQL since DatabaseManager doesn't support complex date conditions yet
-        $deleted_count = $wpdb->query( $wpdb->prepare(
-            "DELETE FROM $table WHERE status = 'failed' AND created_at < %s",
-            $cutoff_date
-        ) );
-        
-        if ( $deleted_count > 0 ) {
-            error_log( 'SMI JobManager: Cleaned up ' . $deleted_count . ' failed jobs older than ' . $days . ' days' );
-        }
-        
-        return $deleted_count ?: 0;
+        return DatabaseManager::cleanup( 'failed', array( 'days' => $days ) );
     }
     
     /**
@@ -739,21 +724,6 @@ class JobManager {
      * @return int Number of jobs cleaned up
      */
     private static function cleanup_abandoned_jobs( $hours = 24 ) {
-        global $wpdb;
-        
-        $table = DatabaseManager::get_jobs_table();
-        $cutoff_date = date( 'Y-m-d H:i:s', strtotime( "-{$hours} hours" ) );
-        
-        // Use raw SQL since DatabaseManager doesn't support complex date conditions yet
-        $deleted_count = $wpdb->query( $wpdb->prepare(
-            "DELETE FROM $table WHERE payment_status = 'pending' AND created_at < %s",
-            $cutoff_date
-        ) );
-        
-        if ( $deleted_count > 0 ) {
-            error_log( 'SMI JobManager: Cleaned up ' . $deleted_count . ' abandoned jobs older than ' . $hours . ' hours' );
-        }
-        
-        return $deleted_count ?: 0;
+        return DatabaseManager::cleanup( 'abandoned', array( 'hours' => $hours ) );
     }
 }

@@ -189,8 +189,9 @@ class RestApi {
             );
         }
         
-        // Check if Stripe is configured
-        $stripe_config = StripePayment::validate_configuration();
+        // Check if Stripe is configured using PaymentService
+        $payment_service = new \SellMyImages\Services\PaymentService();
+        $stripe_config = $payment_service->validate_configuration();
         if ( is_wp_error( $stripe_config ) ) {
             return new \WP_Error(
                 'payment_not_configured',
@@ -247,8 +248,8 @@ class RestApi {
         $cost_data = CostCalculator::calculate_cost_detailed( $image_data, $resolution );
         JobManager::update_cost_data( $job_data['job_id'], $cost_data );
         
-        // Create Stripe checkout session
-        $checkout_result = StripePayment::create_checkout_session( 
+        // Create Stripe checkout session using PaymentService
+        $checkout_result = $payment_service->create_checkout_session( 
             $image_data, 
             $resolution, 
             $email, 

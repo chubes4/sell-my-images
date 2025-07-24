@@ -103,10 +103,16 @@ class SellMyImages {
      * Initialize frontend functionality
      */
     private function init_frontend() {
+        // Initialize webhook manager first
+        \SellMyImages\Managers\WebhookManager::init();
+        
         // Initialize components
         new \SellMyImages\Content\BlockProcessor();
         new \SellMyImages\Api\RestApi();
-        new \SellMyImages\Api\StripePayment();
+        
+        // Initialize services (business logic)
+        new \SellMyImages\Services\PaymentService();
+        new \SellMyImages\Services\UpscalingService();
     }
     
     /**
