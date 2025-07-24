@@ -1,0 +1,23 @@
+# Composer
+/vendor/
+
+# WordPress
+.DS_Store
+.htaccess
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+error_log
+
+# Cache
+*.cache
+
+# Backups
+*.bak
+*~

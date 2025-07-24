@@ -1,0 +1,625 @@
+/**
+ * Sell My Images - Modal Styles
+ * 
+ * Responsive modal styling that integrates with WordPress themes
+ * 
+ * @package SellMyImages
+ * @since 1.0.0
+ */
+
+/* ==========================================================================
+   Get Hi-Res Button Styles
+   ========================================================================== */
+
+.smi-get-button {
+    background: #2271b1;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s ease;
+    z-index: 9;
+    position: relative;
+}
+
+.smi-get-button:hover {
+    background: #135e96;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(34, 113, 177, 0.3);
+}
+
+.smi-get-button:active {
+    transform: translateY(0);
+}
+
+.smi-get-button:focus {
+    outline: 2px solid #2271b1;
+    outline-offset: 2px;
+}
+
+/* Button Icons */
+.smi-button-icon {
+    font-size: 12px;
+    opacity: 0.9;
+}
+
+/* Button Position Variants */
+.smi-overlay-button {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 10;
+    background: rgba(34, 113, 177, 0.9);
+    backdrop-filter: blur(4px);
+}
+
+.smi-overlay-button:hover {
+    background: rgba(19, 94, 150, 0.95);
+}
+
+.smi-after-button,
+.smi-before-button {
+    margin: 8px 0;
+    display: inline-block;
+}
+
+/* Image Container for Overlay Positioning */
+.smi-image-container {
+    position: relative !important;
+    display: inline-block !important;
+}
+
+.smi-image-container img {
+    display: block;
+    max-width: 100%;
+    height: auto;
+}
+
+/* ==========================================================================
+   Modal Base Styles
+   ========================================================================== */
+
+.smi-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 999999;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    line-height: 1.5;
+}
+
+.smi-modal-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(2px);
+}
+
+.smi-modal-content {
+    position: relative;
+    width: 90%;
+    max-width: 600px;
+    max-height: 90vh;
+    margin: 5vh auto;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+/* ==========================================================================
+   Modal Header
+   ========================================================================== */
+
+.smi-modal-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid #e0e0e0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #f8f9fa;
+}
+
+.smi-modal-title {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: #1d2327;
+}
+
+.smi-modal-close {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: #666;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+.smi-modal-close:hover {
+    background: #e0e0e0;
+    color: #333;
+}
+
+/* ==========================================================================
+   Modal Body
+   ========================================================================== */
+
+.smi-modal-body {
+    padding: 24px;
+    flex: 1;
+    overflow-y: auto;
+    max-height: calc(90vh - 140px); /* Account for header and footer */
+}
+
+/* Loading State */
+.smi-loading {
+    text-align: center;
+    padding: 40px 20px;
+}
+
+.smi-spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #2271b1;
+    border-radius: 50%;
+    animation: smi-spin 1s linear infinite;
+    margin: 0 auto 20px;
+}
+
+@keyframes smi-spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.smi-loading p {
+    color: #666;
+    margin: 0;
+}
+
+/* Main Content Layout */
+.smi-modal-main {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 24px;
+}
+
+@media (min-width: 768px) {
+    .smi-modal-main {
+        grid-template-columns: 200px 1fr;
+    }
+}
+
+/* ==========================================================================
+   Image Preview
+   ========================================================================== */
+
+.smi-image-preview {
+    text-align: center;
+}
+
+.smi-preview-image {
+    max-width: 100%;
+    max-height: 200px;
+    border-radius: 6px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    margin-bottom: 12px;
+}
+
+.smi-image-info {
+    font-size: 13px;
+    color: #666;
+}
+
+.smi-image-info p {
+    margin: 4px 0;
+}
+
+/* ==========================================================================
+   Upscale Options
+   ========================================================================== */
+
+.smi-upscale-options h4 {
+    margin: 0 0 16px 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #1d2327;
+}
+
+.smi-resolution-options {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.smi-option {
+    display: flex;
+    align-items: center;
+    padding: 16px;
+    border: 2px solid #e0e0e0;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background: white;
+}
+
+.smi-option:hover {
+    border-color: #2271b1;
+    background: #f0f6fc;
+}
+
+.smi-option input[type="radio"] {
+    margin: 0 12px 0 0;
+    transform: scale(1.2);
+}
+
+.smi-option input[type="radio"]:checked + .smi-option-label {
+    color: #2271b1;
+    font-weight: 500;
+}
+
+.smi-option input[type="radio"]:checked {
+    accent-color: #2271b1;
+}
+
+.smi-option-label {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.smi-option-label strong {
+    font-size: 15px;
+    color: #1d2327;
+}
+
+.smi-option-details {
+    font-size: 13px;
+    color: #666;
+}
+
+.smi-option-price {
+    font-size: 16px;
+    font-weight: 600;
+    color: #2271b1;
+    margin-left: auto;
+}
+
+/* Selected Option Styling */
+.smi-option:has(input:checked) {
+    border-color: #2271b1;
+    background: #f0f6fc;
+}
+
+/* Email Field */
+.smi-email-field {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid #e0e0e0;
+}
+
+.smi-email-field label {
+    display: block;
+    font-weight: 600;
+    color: #1d2327;
+    margin-bottom: 8px;
+}
+
+.smi-email-field input[type="email"] {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid #e0e0e0;
+    border-radius: 6px;
+    font-size: 14px;
+    transition: border-color 0.2s ease;
+}
+
+.smi-email-field input[type="email"]:focus {
+    outline: none;
+    border-color: #2271b1;
+    box-shadow: 0 0 0 1px #2271b1;
+}
+
+.smi-email-field .description {
+    font-size: 13px;
+    color: #666;
+    margin: 8px 0 0 0;
+    font-style: italic;
+}
+
+
+/* ==========================================================================
+   Error Messages
+   ========================================================================== */
+
+.smi-error-message {
+    text-align: center;
+    padding: 40px 20px;
+}
+
+.smi-error-text {
+    color: #d63638;
+    font-size: 16px;
+    margin: 0;
+}
+
+/* ==========================================================================
+   Success Messages
+   ========================================================================== */
+
+.smi-success-message {
+    text-align: center;
+    padding: 40px 20px;
+}
+
+.smi-success-message h3 {
+    color: #00a32a;
+    margin: 0 0 15px 0;
+}
+
+.smi-success-message p {
+    color: #666;
+    margin: 0 0 20px 0;
+}
+
+/* ==========================================================================
+   Modal Footer
+   ========================================================================== */
+
+.smi-modal-footer {
+    padding: 20px 24px;
+    border-top: 1px solid #e0e0e0;
+    background: #f8f9fa;
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+}
+
+.smi-btn {
+    padding: 10px 20px;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 100px;
+    transition: all 0.2s ease;
+}
+
+.smi-btn:focus {
+    outline: 2px solid #2271b1;
+    outline-offset: 2px;
+}
+
+.smi-btn-primary {
+    background: #2271b1;
+    color: white;
+    border-color: #2271b1;
+}
+
+.smi-btn-primary:hover:not(:disabled) {
+    background: #135e96;
+    border-color: #135e96;
+}
+
+.smi-btn-primary:disabled {
+    background: #ccc;
+    border-color: #ccc;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.smi-btn-secondary {
+    background: white;
+    color: #666;
+    border-color: #ddd;
+}
+
+.smi-btn-secondary:hover {
+    background: #f0f0f0;
+    color: #333;
+}
+
+/* ==========================================================================
+   Responsive Design
+   ========================================================================== */
+
+@media (max-width: 767px) {
+    .smi-modal-content {
+        width: 95%;
+        margin: 2vh auto;
+        max-height: 96vh;
+    }
+    
+    .smi-modal-header,
+    .smi-modal-body,
+    .smi-modal-footer {
+        padding: 16px;
+    }
+    
+    .smi-modal-title {
+        font-size: 16px;
+    }
+    
+    .smi-modal-main {
+        gap: 16px;
+    }
+    
+    .smi-modal-footer {
+        flex-direction: column-reverse;
+    }
+    
+    .smi-btn {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    /* Overlay buttons are smaller on mobile */
+    .smi-overlay-button {
+        padding: 6px 12px;
+        font-size: 12px;
+        top: 8px;
+        right: 8px;
+    }
+    
+    .smi-preview-image {
+        max-height: 150px;
+    }
+}
+
+@media (max-width: 480px) {
+    .smi-resolution-options {
+        gap: 8px;
+    }
+    
+    .smi-option {
+        padding: 12px;
+    }
+    
+    .smi-option-label strong {
+        font-size: 14px;
+    }
+    
+    .smi-option-price {
+        font-size: 14px;
+    }
+    
+    .smi-total-price {
+        font-size: 16px;
+    }
+}
+
+/* ==========================================================================
+   Accessibility Improvements
+   ========================================================================== */
+
+.smi-modal[aria-hidden="true"] {
+    display: none;
+}
+
+.smi-modal[aria-hidden="false"] {
+    display: block;
+}
+
+/* Focus management */
+.smi-modal-content:focus {
+    outline: none;
+}
+
+/* Screen reader text */
+.smi-sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .smi-get-button {
+        border: 2px solid;
+    }
+    
+    .smi-modal-content {
+        border: 2px solid;
+    }
+    
+    .smi-option {
+        border-width: 2px;
+    }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+    .smi-get-button,
+    .smi-modal-close,
+    .smi-option,
+    .smi-btn {
+        transition: none;
+    }
+    
+    .smi-spinner {
+        animation: none;
+    }
+    
+    .smi-get-button:hover {
+        transform: none;
+    }
+}
+
+/* ==========================================================================
+   Theme Integration Helpers
+   ========================================================================== */
+
+/* Ensure modal works with common WordPress themes */
+.smi-modal * {
+    box-sizing: border-box;
+}
+
+/* Override common theme styles that might interfere */
+.smi-modal button {
+    font-family: inherit;
+}
+
+.smi-modal input[type="radio"] {
+    appearance: auto;
+    -webkit-appearance: radio;
+}
+
+.smi-modal img {
+    max-width: 100%;
+    height: auto;
+}
+
+/* Dark mode support (if theme supports it) */
+@media (prefers-color-scheme: dark) {
+    .admin-color-scheme-dark .smi-modal-content,
+    .smi-modal-content[data-theme="dark"] {
+        background: #1e1e1e;
+        color: #fff;
+    }
+    
+    .admin-color-scheme-dark .smi-modal-header,
+    .admin-color-scheme-dark .smi-modal-footer,
+    .smi-modal-header[data-theme="dark"],
+    .smi-modal-footer[data-theme="dark"] {
+        background: #2a2a2a;
+        border-color: #404040;
+    }
+    
+    .admin-color-scheme-dark .smi-modal-title,
+    .smi-modal-title[data-theme="dark"] {
+        color: #fff;
+    }
+}

@@ -1,0 +1,256 @@
+/**
+ * Sell My Images - Admin Styles
+ * 
+ * Styles for the WordPress admin interface
+ * 
+ * @package SellMyImages
+ * @since 1.0.0
+ */
+
+/* ==========================================================================
+   Settings Page Styles
+   ========================================================================== */
+
+.smi-admin-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.smi-admin-header h1 {
+    margin: 0;
+}
+
+.smi-admin-logo {
+    width: 32px;
+    height: 32px;
+    background: #2271b1;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: bold;
+    font-size: 16px;
+}
+
+/* API Key Testing */
+#smi-api-test-result {
+    font-weight: 500;
+}
+
+#smi-api-test-result .dashicons {
+    margin-right: 5px;
+}
+
+/* Quick Stats Cards */
+.smi-quick-stats {
+    margin-top: 30px;
+}
+
+.smi-quick-stats h2 {
+    margin-bottom: 15px;
+    color: #1d2327;
+}
+
+.smi-stat-cards {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.smi-stat-card {
+    background: #fff;
+    border: 1px solid #ccd0d4;
+    padding: 15px;
+    border-radius: 4px;
+    min-width: 150px;
+    flex: 1;
+    max-width: 250px;
+}
+
+.smi-stat-card h3 {
+    margin: 0 0 10px 0;
+    font-size: 14px;
+    color: #666;
+    font-weight: 500;
+}
+
+.smi-stat-card .smi-stat-value {
+    font-size: 24px;
+    font-weight: bold;
+    margin: 0;
+    line-height: 1.2;
+}
+
+.smi-stat-card .smi-stat-subtitle {
+    font-size: 12px;
+    color: #666;
+    margin: 5px 0 0 0;
+}
+
+.smi-stat-card.smi-stat-orders .smi-stat-value {
+    color: #2271b1;
+}
+
+.smi-stat-card.smi-stat-completed .smi-stat-value {
+    color: #00a32a;
+}
+
+.smi-stat-card.smi-stat-revenue .smi-stat-value {
+    color: #d63638;
+}
+
+.smi-stat-card.smi-stat-storage .smi-stat-value {
+    color: #2271b1;
+    font-size: 16px;
+}
+
+/* Form Styling Improvements */
+.form-table th {
+    padding-left: 0;
+}
+
+.form-table .description {
+    font-style: italic;
+    color: #666;
+}
+
+/* Notice Styling */
+.notice.smi-notice {
+    border-left-color: #2271b1;
+}
+
+.notice.smi-notice .notice-title {
+    font-weight: 600;
+    margin-bottom: 5px;
+}
+
+/* Button Improvements */
+.button.smi-button-primary {
+    background: #2271b1;
+    border-color: #2271b1;
+    color: #fff;
+}
+
+.button.smi-button-primary:hover {
+    background: #135e96;
+    border-color: #135e96;
+}
+
+/* Testing States */
+.smi-testing {
+    opacity: 0.7;
+}
+
+.smi-test-success {
+    color: #00a32a;
+}
+
+.smi-test-error {
+    color: #d63638;
+}
+
+/* Loading Spinner for Admin */
+.smi-admin-spinner {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border: 2px solid #f3f3f3;
+    border-top: 2px solid #2271b1;
+    border-radius: 50%;
+    animation: smi-admin-spin 1s linear infinite;
+    margin-left: 8px;
+}
+
+@keyframes smi-admin-spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Responsive Admin */
+@media (max-width: 782px) {
+    .smi-stat-cards {
+        flex-direction: column;
+    }
+    
+    .smi-stat-card {
+        max-width: none;
+    }
+    
+    .smi-admin-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+}
+
+/* ==========================================================================
+   Plugin List Page Styles
+   ========================================================================== */
+
+.plugins tr[data-plugin*="sell-my-images"] .plugin-title strong {
+    position: relative;
+}
+
+.plugins tr[data-plugin*="sell-my-images"] .plugin-title strong::after {
+    content: "SMI";
+    background: #2271b1;
+    color: white;
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 3px;
+    margin-left: 8px;
+    font-weight: 500;
+}
+
+/* ==========================================================================
+   Accessibility Improvements
+   ========================================================================== */
+
+.smi-sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* Focus Management */
+.smi-focusable:focus {
+    outline: 2px solid #2271b1;
+    outline-offset: 2px;
+}
+
+/* High Contrast Support */
+@media (prefers-contrast: high) {
+    .smi-stat-card {
+        border-width: 2px;
+    }
+    
+    .button.smi-button-primary {
+        border-width: 2px;
+    }
+}
+
+/* Dark Mode Support (for admin themes that support it) */
+@media (prefers-color-scheme: dark) {
+    .admin-color-scheme-auto .smi-stat-card,
+    .admin-color-scheme-dark .smi-stat-card {
+        background: #1e1e1e;
+        border-color: #404040;
+        color: #fff;
+    }
+    
+    .admin-color-scheme-auto .smi-stat-card h3,
+    .admin-color-scheme-dark .smi-stat-card h3,
+    .admin-color-scheme-auto .smi-stat-card .smi-stat-subtitle,
+    .admin-color-scheme-dark .smi-stat-card .smi-stat-subtitle {
+        color: #ccc;
+    }
+}
