@@ -4,7 +4,7 @@ A WordPress plugin that allows content creators to monetize their images by sell
 
 ## Features
 
-- **Automatic Image Detection**: Scans post content and adds "Buy Hi-Res" buttons to all images
+- **Automatic Image Detection**: Scans post content and adds "Download Hi-Res" buttons to all images
 - **AI Upscaling**: Enhances images to higher resolutions (2x, 4x, 8x)  
 - **Secure Payments**: Stripe integration for safe transactions
 - **Protected Downloads**: Time-limited, secure download links

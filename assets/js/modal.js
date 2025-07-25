@@ -330,7 +330,8 @@
             var $details = $label.find('.smi-option-details');
             if ($details.length > 0) {
                 $details.html(
-                    'Output: ' + this.formatNumber(outputWidth) + 'x' + this.formatNumber(outputHeight) + 
+                    this.formatNumber(imageInfo.width) + '×' + this.formatNumber(imageInfo.height) + ' → ' +
+                    this.formatNumber(outputWidth) + '×' + this.formatNumber(outputHeight) + 
                     ' (' + pricing.output_megapixels + 'MP)'
                 );
             }

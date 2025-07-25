@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Plugin Overview
 
-**Sell My Images** is a WordPress plugin that monetizes website images by adding "Buy Hi-Res" buttons to content images. When clicked, users can purchase upscaled versions (2x, 4x, 8x) of images via AI upscaling and secure payment processing.
+**Sell My Images** is a WordPress plugin that monetizes website images by adding "Download Hi-Res" buttons to content images. When clicked, users can purchase upscaled versions (2x, 4x, 8x) of images via AI upscaling and secure payment processing.
 
 ## Development Notes
 

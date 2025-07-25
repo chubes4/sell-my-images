@@ -270,7 +270,7 @@ class SettingsPage {
         $value = get_option( 'smi_enabled', '1' );
         ?>
         <input type="checkbox" id="smi_enabled" name="smi_enabled" value="1" <?php checked( $value, '1' ); ?>>
-        <label for="smi_enabled"><?php esc_html_e( 'Enable "Buy Hi-Res" buttons on images', 'sell-my-images' ); ?></label>
+        <label for="smi_enabled"><?php esc_html_e( 'Enable "Download Hi-Res" buttons on images', 'sell-my-images' ); ?></label>
         <?php
     }
     
