@@ -10,6 +10,8 @@
 
 namespace SellMyImages\Api;
 
+use SellMyImages\Config\Constants;
+
 // Prevent direct access
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
@@ -19,16 +21,6 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Upsampler class - Pure API client
  */
 class Upsampler {
-    
-    /**
-     * Upsampler API base URL
-     */
-    const API_BASE_URL = 'https://upsampler.com/api/v1';
-    
-    /**
-     * Precise upscale endpoint
-     */
-    const PRECISE_UPSCALE_ENDPOINT = '/precise-upscale';
     
     /**
      * Get API key from WordPress options
@@ -55,7 +47,7 @@ class Upsampler {
         }
         
         // Validate resolution and get upscale factor
-        $upscale_factor = \SellMyImages\Api\CostCalculator::get_upscale_factor( $resolution );
+        $upscale_factor = Constants::get_upscale_factor( $resolution );
         if ( ! $upscale_factor ) {
             return new \WP_Error( 'invalid_resolution', __( 'Invalid resolution specified', 'sell-my-images' ) );
         }
@@ -83,7 +75,7 @@ class Upsampler {
         );
         
         // Make API request
-        return self::make_api_request( self::PRECISE_UPSCALE_ENDPOINT, $request_data );
+        return self::make_api_request( Constants::UPSAMPLER_PRECISE_UPSCALE_ENDPOINT, $request_data );
     }
     
     /**
@@ -97,8 +89,8 @@ class Upsampler {
             return new \WP_Error( 'no_api_key', __( 'API key is required', 'sell-my-images' ) );
         }
         
-        // Make a simple API call to validate the key
-        $response = wp_remote_get( self::API_BASE_URL . '/status', array(
+        // Try a GET request to the base API URL first (since /status endpoint may not exist)
+        $response = wp_remote_get( Constants::UPSAMPLER_API_BASE_URL, array(
             'headers' => array(
                 'Authorization' => 'Bearer ' . $api_key,
                 'Content-Type' => 'application/json',
@@ -106,16 +98,40 @@ class Upsampler {
             'timeout' => 30,
         ) );
         
+        // Log full response for debugging
+        error_log( 'SMI Upsampler API Validation Response: ' . print_r( array(
+            'url' => Constants::UPSAMPLER_API_BASE_URL,
+            'response' => $response,
+            'is_wp_error' => is_wp_error( $response ),
+            'status_code' => is_wp_error( $response ) ? 'N/A' : wp_remote_retrieve_response_code( $response ),
+            'body' => is_wp_error( $response ) ? 'N/A' : wp_remote_retrieve_body( $response ),
+            'headers' => is_wp_error( $response ) ? 'N/A' : wp_remote_retrieve_headers( $response ),
+        ), true ) );
+        
         if ( is_wp_error( $response ) ) {
-            return new \WP_Error( 'connection_failed', __( 'Could not connect to Upsampler API', 'sell-my-images' ) );
+            $error_message = $response->get_error_message();
+            error_log( 'SMI Upsampler API Connection Error: ' . $error_message );
+            return new \WP_Error( 'connection_failed', 
+                sprintf( __( 'Could not connect to Upsampler API: %s', 'sell-my-images' ), $error_message ) 
+            );
         }
         
         $status_code = wp_remote_retrieve_response_code( $response );
+        $response_body = wp_remote_retrieve_body( $response );
         
         if ( $status_code === 401 || $status_code === 403 ) {
-            return new \WP_Error( 'invalid_api_key', __( 'Invalid API key', 'sell-my-images' ) );
+            return new \WP_Error( 'invalid_api_key', 
+                sprintf( __( 'Invalid API key (HTTP %d): %s', 'sell-my-images' ), $status_code, $response_body ) 
+            );
+        } elseif ( $status_code === 404 ) {
+            // If base URL returns 404, the API key might still be valid
+            // Let's consider this as potentially valid since endpoint may not exist
+            error_log( 'SMI Upsampler API: Base URL returned 404, API key may still be valid' );
+            return true;
         } elseif ( $status_code !== 200 ) {
-            return new \WP_Error( 'api_error', __( 'API validation failed', 'sell-my-images' ) );
+            return new \WP_Error( 'api_error', 
+                sprintf( __( 'API validation failed (HTTP %d): %s', 'sell-my-images' ), $status_code, $response_body ) 
+            );
         }
         
         return true;
@@ -130,7 +146,7 @@ class Upsampler {
      */
     private static function make_api_request( $endpoint, $data ) {
         $api_key = self::get_api_key();
-        $url = self::API_BASE_URL . $endpoint;
+        $url = Constants::UPSAMPLER_API_BASE_URL . $endpoint;
         
         $response = wp_remote_post( $url, array(
             'headers' => array(

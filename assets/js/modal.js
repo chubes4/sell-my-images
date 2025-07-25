@@ -23,6 +23,8 @@
             this.modal = $('#smi-modal');
             this.bindEvents();
             this.setupModal();
+            this.injectButtons();
+            this.checkPaymentStatus();
         },
         
         /**
@@ -34,7 +36,13 @@
             // Get Hi-Res button clicks
             $(document).on('click', '.smi-get-button', function(e) {
                 e.preventDefault();
-                self.openModal($(this));
+                var $button = $(this);
+                
+                // Track the button click for analytics (fire-and-forget)
+                self.trackButtonClick($button);
+                
+                // Open the modal
+                self.openModal($button);
             });
             
             // Modal close events
@@ -82,7 +90,52 @@
                 return;
             }
             
-            // Add any additional setup here
+            // Setup Terms & Conditions link if URL is provided
+            if (smi_ajax.terms_conditions_url && smi_ajax.terms_conditions_url.trim() !== '') {
+                var $termsLink = this.modal.find('.smi-terms-link');
+                var $termsAnchor = $termsLink.find('a');
+                
+                $termsAnchor.attr('href', smi_ajax.terms_conditions_url);
+                $termsLink.removeClass('smi-hidden');
+            }
+        },
+        
+        /**
+         * Track button click for analytics
+         */
+        trackButtonClick: function($button) {
+            var attachmentId = $button.data('attachment-id');
+            var postId = $button.data('post-id');
+            
+            // Validate required data
+            if (!attachmentId || !postId) {
+                console.warn('SMI: Missing attachment-id or post-id for click tracking');
+                return;
+            }
+            
+            // Send tracking request (fire-and-forget - don't block user experience)
+            $.ajax({
+                url: wpApiSettings.root + 'smi/v1/track-button-click',
+                type: 'POST',
+                beforeSend: function(xhr) {
+                    xhr.setRequestHeader('X-WP-Nonce', wpApiSettings.nonce);
+                },
+                data: {
+                    attachment_id: attachmentId,
+                    post_id: postId
+                },
+                success: function(response) {
+                    if (console && console.debug) {
+                        console.debug('SMI: Click tracked successfully', response);
+                    }
+                },
+                error: function(xhr, status, error) {
+                    // Log but don't interrupt user experience
+                    if (console && console.warn) {
+                        console.warn('SMI: Click tracking failed', error);
+                    }
+                }
+            });
         },
         
         /**
@@ -110,7 +163,7 @@
             }
             
             // Show modal with loading state
-            this.modal.show();
+            this.modal.removeClass('smi-hidden');
             this.showLoading(true);
             this.resetModal();
             
@@ -137,7 +190,7 @@
                 return;
             }
             
-            this.modal.hide();
+            this.modal.addClass('smi-hidden');
             this.resetModal();
             this.currentImageData = null;
         },
@@ -157,7 +210,7 @@
             $('.smi-retry-container').remove();
             
             // Reset option states
-            $('.smi-option').removeClass('smi-option-disabled').show();
+            $('.smi-option').removeClass('smi-option-disabled smi-hidden');
             $('input[name="resolution"]').prop('disabled', false);
         },
         
@@ -165,14 +218,14 @@
          * Show/hide loading state
          */
         showLoading: function(show) {
-            this.modal.find('.smi-loading').toggle(show);
+            this.modal.find('.smi-loading').toggleClass('smi-hidden', !show);
         },
         
         /**
          * Show/hide main content
          */
         showMainContent: function(show) {
-            this.modal.find('.smi-modal-main').toggle(show);
+            this.modal.find('.smi-modal-main').toggleClass('smi-hidden', !show);
         },
         
         /**
@@ -183,11 +236,11 @@
             
             if (message) {
                 $errorDiv.find('.smi-error-text').text(message);
-                $errorDiv.show();
+                $errorDiv.removeClass('smi-hidden');
                 this.showLoading(false);
                 this.showMainContent(false);
             } else {
-                $errorDiv.hide();
+                $errorDiv.addClass('smi-hidden');
             }
         },
         
@@ -277,7 +330,7 @@
          * Update all resolutions with error message
          */
         updateAllResolutionsError: function(errorMsg) {
-            var resolutions = ['2x', '4x', '8x'];
+            var resolutions = ['4x', '8x'];
             var self = this;
             
             resolutions.forEach(function(resolution) {
@@ -294,7 +347,7 @@
         addRetryButton: function() {
             var $retryContainer = this.modal.find('.smi-retry-container');
             if ($retryContainer.length === 0) {
-                var retryHtml = '<div class="smi-retry-container" style="text-align: center; margin-top: 15px;">';
+                var retryHtml = '<div class="smi-retry-container">';
                 retryHtml += '<button type="button" class="smi-btn smi-btn-secondary smi-retry-pricing">Retry Pricing</button>';
                 retryHtml += '</div>';
                 
@@ -348,7 +401,7 @@
             $option.data('pricing', pricing);
             $option.data('imageInfo', imageInfo);
             
-            $label.show();
+            $label.removeClass('smi-hidden');
         },
         
         /**
@@ -367,7 +420,7 @@
             var $price = $label.find('.smi-option-price');
             if ($price.length > 0) {
                 $price.html(
-                    '<span style="color: #d63638; font-size: 12px;">' + errorMsg + '</span>'
+                    '<span class="smi-error-pricing">' + errorMsg + '</span>'
                 );
             }
             
@@ -483,12 +536,12 @@
             // Hide main content and show checkout redirect message
             this.showMainContent(false);
             
-            var checkoutHtml = '<div class="smi-checkout-redirect" style="text-align: center; padding: 20px;">';
-            checkoutHtml += '<div style="font-size: 48px; color: #0073aa; margin-bottom: 15px;">💳</div>';
-            checkoutHtml += '<h3 style="color: #0073aa; margin-bottom: 15px;">Redirecting to Payment</h3>';
+            var checkoutHtml = '<div class="smi-checkout-redirect smi-status-container">';
+            checkoutHtml += '<div class="smi-status-icon info">💳</div>';
+            checkoutHtml += '<h3 class="smi-status-title info">Redirecting to Payment</h3>';
             checkoutHtml += '<p>You will be redirected to Stripe to complete your payment of <strong>$' + data.amount.toFixed(2) + '</strong></p>';
             checkoutHtml += '<p><small>Job ID: ' + data.job_id + '</small></p>';
-            checkoutHtml += '<div style="margin-top: 20px;">';
+            checkoutHtml += '<div class="smi-button-container">';
             checkoutHtml += '<button type="button" class="smi-btn smi-btn-primary" onclick="window.location.href=\'' + data.checkout_url + '\'">Continue to Payment</button>';
             checkoutHtml += '</div>';
             checkoutHtml += '</div>';
@@ -514,9 +567,9 @@
             // Hide main content and show success message
             this.showMainContent(false);
             
-            var successHtml = '<div class="smi-success-message" style="text-align: center; padding: 20px;">';
-            successHtml += '<div style="font-size: 48px; color: #00a32a; margin-bottom: 15px;">✓</div>';
-            successHtml += '<h3 style="color: #00a32a; margin-bottom: 15px;">Processing Started!</h3>';
+            var successHtml = '<div class="smi-success-message smi-status-container">';
+            successHtml += '<div class="smi-status-icon success">✓</div>';
+            successHtml += '<h3 class="smi-status-title success">Processing Started!</h3>';
             successHtml += '<p>' + (data.message || 'Your image is being processed. You will receive an email when ready.') + '</p>';
             successHtml += '<p><small>Job ID: ' + data.job_id + '</small></p>';
             successHtml += '</div>';
@@ -558,6 +611,313 @@
          */
         formatNumber: function(num) {
             return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        },
+        
+        /**
+         * Inject download buttons into WordPress image blocks
+         */
+        injectButtons: function() {
+            var self = this;
+            console.log('SMI: Injecting buttons into image blocks');
+            
+            // Find all WordPress image blocks
+            $('.wp-block-image').each(function() {
+                var $figure = $(this);
+                var $img = $figure.find('img');
+                
+                // Skip if no image or button already exists
+                if (!$img.length || $figure.find('.smi-get-button').length) {
+                    return;
+                }
+                
+                // Extract attachment ID from img class (wp-image-XXXX)
+                var imgClasses = $img.attr('class') || '';
+                var attachmentMatch = imgClasses.match(/wp-image-(\d+)/);
+                
+                if (!attachmentMatch) {
+                    console.log('SMI: No attachment ID found for image');
+                    return;
+                }
+                
+                var attachmentId = attachmentMatch[1];
+                var postId = self.getPostId();
+                var imgSrc = $img.attr('src');
+                var imgWidth = $img.attr('width') || $img[0].naturalWidth;
+                var imgHeight = $img.attr('height') || $img[0].naturalHeight;
+                
+                // Skip very small images (likely icons)
+                if (imgWidth < 100 || imgHeight < 100) {
+                    console.log('SMI: Skipping small image:', imgWidth + 'x' + imgHeight);
+                    return;
+                }
+                
+                // Create and inject button
+                var buttonHtml = self.createButtonHtml(postId, attachmentId, imgSrc, imgWidth, imgHeight);
+                $figure.append(buttonHtml);
+                
+                console.log('SMI: Button injected for attachment ID:', attachmentId);
+            });
+        },
+        
+        /**
+         * Create button HTML
+         */
+        createButtonHtml: function(postId, attachmentId, imgSrc, imgWidth, imgHeight) {
+            return '<button class="smi-get-button" ' +
+                   'data-post-id="' + postId + '" ' +
+                   'data-attachment-id="' + attachmentId + '" ' +
+                   'data-src="' + imgSrc + '" ' +
+                   'data-width="' + imgWidth + '" ' +
+                   'data-height="' + imgHeight + '">' +
+                   '<span class="smi-button-text">Download Hi-Res</span>' +
+                   '<span class="smi-button-icon">💰</span>' +
+                   '</button>';
+        },
+        
+        /**
+         * Check for payment status in URL parameters
+         */
+        checkPaymentStatus: function() {
+            var urlParams = new URLSearchParams(window.location.search);
+            var paymentStatus = urlParams.get('smi_payment');
+            var jobId = urlParams.get('job_id');
+            var sessionId = urlParams.get('session_id');
+            
+            if (paymentStatus && jobId) {
+                // Clean up URL parameters
+                this.cleanupUrlParameters();
+                
+                if (paymentStatus === 'success') {
+                    this.handlePaymentSuccess(jobId, sessionId);
+                } else if (paymentStatus === 'cancelled') {
+                    this.handlePaymentCancelled(jobId);
+                }
+            }
+        },
+        
+        /**
+         * Clean up URL parameters after handling
+         */
+        cleanupUrlParameters: function() {
+            if (history.replaceState) {
+                var url = new URL(window.location);
+                url.searchParams.delete('smi_payment');
+                url.searchParams.delete('job_id');
+                url.searchParams.delete('session_id');
+                history.replaceState(null, '', url);
+            }
+        },
+        
+        /**
+         * Handle payment success
+         */
+        handlePaymentSuccess: function(jobId, sessionId) {
+            // Show modal with success message
+            this.modal.removeClass('smi-hidden');
+            this.showPaymentSuccess(jobId);
+            
+            // Start polling for job completion
+            this.startJobStatusPolling(jobId);
+        },
+        
+        /**
+         * Handle payment cancellation
+         */
+        handlePaymentCancelled: function(jobId) {
+            // Show modal with cancellation message
+            this.modal.removeClass('smi-hidden');
+            this.showPaymentCancelled(jobId);
+        },
+        
+        /**
+         * Show payment success state
+         */
+        showPaymentSuccess: function(jobId) {
+            this.showLoading(false);
+            this.showMainContent(false);
+            this.showError(false);
+            
+            var successHtml = '<div class="smi-payment-success smi-status-container">';
+            successHtml += '<div class="smi-status-icon success">✓</div>';
+            successHtml += '<h3 class="smi-status-title success">Payment Successful!</h3>';
+            successHtml += '<p>Your image is being processed. This may take a few minutes.</p>';
+            successHtml += '<p><small>Job ID: ' + jobId + '</small></p>';
+            successHtml += '<div class="smi-processing-status smi-button-container">';
+            successHtml += '<div class="smi-loading-spinner"></div>';
+            successHtml += '<p>Processing your image...</p>';
+            successHtml += '</div>';
+            successHtml += '</div>';
+            
+            this.modal.find('.smi-modal-body').html(successHtml);
+            
+            // Update footer
+            this.modal.find('.smi-modal-footer').html(
+                '<button type="button" class="smi-btn smi-btn-secondary smi-cancel-btn">Close</button>'
+            );
+        },
+        
+        /**
+         * Show payment cancelled state
+         */
+        showPaymentCancelled: function(jobId) {
+            this.showLoading(false);
+            this.showMainContent(false);
+            this.showError(false);
+            
+            var cancelHtml = '<div class="smi-payment-cancelled smi-status-container">';
+            cancelHtml += '<div class="smi-status-icon error">✗</div>';
+            cancelHtml += '<h3 class="smi-status-title error">Payment Cancelled</h3>';
+            cancelHtml += '<p>Your payment was cancelled. No charges were made.</p>';
+            cancelHtml += '<p><small>Job ID: ' + jobId + '</small></p>';
+            cancelHtml += '</div>';
+            
+            this.modal.find('.smi-modal-body').html(cancelHtml);
+            
+            // Update footer
+            this.modal.find('.smi-modal-footer').html(
+                '<button type="button" class="smi-btn smi-btn-primary smi-cancel-btn">Try Again</button>'
+            );
+        },
+        
+        /**
+         * Start polling for job status
+         */
+        startJobStatusPolling: function(jobId) {
+            var self = this;
+            var pollCount = 0;
+            var maxPolls = 60; // Poll for up to 10 minutes (10 second intervals)
+            
+            var poll = function() {
+                pollCount++;
+                
+                $.ajax({
+                    url: wpApiSettings.root + 'smi/v1/job-status/' + jobId,
+                    type: 'GET',
+                    beforeSend: function(xhr) {
+                        xhr.setRequestHeader('X-WP-Nonce', wpApiSettings.nonce);
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            self.updateJobStatus(response.data);
+                            
+                            if (response.data.status === 'completed') {
+                                self.showJobCompleted(response.data);
+                                return; // Stop polling
+                            } else if (response.data.status === 'failed') {
+                                self.showJobFailed(response.data);
+                                return; // Stop polling
+                            }
+                        }
+                        
+                        // Continue polling if not completed/failed and under max polls
+                        if (pollCount < maxPolls) {
+                            setTimeout(poll, 10000); // Poll every 10 seconds
+                        } else {
+                            self.showJobTimeout();
+                        }
+                    },
+                    error: function() {
+                        // Continue polling on error, but with longer interval
+                        if (pollCount < maxPolls) {
+                            setTimeout(poll, 15000); // 15 second interval on error
+                        } else {
+                            self.showJobTimeout();
+                        }
+                    }
+                });
+            };
+            
+            // Start polling after 5 seconds (give webhook time to trigger)
+            setTimeout(poll, 5000);
+        },
+        
+        /**
+         * Update job status display
+         */
+        updateJobStatus: function(jobData) {
+            var $status = this.modal.find('.smi-processing-status p');
+            
+            if (jobData.status === 'processing') {
+                $status.text('Processing your image... Please wait.');
+            } else if (jobData.status === 'pending') {
+                $status.text('Initializing processing...');
+            }
+        },
+        
+        /**
+         * Show job completed state
+         */
+        showJobCompleted: function(jobData) {
+            var completedHtml = '<div class="smi-job-completed smi-status-container">';
+            completedHtml += '<div class="smi-status-icon success">🎉</div>';
+            completedHtml += '<h3 class="smi-status-title success">Your Image is Ready!</h3>';
+            completedHtml += '<p>Your high-resolution image has been processed and sent to your email.</p>';
+            
+            if (jobData.download_url) {
+                completedHtml += '<div class="smi-download-container">';
+                completedHtml += '<a href="' + jobData.download_url + '" class="smi-btn smi-btn-primary" target="_blank">Download Now</a>';
+                completedHtml += '</div>';
+            }
+            
+            completedHtml += '<p><small>Job ID: ' + jobData.job_id + '</small></p>';
+            completedHtml += '</div>';
+            
+            this.modal.find('.smi-modal-body').html(completedHtml);
+        },
+        
+        /**
+         * Show job failed state
+         */
+        showJobFailed: function(jobData) {
+            var failedHtml = '<div class="smi-job-failed smi-status-container">';
+            failedHtml += '<div class="smi-status-icon error">❌</div>';
+            failedHtml += '<h3 class="smi-status-title error">Processing Failed</h3>';
+            failedHtml += '<p>Sorry, there was an error processing your image.</p>';
+            failedHtml += '<p>Please contact support for assistance.</p>';
+            failedHtml += '<p><small>Job ID: ' + jobData.job_id + '</small></p>';
+            failedHtml += '</div>';
+            
+            this.modal.find('.smi-modal-body').html(failedHtml);
+        },
+        
+        /**
+         * Show job timeout state
+         */
+        showJobTimeout: function() {
+            var timeoutHtml = '<div class="smi-job-timeout smi-status-container">';
+            timeoutHtml += '<div class="smi-status-icon warning">⏰</div>';
+            timeoutHtml += '<h3 class="smi-status-title warning">Processing Taking Longer</h3>';
+            timeoutHtml += '<p>Your image is still being processed. You will receive an email when it\'s ready.</p>';
+            timeoutHtml += '<p>This can take up to 15 minutes for large images.</p>';
+            timeoutHtml += '</div>';
+            
+            this.modal.find('.smi-modal-body').html(timeoutHtml);
+        },
+        
+        /**
+         * Get current post ID
+         */
+        getPostId: function() {
+            // Try to get from WordPress global variables
+            if (typeof wp !== 'undefined' && wp.data && wp.data.select) {
+                var postId = wp.data.select('core/editor').getCurrentPostId();
+                if (postId) return postId;
+            }
+            
+            // Try to get from body class
+            var bodyClasses = $('body').attr('class') || '';
+            var postIdMatch = bodyClasses.match(/postid-(\d+)/);
+            if (postIdMatch) {
+                return postIdMatch[1];
+            }
+            
+            // Fallback: look for WordPress post ID in script variables
+            if (typeof smi_ajax !== 'undefined' && smi_ajax.post_id) {
+                return smi_ajax.post_id;
+            }
+            
+            console.warn('SMI: Could not determine post ID');
+            return 0;
         }
     };
     

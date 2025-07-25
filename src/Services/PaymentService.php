@@ -94,8 +94,8 @@ class PaymentService {
             ),
             'mode' => 'payment',
             'customer_email' => $email,
-            'success_url' => home_url( '/payment-success/?session_id={CHECKOUT_SESSION_ID}&job_id=' . $job_id ),
-            'cancel_url' => home_url( '/payment-cancelled/?job_id=' . $job_id ),
+            'success_url' => $this->get_current_page_url() . '?smi_payment=success&session_id={CHECKOUT_SESSION_ID}&job_id=' . $job_id,
+            'cancel_url' => $this->get_current_page_url() . '?smi_payment=cancelled&job_id=' . $job_id,
             'metadata' => array(
                 'job_id' => $job_id,
                 'resolution' => $resolution,
@@ -111,7 +111,7 @@ class PaymentService {
             return $result;
         }
         
-        error_log( 'SMI PaymentService: Created checkout session for job: ' . $job_id . ' (Session ID: ' . $result['id'] . ')' );
+        error_log( 'SMI PaymentService: Created checkout session for job: ' . $job_id . ' (Session ID: ' . $result['session_id'] . ')' );
         
         return $result;
     }
@@ -235,9 +235,7 @@ class PaymentService {
             $this->update_job_payment_status( $job_id, 'failed' );
             
             // Also update job status to failed
-            JobManager::update_job_status( $job_id, 'failed', array(
-                'failure_reason' => $failure_reason
-            ) );
+            JobManager::update_job_status( $job_id, 'failed' );
             
             error_log( 'SMI PaymentService: Payment failed for job: ' . $job_id . ' - ' . $failure_reason );
         }
@@ -254,34 +252,50 @@ class PaymentService {
      * @return bool|WP_Error True on success, WP_Error on failure
      */
     private function update_job_payment_status( $job_id, $payment_status, $session_id = null, $payment_intent_id = null, $amount_charged = null ) {
-        $update_data = array(
-            'payment_status' => $payment_status,
-            'updated_at' => current_time( 'mysql' )
-        );
+        $payment_data = array();
         
         if ( $session_id ) {
-            $update_data['stripe_session_id'] = $session_id;
+            $payment_data['stripe_checkout_session_id'] = $session_id;
         }
         
         if ( $payment_intent_id ) {
-            $update_data['stripe_payment_intent_id'] = $payment_intent_id;
+            $payment_data['stripe_payment_intent_id'] = $payment_intent_id;
         }
         
         if ( $amount_charged ) {
-            $update_data['amount_charged'] = $amount_charged;
+            $payment_data['amount_charged'] = $amount_charged;
         }
         
-        if ( $payment_status === 'paid' ) {
-            $update_data['paid_at'] = current_time( 'mysql' );
-        }
-        
-        $result = JobManager::update_job_payment_status( $job_id, $update_data );
+        $result = JobManager::update_payment_status( $job_id, $payment_status, $payment_data );
         
         if ( is_wp_error( $result ) ) {
             error_log( 'SMI PaymentService: Failed to update payment status via JobManager - Job: ' . $job_id . ' - Error: ' . $result->get_error_message() );
         }
         
         return $result;
+    }
+    
+    /**
+     * Get current page URL for redirect
+     * 
+     * @return string Current page URL
+     */
+    private function get_current_page_url() {
+        // Try to get from HTTP_REFERER first (most reliable for checkout flow)
+        if ( ! empty( $_SERVER['HTTP_REFERER'] ) ) {
+            $referer = esc_url_raw( $_SERVER['HTTP_REFERER'] );
+            // Make sure it's from the same domain
+            if ( strpos( $referer, home_url() ) === 0 ) {
+                return $referer;
+            }
+        }
+        
+        // Fallback to current page
+        $protocol = is_ssl() ? 'https://' : 'http://';
+        $host = $_SERVER['HTTP_HOST'] ?? '';
+        $uri = $_SERVER['REQUEST_URI'] ?? '';
+        
+        return $protocol . $host . $uri;
     }
     
     /**

@@ -10,6 +10,10 @@
 
 namespace SellMyImages\Api;
 
+use SellMyImages\Managers\JobManager;
+use SellMyImages\Managers\DownloadManager;
+use SellMyImages\Managers\AnalyticsTracker;
+
 // Prevent direct access
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
@@ -94,6 +98,24 @@ class RestApi {
             ),
         ) );
         
+        // Track button click for analytics
+        register_rest_route( self::NAMESPACE, '/track-button-click', array(
+            'methods'             => 'POST',
+            'callback'            => array( $this, 'track_button_click' ),
+            'permission_callback' => '__return_true', // Public endpoint
+            'args'                => array(
+                'attachment_id' => array(
+                    'required'    => true,
+                    'type'        => 'integer',
+                    'description' => 'WordPress attachment ID for the clicked button',
+                ),
+                'post_id' => array(
+                    'required'    => true,
+                    'type'        => 'integer',
+                    'description' => 'WordPress post ID where the button was clicked',
+                ),
+            ),
+        ) );
         
         // Download processed image with token
         register_rest_route( self::NAMESPACE, '/download/(?P<token>[a-zA-Z0-9]+)', array(
@@ -105,6 +127,20 @@ class RestApi {
                     'required'    => true,
                     'type'        => 'string',
                     'description' => 'Download token for the processed image',
+                ),
+            ),
+        ) );
+        
+        // Get job status for polling
+        register_rest_route( self::NAMESPACE, '/job-status/(?P<job_id>[a-f0-9\-]+)', array(
+            'methods'             => 'GET',
+            'callback'            => array( $this, 'get_job_status' ),
+            'permission_callback' => '__return_true', // Public endpoint
+            'args'                => array(
+                'job_id' => array(
+                    'required'    => true,
+                    'type'        => 'string',
+                    'description' => 'Job ID to check status for',
                 ),
             ),
         ) );
@@ -193,9 +229,10 @@ class RestApi {
         $payment_service = new \SellMyImages\Services\PaymentService();
         $stripe_config = $payment_service->validate_configuration();
         if ( is_wp_error( $stripe_config ) ) {
+            error_log( 'SMI RestApi: Stripe configuration invalid - ' . $stripe_config->get_error_message() );
             return new \WP_Error(
                 'payment_not_configured',
-                __( 'Payment system not configured', 'sell-my-images' ),
+                __( 'Payment system not configured: ', 'sell-my-images' ) . $stripe_config->get_error_message(),
                 array( 'status' => 500 )
             );
         }
@@ -257,10 +294,13 @@ class RestApi {
         );
         
         if ( is_wp_error( $checkout_result ) ) {
+            error_log( 'SMI RestApi: Checkout creation failed - ' . $checkout_result->get_error_message() );
             // Clean up job record on failure
             JobManager::delete_job( $job_data['job_id'] );
             return $checkout_result;
         }
+        
+        error_log( 'SMI RestApi: Checkout created successfully - Job: ' . $job_data['job_id'] . ', Session: ' . ( $checkout_result['session_id'] ?? 'N/A' ) );
         
         // Update job with checkout session ID
         JobManager::update_checkout_session( $job_data['job_id'], $checkout_result['session_id'] );
@@ -274,7 +314,57 @@ class RestApi {
         ), 200 );
     }
     
-    
+    /**
+     * Track button click for analytics
+     * 
+     * @param WP_REST_Request $request Request object
+     * @return WP_REST_Response|WP_Error Response or error
+     */
+    public function track_button_click( $request ) {
+        // Check if plugin is enabled
+        if ( ! get_option( 'smi_enabled', '1' ) ) {
+            return new \WP_REST_Response( array(
+                'success' => false,
+                'message' => __( 'Plugin is currently disabled', 'sell-my-images' ),
+            ), 503 );
+        }
+        
+        $attachment_id = $request->get_param( 'attachment_id' );
+        $post_id = $request->get_param( 'post_id' );
+        
+        // Validate required parameters
+        if ( ! $attachment_id ) {
+            return new \WP_Error(
+                'missing_attachment_id',
+                __( 'Attachment ID is required', 'sell-my-images' ),
+                array( 'status' => 400 )
+            );
+        }
+        
+        if ( ! $post_id ) {
+            return new \WP_Error(
+                'missing_post_id',
+                __( 'Post ID is required', 'sell-my-images' ),
+                array( 'status' => 400 )
+            );
+        }
+        
+        // Track the click using AnalyticsTracker
+        $result = AnalyticsTracker::track_button_click( $post_id, $attachment_id );
+        
+        if ( $result ) {
+            return new \WP_REST_Response( array(
+                'success' => true,
+                'message' => __( 'Click tracked successfully', 'sell-my-images' ),
+            ), 200 );
+        } else {
+            // Return success even if tracking fails to not disrupt user experience
+            return new \WP_REST_Response( array(
+                'success' => true,
+                'message' => __( 'Click tracking attempted', 'sell-my-images' ),
+            ), 200 );
+        }
+    }
     
     /**
      * Download processed image
@@ -290,6 +380,61 @@ class RestApi {
         
         // This won't be reached as serve_download exits
         exit;
+    }
+    
+    /**
+     * Get job status for polling
+     * 
+     * @param WP_REST_Request $request Request object
+     * @return WP_REST_Response|WP_Error Response or error
+     */
+    public function get_job_status( $request ) {
+        $job_id = $request->get_param( 'job_id' );
+        
+        if ( ! $job_id ) {
+            return new \WP_Error(
+                'missing_job_id',
+                __( 'Job ID is required', 'sell-my-images' ),
+                array( 'status' => 400 )
+            );
+        }
+        
+        // Get job data using JobManager
+        $job = JobManager::get_job( $job_id );
+        
+        if ( is_wp_error( $job ) ) {
+            return new \WP_Error(
+                'job_not_found',
+                __( 'Job not found', 'sell-my-images' ),
+                array( 'status' => 404 )
+            );
+        }
+        
+        // Convert stdClass to array if needed
+        if ( is_object( $job ) ) {
+            $job = (array) $job;
+        }
+        
+        // Prepare response data
+        $response_data = array(
+            'job_id' => $job['job_id'],
+            'status' => $job['status'],
+            'payment_status' => $job['payment_status'],
+            'resolution' => $job['resolution'],
+            'created_at' => $job['created_at'],
+        );
+        
+        // Add download URL if job is completed and has a download token
+        if ( $job['status'] === 'completed' && ! empty( $job['download_token'] ) ) {
+            $response_data['download_url'] = home_url( '/wp-json/smi/v1/download/' . $job['download_token'] );
+        }
+        
+        // Note: Detailed failure reasons are logged for debugging but not exposed to users
+        
+        return new \WP_REST_Response( array(
+            'success' => true,
+            'data' => $response_data,
+        ), 200 );
     }
     
     /**

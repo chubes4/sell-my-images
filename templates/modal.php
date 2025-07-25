@@ -14,7 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 ?>
 
-<div id="smi-modal" class="smi-modal" style="display: none;">
+<div id="smi-modal" class="smi-modal smi-hidden">
     <div class="smi-modal-overlay"></div>
     <div class="smi-modal-container">
         <div class="smi-modal-content">
@@ -25,41 +25,32 @@ if ( ! defined( 'ABSPATH' ) ) {
             
             <div class="smi-modal-body">
                 <!-- Loading state -->
-                <div class="smi-loading" style="display: none;">
+                <div class="smi-loading smi-hidden">
                     <div class="smi-loading-spinner"></div>
                     <p>Loading image information...</p>
                 </div>
                 
                 <!-- Error message -->
-                <div class="smi-error-message" style="display: none;">
+                <div class="smi-error-message smi-hidden">
                     <div class="smi-error-icon">⚠️</div>
                     <div class="smi-error-text"></div>
                 </div>
                 
                 <!-- Main content -->
-                <div class="smi-modal-main" style="display: none;">
+                <div class="smi-modal-main smi-hidden">
                     <div class="smi-image-preview">
                         <img class="smi-preview-image" src="" alt="" />
                     </div>
                     
                     <div class="smi-upscale-options">
-                        <h4>Choose Resolution & Pricing</h4>
+                        <h4>Choose Quality & Pricing</h4>
                         <div class="smi-resolution-options">
-                            
-                            <label class="smi-option" for="smi-resolution-2x">
-                                <input type="radio" id="smi-resolution-2x" name="resolution" value="2x" />
-                                <div class="smi-option-label">
-                                    <strong>2x Resolution</strong>
-                                    <div class="smi-option-details">Loading dimensions...</div>
-                                </div>
-                                <div class="smi-option-price">Calculating...</div>
-                            </label>
                             
                             <label class="smi-option" for="smi-resolution-4x">
                                 <input type="radio" id="smi-resolution-4x" name="resolution" value="4x" />
                                 <div class="smi-option-label">
-                                    <strong>4x Resolution</strong>
-                                    <div class="smi-option-details">Loading dimensions...</div>
+                                    <strong>Standard Quality (4x)</strong>
+                                    <div class="smi-option-details">Perfect for photo prints up to 11×14 inches</div>
                                 </div>
                                 <div class="smi-option-price">Calculating...</div>
                             </label>
@@ -67,8 +58,8 @@ if ( ! defined( 'ABSPATH' ) ) {
                             <label class="smi-option" for="smi-resolution-8x">
                                 <input type="radio" id="smi-resolution-8x" name="resolution" value="8x" />
                                 <div class="smi-option-label">
-                                    <strong>8x Resolution</strong>
-                                    <div class="smi-option-details">Loading dimensions...</div>
+                                    <strong>Premium Quality (8x)</strong>
+                                    <div class="smi-option-details">Professional quality for large prints up to 20×30 inches</div>
                                 </div>
                                 <div class="smi-option-price">Calculating...</div>
                             </label>
@@ -85,8 +76,13 @@ if ( ! defined( 'ABSPATH' ) ) {
             </div>
             
             <div class="smi-modal-footer">
-                <button type="button" class="smi-btn smi-btn-secondary smi-cancel-btn">Cancel</button>
-                <button type="button" class="smi-btn smi-btn-primary smi-process-btn" disabled>Pay & Process</button>
+                <div class="smi-terms-link smi-hidden">
+                    <a href="" target="_blank" rel="noopener noreferrer">Terms & Conditions</a>
+                </div>
+                <div class="smi-footer-buttons">
+                    <button type="button" class="smi-btn smi-btn-secondary smi-cancel-btn">Cancel</button>
+                    <button type="button" class="smi-btn smi-btn-primary smi-process-btn" disabled>Pay & Process</button>
+                </div>
             </div>
         </div>
     </div>

@@ -11,6 +11,8 @@
 
 namespace SellMyImages\Content;
 
+use SellMyImages\Config\Constants;
+
 // Prevent direct access
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
@@ -32,8 +34,8 @@ class BlockProcessor {
      * Initialize WordPress hooks
      */
     private function init_hooks() {
-        // Filter post content to add buttons
-        add_filter( 'the_content', array( $this, 'process_content' ), 20 );
+        // Filter is used only to ensure assets load on pages with images
+        add_filter( 'the_content', array( $this, 'process_content' ), 5 );
     }
     
     /**
@@ -53,44 +55,11 @@ class BlockProcessor {
             return $content;
         }
         
-        // Skip if content doesn't have blocks
-        if ( ! has_blocks( $content ) ) {
-            return $content;
-        }
-        
-        // Parse blocks and process image blocks
-        $blocks = parse_blocks( $content );
-        $modified_blocks = $this->process_image_blocks( $blocks );
-        
-        // Return serialized content
-        return serialize_blocks( $modified_blocks );
+        // JavaScript will handle button injection - no need to modify content here
+        // This filter is only used to trigger asset loading
+        return $content;
     }
     
-    /**
-     * Process blocks to find and modify image blocks
-     * 
-     * @param array $blocks Array of parsed blocks
-     * @return array Modified blocks with buttons added
-     */
-    private function process_image_blocks( $blocks ) {
-        foreach ( $blocks as &$block ) {
-            // Process core/image blocks
-            if ( $block['blockName'] === 'core/image' ) {
-                $image_data = $this->extract_image_data_from_block( $block );
-                
-                if ( $image_data && $this->is_valid_image( $image_data ) ) {
-                    $block['innerHTML'] = $this->add_button_to_image_block( $block, $image_data );
-                }
-            }
-            
-            // Recursively process inner blocks (for columns, groups, etc.)
-            if ( ! empty( $block['innerBlocks'] ) ) {
-                $block['innerBlocks'] = $this->process_image_blocks( $block['innerBlocks'] );
-            }
-        }
-        
-        return $blocks;
-    }
     
     /**
      * Extract image data from a Gutenberg image block
@@ -139,14 +108,14 @@ class BlockProcessor {
         }
         
         // Skip very small images (probably icons)
-        $min_size = apply_filters( 'smi_min_image_size', 100 );
+        $min_size = apply_filters( 'smi_min_image_size', Constants::MIN_IMAGE_SIZE );
         if ( $image_data['width'] < $min_size || $image_data['height'] < $min_size ) {
             return false;
         }
         
         // Skip SVG images (not suitable for upscaling)
         $file_type = wp_check_filetype( $image_data['src'] );
-        if ( $file_type['type'] === 'image/svg+xml' ) {
+        if ( in_array( $file_type['type'], Constants::EXCLUDED_IMAGE_TYPES, true ) ) {
             return false;
         }
         
@@ -186,19 +155,23 @@ class BlockProcessor {
      */
     private function generate_button_html( $image_data ) {
         $button_text = apply_filters( 'smi_button_text', __( 'Download Hi-Res', 'sell-my-images' ) );
+        $post_id = get_the_ID();
         
-        return sprintf(
+        $button_html = sprintf(
             '<button class="smi-get-button" data-post-id="%d" data-attachment-id="%d" data-src="%s" data-width="%d" data-height="%d">
                 <span class="smi-button-text">%s</span>
                 <span class="smi-button-icon">💰</span>
             </button>',
-            intval( get_the_ID() ),
+            intval( $post_id ),
             intval( $image_data['attachment_id'] ),
             esc_url( $image_data['src'] ),
             intval( $image_data['width'] ),
             intval( $image_data['height'] ),
             esc_html( $button_text )
         );
+        
+        error_log( 'SMI: Generated button HTML for post ' . $post_id . ', attachment ' . $image_data['attachment_id'] );
+        return $button_html;
     }
     
     

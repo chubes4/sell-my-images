@@ -11,6 +11,8 @@
 
 namespace SellMyImages\Managers;
 
+use SellMyImages\Config\Constants;
+
 // Prevent direct access
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
@@ -21,24 +23,13 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class DownloadManager {
     
-    
-    /**
-     * Chunk size for file serving (8KB)
-     */
-    const CHUNK_SIZE = 8192;
-    
-    /**
-     * Token length in characters
-     */
-    const TOKEN_LENGTH = 64;
-    
     /**
      * Generate secure download token
      * 
      * @return string 64-character secure token
      */
     public static function generate_download_token() {
-        return wp_generate_password( 64, false, false );
+        return wp_generate_password( Constants::DOWNLOAD_TOKEN_LENGTH, false, false );
     }
     
     /**
@@ -49,7 +40,7 @@ class DownloadManager {
      */
     public static function validate_download_token( $token ) {
         // Validate token format
-        if ( empty( $token ) || ! preg_match( '/^[a-f0-9]{64}$/i', $token ) ) {
+        if ( empty( $token ) || ! preg_match( '/^[a-zA-Z0-9]{64}$/', $token ) ) {
             return new \WP_Error(
                 'invalid_token_format',
                 __( 'Invalid token format', 'sell-my-images' ),
@@ -191,7 +182,7 @@ class DownloadManager {
             exit;
         }
         
-        $chunk_size = apply_filters( 'smi_download_chunk_size', self::CHUNK_SIZE );
+        $chunk_size = apply_filters( 'smi_download_chunk_size', Constants::DOWNLOAD_CHUNK_SIZE );
         
         while ( ! feof( $handle ) ) {
             $chunk = fread( $handle, $chunk_size );
@@ -220,7 +211,7 @@ class DownloadManager {
         if ( $local_path ) {
             // Generate download token and update job
             $download_token = self::generate_download_token();
-            $expiry_hours = get_option( 'smi_download_expiry_hours', '24' );
+            $expiry_hours = get_option( 'smi_download_expiry_hours', Constants::DEFAULT_DOWNLOAD_EXPIRY_HOURS );
             $expires_at = date( 'Y-m-d H:i:s', time() + ( $expiry_hours * 3600 ) );
             
             // Update job with download info
@@ -252,25 +243,14 @@ class DownloadManager {
             return false;
         }
         
-        $download_url = rest_url( 'smi/v1/download/' . $job->download_token );
-        $expiry_date = date( 'M j, Y \a\t g:i A', strtotime( $job->download_expires_at ) );
+        // Load email template
+        $email_data = self::load_email_template( $job );
+        if ( ! $email_data ) {
+            error_log( 'SMI DownloadManager: Failed to load email template for job: ' . $job_id );
+            return false;
+        }
         
-        $subject = sprintf(
-            __( 'Your high-resolution image is ready - %s', 'sell-my-images' ),
-            get_bloginfo( 'name' )
-        );
-        
-        $message = sprintf(
-            __( "Hi there!\n\nYour %s resolution image has been processed and is ready for download.\n\nDownload your image:\n%s\n\nThis link will expire on %s.\n\nOriginal image: %s\nResolution: %s\n\nThanks for using our service!\n\n%s", 'sell-my-images' ),
-            $job->resolution,
-            $download_url,
-            $expiry_date,
-            $job->image_url,
-            $job->resolution,
-            get_bloginfo( 'name' )
-        );
-        
-        $email_sent = wp_mail( $job->email, $subject, $message );
+        $email_sent = wp_mail( $job->email, $email_data['subject'], $email_data['message'] );
         
         // Update email status
         self::update_job_email_status( $job_id, $email_sent );
@@ -309,6 +289,30 @@ class DownloadManager {
         return DatabaseManager::cleanup( 'expired_downloads' );
     }
     
+    /**
+     * Load email template with job data
+     * 
+     * @param object $job Job object
+     * @return array|false Email data array with subject and message, or false on failure
+     */
+    private static function load_email_template( $job ) {
+        $template_path = SMI_PLUGIN_DIR . 'templates/email-notification.php';
+        
+        if ( ! file_exists( $template_path ) ) {
+            return false;
+        }
+        
+        // Prepare template variables
+        $download_url = rest_url( 'smi/v1/download/' . $job->download_token );
+        $expiry_date = date( 'M j, Y \a\t g:i A', strtotime( $job->download_expires_at ) );
+        $terms_conditions_url = get_option( 'smi_terms_conditions_url', '' );
+        $site_name = get_bloginfo( 'name' );
+        
+        // Include template with variables in scope
+        $email_data = include $template_path;
+        
+        return $email_data;
+    }
     
     /**
      * Update job with download data

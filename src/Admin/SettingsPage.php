@@ -52,11 +52,6 @@ class SettingsPage {
             'sanitize_callback' => 'sanitize_text_field'
         ) );
         
-        register_setting( 'smi_settings', 'smi_upsampler_webhook_secret', array(
-            'type' => 'string',
-            'default' => '',
-            'sanitize_callback' => 'sanitize_text_field'
-        ) );
         
         register_setting( 'smi_settings', 'smi_stripe_test_mode', array(
             'type' => 'string',
@@ -104,6 +99,12 @@ class SettingsPage {
             'type' => 'number',
             'default' => 200,
             'sanitize_callback' => array( $this, 'sanitize_markup_percentage' )
+        ) );
+        
+        register_setting( 'smi_settings', 'smi_terms_conditions_url', array(
+            'type' => 'string',
+            'default' => '',
+            'sanitize_callback' => 'esc_url_raw'
         ) );
         
         // General Settings Section
@@ -165,13 +166,6 @@ class SettingsPage {
             'smi_api_section'
         );
         
-        add_settings_field(
-            'smi_upsampler_webhook_secret',
-            __( 'Upsampler Webhook Secret', 'sell-my-images' ),
-            array( $this, 'upsampler_webhook_secret_field_callback' ),
-            'smi_settings',
-            'smi_api_section'
-        );
         
         // Stripe Settings
         add_settings_field(
@@ -239,6 +233,14 @@ class SettingsPage {
             'smi_settings',
             'smi_stripe_section'
         );
+        
+        add_settings_field(
+            'smi_terms_conditions_url',
+            __( 'Terms & Conditions URL', 'sell-my-images' ),
+            array( $this, 'terms_conditions_url_field_callback' ),
+            'smi_settings',
+            'smi_download_section'
+        );
     }
     
     /**
@@ -251,6 +253,11 @@ class SettingsPage {
     public function api_section_callback() {
         echo '<p>' . esc_html__( 'Configure your Upsampler API key for image upscaling functionality.', 'sell-my-images' ) . '</p>';
         echo '<p><a href="https://upsampler.com" target="_blank">' . esc_html__( 'Get your free API key from Upsampler.com', 'sell-my-images' ) . '</a></p>';
+        echo '<p class="description">';
+        echo '<strong>' . esc_html__( 'Webhook URL:', 'sell-my-images' ) . '</strong> ';
+        echo '<code>' . esc_url( home_url( '/smi-webhook/upsampler/' ) ) . '</code>';
+        echo '<br>' . esc_html__( 'Use this URL in your Upsampler webhook configuration. No authentication required.', 'sell-my-images' );
+        echo '</p>';
     }
     
     public function stripe_section_callback() {
@@ -288,22 +295,6 @@ class SettingsPage {
         <?php
     }
     
-    /**
-     * Upsampler webhook secret field callback
-     */
-    public function upsampler_webhook_secret_field_callback() {
-        $value = get_option( 'smi_upsampler_webhook_secret', '' );
-        ?>
-        <input type="password" id="smi_upsampler_webhook_secret" name="smi_upsampler_webhook_secret" value="<?php echo esc_attr( $value ); ?>" class="regular-text" placeholder="your-secret-key" />
-        <p class="description">
-            <?php esc_html_e( 'Secret key for authenticating Upsampler webhooks. Use this in your Upsampler webhook configuration as Authorization header or X-Webhook-Secret header.', 'sell-my-images' ); ?>
-        </p>
-        <p class="description">
-            <strong><?php esc_html_e( 'Webhook URL:', 'sell-my-images' ); ?></strong> 
-            <code><?php echo esc_url( home_url( '/smi-webhook/upsampler/' ) ); ?></code>
-        </p>
-        <?php
-    }
     
     public function stripe_test_mode_field_callback() {
         $value = get_option( 'smi_stripe_test_mode', '1' );
@@ -379,19 +370,29 @@ class SettingsPage {
     }
     
     public function markup_percentage_field_callback() {
-        $value = get_option( 'smi_markup_percentage', '200' );
+        $value = get_option( 'smi_markup_percentage', '500' );
         ?>
-        <input type="number" id="smi_markup_percentage" name="smi_markup_percentage" value="<?php echo esc_attr( $value ); ?>" class="small-text" step="1" min="50" max="500" />
+        <input type="number" id="smi_markup_percentage" name="smi_markup_percentage" value="<?php echo esc_attr( $value ); ?>" class="small-text" step="1" min="50" max="1200" />
         <span>%</span>
         <p class="description">
             <?php esc_html_e( 'Markup percentage applied to Upsampler costs. Upsampler charges $0.04/credit (hardcoded).', 'sell-my-images' ); ?><br>
-            <?php printf( esc_html__( 'Current setting: Customer pays %s%% more than our cost. Default: 200%% (3x total price)', 'sell-my-images' ), '<span id="markup-display">' . esc_html( $value ) . '</span>' ); ?>
+            <?php printf( esc_html__( 'Current setting: Customer pays %s%% more than our cost. Default: 500%% (6x total price). Minimum $0.50 enforced for Stripe.', 'sell-my-images' ), '<span id="markup-display">' . esc_html( $value ) . '</span>' ); ?>
         </p>
         <script>
         document.getElementById('smi_markup_percentage').addEventListener('input', function() {
             document.getElementById('markup-display').textContent = this.value;
         });
         </script>
+        <?php
+    }
+    
+    public function terms_conditions_url_field_callback() {
+        $value = get_option( 'smi_terms_conditions_url', '' );
+        ?>
+        <input type="url" id="smi_terms_conditions_url" name="smi_terms_conditions_url" value="<?php echo esc_attr( $value ); ?>" class="regular-text" placeholder="https://yoursite.com/terms" />
+        <p class="description">
+            <?php esc_html_e( 'Optional: Link to your Terms & Conditions page. If provided, a link will appear in the purchase modal and download emails.', 'sell-my-images' ); ?>
+        </p>
         <?php
     }
     
@@ -418,8 +419,8 @@ class SettingsPage {
      */
     public function sanitize_markup_percentage( $value ) {
         $value = intval( $value );
-        if ( $value < 50 || $value > 500 ) {
-            $value = 200;
+        if ( $value < 50 || $value > 1200 ) {
+            $value = 500;
         }
         return $value;
     }

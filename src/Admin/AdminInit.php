@@ -10,6 +10,10 @@
 
 namespace SellMyImages\Admin;
 
+use SellMyImages\Config\Constants;
+use SellMyImages\Api\StripeApi;
+use SellMyImages\Api\Upsampler;
+
 // Prevent direct access
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
@@ -45,6 +49,9 @@ class AdminInit {
         
         // Add admin notices
         add_action( 'admin_notices', array( $this, 'show_admin_notices' ) );
+        
+        // Add startup health check
+        add_action( 'admin_init', array( $this, 'run_health_check' ) );
         
         // Handle AJAX requests for admin
         add_action( 'wp_ajax_smi_test_api_key', array( $this, 'ajax_test_api_key' ) );
@@ -267,5 +274,195 @@ class AdminInit {
         );
         
         set_transient( 'smi_admin_notices', $notices, 300 ); // 5 minutes
+    }
+    
+    /**
+     * Run configuration health check
+     */
+    public function run_health_check() {
+        // Only run health check once per day
+        $last_check = get_transient( 'smi_last_health_check' );
+        if ( $last_check ) {
+            return;
+        }
+        
+        // Set flag to prevent frequent checks
+        set_transient( 'smi_last_health_check', time(), DAY_IN_SECONDS );
+        
+        $issues = $this->validate_configuration();
+        
+        if ( ! empty( $issues ) ) {
+            foreach ( $issues as $issue ) {
+                self::add_admin_notice( $issue['message'], $issue['type'] );
+            }
+        }
+    }
+    
+    /**
+     * Validate complete plugin configuration
+     * 
+     * @return array Array of configuration issues
+     */
+    public function validate_configuration() {
+        $issues = array();
+        
+        // Check if plugin is enabled
+        if ( ! get_option( 'smi_enabled', '1' ) ) {
+            return $issues; // Skip other checks if plugin is disabled
+        }
+        
+        // Validate Upsampler configuration
+        $upsampler_issues = $this->validate_upsampler_config();
+        $issues = array_merge( $issues, $upsampler_issues );
+        
+        // Validate Stripe configuration
+        $stripe_issues = $this->validate_stripe_config();
+        $issues = array_merge( $issues, $stripe_issues );
+        
+        // Validate WordPress environment
+        $wp_issues = $this->validate_wordpress_environment();
+        $issues = array_merge( $issues, $wp_issues );
+        
+        // Validate database tables
+        $db_issues = $this->validate_database_tables();
+        $issues = array_merge( $issues, $db_issues );
+        
+        return $issues;
+    }
+    
+    /**
+     * Validate Upsampler configuration
+     * 
+     * @return array Issues found
+     */
+    private function validate_upsampler_config() {
+        $issues = array();
+        
+        $api_key = get_option( 'smi_upsampler_api_key', '' );
+        
+        if ( empty( $api_key ) ) {
+            $issues[] = array(
+                'type' => 'error',
+                'message' => __( 'Upsampler API key is not configured. Image upscaling will not work.', 'sell-my-images' ),
+            );
+        } else {
+            // Test API key validity (but don't block if it fails)
+            $result = Upsampler::validate_api_key( $api_key );
+            if ( is_wp_error( $result ) ) {
+                $issues[] = array(
+                    'type' => 'warning',
+                    'message' => sprintf( __( 'Upsampler API key validation failed: %s', 'sell-my-images' ), $result->get_error_message() ),
+                );
+            }
+        }
+        
+        return $issues;
+    }
+    
+    /**
+     * Validate Stripe configuration
+     * 
+     * @return array Issues found
+     */
+    private function validate_stripe_config() {
+        $issues = array();
+        
+        $test_mode = get_option( 'smi_stripe_test_mode', '1' );
+        
+        if ( $test_mode ) {
+            $secret_key = get_option( 'smi_stripe_test_secret_key', '' );
+            $publishable_key = get_option( 'smi_stripe_test_publishable_key', '' );
+            $mode_name = 'test';
+        } else {
+            $secret_key = get_option( 'smi_stripe_live_secret_key', '' );
+            $publishable_key = get_option( 'smi_stripe_live_publishable_key', '' );
+            $mode_name = 'live';
+        }
+        
+        if ( empty( $secret_key ) || empty( $publishable_key ) ) {
+            $issues[] = array(
+                'type' => 'error',
+                'message' => sprintf( __( 'Stripe %s mode keys are not configured. Payments will not work.', 'sell-my-images' ), $mode_name ),
+            );
+        } else {
+            // Test Stripe configuration
+            $result = StripeApi::validate_configuration();
+            if ( is_wp_error( $result ) ) {
+                $issues[] = array(
+                    'type' => 'warning',
+                    'message' => sprintf( __( 'Stripe configuration validation failed: %s', 'sell-my-images' ), $result->get_error_message() ),
+                );
+            }
+        }
+        
+        return $issues;
+    }
+    
+    /**
+     * Validate WordPress environment
+     * 
+     * @return array Issues found
+     */
+    private function validate_wordpress_environment() {
+        $issues = array();
+        
+        // Check PHP version
+        if ( version_compare( PHP_VERSION, '7.4', '<' ) ) {
+            $issues[] = array(
+                'type' => 'error',
+                'message' => sprintf( __( 'PHP version %s is not supported. Please upgrade to PHP 7.4 or higher.', 'sell-my-images' ), PHP_VERSION ),
+            );
+        }
+        
+        // Check WordPress version
+        global $wp_version;
+        if ( version_compare( $wp_version, '5.0', '<' ) ) {
+            $issues[] = array(
+                'type' => 'error',
+                'message' => sprintf( __( 'WordPress version %s is not supported. Please upgrade to WordPress 5.0 or higher.', 'sell-my-images' ), $wp_version ),
+            );
+        }
+        
+        // Check if SSL is enabled for live mode
+        if ( ! get_option( 'smi_stripe_test_mode', '1' ) && ! is_ssl() ) {
+            $issues[] = array(
+                'type' => 'error',
+                'message' => __( 'SSL is required for live payment processing. Please enable HTTPS.', 'sell-my-images' ),
+            );
+        }
+        
+        // Check upload directory writable
+        $upload_dir = wp_upload_dir();
+        if ( ! wp_is_writable( $upload_dir['basedir'] ) ) {
+            $issues[] = array(
+                'type' => 'error',
+                'message' => __( 'Upload directory is not writable. File downloads will not work.', 'sell-my-images' ),
+            );
+        }
+        
+        return $issues;
+    }
+    
+    /**
+     * Validate database tables
+     * 
+     * @return array Issues found
+     */
+    private function validate_database_tables() {
+        $issues = array();
+        
+        global $wpdb;
+        
+        $table_name = $wpdb->prefix . 'smi_jobs';
+        $table_exists = $wpdb->get_var( $wpdb->prepare( "SHOW TABLES LIKE %s", $table_name ) );
+        
+        if ( ! $table_exists ) {
+            $issues[] = array(
+                'type' => 'error',
+                'message' => __( 'Database table is missing. Please deactivate and reactivate the plugin.', 'sell-my-images' ),
+            );
+        }
+        
+        return $issues;
     }
 }

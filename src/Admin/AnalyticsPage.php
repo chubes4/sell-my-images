@@ -10,6 +10,8 @@
 
 namespace SellMyImages\Admin;
 
+use SellMyImages\Managers\AnalyticsTracker;
+
 // Prevent direct access
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
@@ -69,7 +71,10 @@ class AnalyticsPage {
         $raw_data = $wpdb->get_results( $query );
         
         // Organize data by post with attachments nested
-        return $this->organize_analytics_data( $raw_data );
+        $analytics_data = $this->organize_analytics_data( $raw_data );
+        
+        // Enhance with click tracking data
+        return AnalyticsTracker::enhance_with_conversion_data( $analytics_data );
     }
     
     /**
@@ -178,7 +183,10 @@ class AnalyticsPage {
             WHERE payment_status = 'paid'
         ";
         
-        return $wpdb->get_row( $query );
+        $summary_stats = $wpdb->get_row( $query );
+        
+        // Enhance with click tracking data
+        return AnalyticsTracker::enhance_summary_stats( $summary_stats );
     }
     
     /**
@@ -397,6 +405,18 @@ class AnalyticsPage {
                 <span class="smi-stat-value"><?php echo esc_html( number_format( $stats->unique_customers ?: 0 ) ); ?></span>
                 <div class="smi-stat-label"><?php esc_html_e( 'Unique Customers', 'sell-my-images' ); ?></div>
             </div>
+            
+            <div class="smi-stat-card">
+                <span class="smi-stat-value"><?php echo esc_html( number_format( $stats->total_clicks ?: 0 ) ); ?></span>
+                <div class="smi-stat-label"><?php esc_html_e( 'Total Button Clicks', 'sell-my-images' ); ?></div>
+            </div>
+            
+            <div class="smi-stat-card">
+                <span class="smi-stat-value">
+                    <?php echo esc_html( number_format( $stats->avg_conversion_rate ?: 0, 1 ) ); ?>%
+                </span>
+                <div class="smi-stat-label"><?php esc_html_e( 'Conversion Rate', 'sell-my-images' ); ?></div>
+            </div>
         </div>
         <?php
     }
@@ -437,6 +457,16 @@ class AnalyticsPage {
                             <div>
                                 <strong><?php echo esc_html( $post_data->total_sales ); ?></strong><br>
                                 <small><?php esc_html_e( 'Sales', 'sell-my-images' ); ?></small>
+                            </div>
+                            <div>
+                                <strong><?php echo esc_html( number_format( $post_data->total_clicks ?: 0 ) ); ?></strong><br>
+                                <small><?php esc_html_e( 'Clicks', 'sell-my-images' ); ?></small>
+                            </div>
+                            <div>
+                                <strong>
+                                    <?php echo esc_html( number_format( $post_data->conversion_rate ?: 0, 1 ) ); ?>%
+                                </strong><br>
+                                <small><?php esc_html_e( 'Conversion', 'sell-my-images' ); ?></small>
                             </div>
                             <div>
                                 <strong>
@@ -496,6 +526,8 @@ class AnalyticsPage {
                                         <div class="smi-revenue">$<?php echo esc_html( number_format( $attachment->revenue, 2 ) ); ?></div>
                                         <div style="color: #00a32a;">$<?php echo esc_html( number_format( $attachment->profit ?: 0, 2 ) ); ?> profit</div>
                                         <div><?php printf( esc_html__( '%d sales', 'sell-my-images' ), $attachment->sales_count ); ?></div>
+                                        <div><?php printf( esc_html__( '%d clicks', 'sell-my-images' ), $attachment->click_count ?: 0 ); ?></div>
+                                        <div><?php printf( esc_html__( '%.1f%% conversion', 'sell-my-images' ), $attachment->conversion_rate ?: 0 ); ?></div>
                                         <div><?php printf( esc_html__( '$%s avg', 'sell-my-images' ), number_format( $attachment->avg_price, 2 ) ); ?></div>
                                     </div>
                                 </div>

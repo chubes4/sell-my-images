@@ -76,8 +76,9 @@ class StripeApi {
             $session = \Stripe\Checkout\Session::create( $session_data );
             
             return array(
-                'id' => $session->id,
-                'url' => $session->url,
+                'session_id' => $session->id,
+                'checkout_url' => $session->url,
+                'amount' => $session->amount_total / 100, // Convert cents to dollars
                 'payment_intent' => $session->payment_intent,
                 'customer_email' => $session->customer_email,
                 'amount_total' => $session->amount_total,
@@ -118,6 +119,7 @@ class StripeApi {
             $event = \Stripe\Webhook::constructEvent( $payload, $signature, $endpoint_secret );
             return $event;
         } catch ( \UnexpectedValueException $e ) {
+            error_log( 'SMI StripeApi: UnexpectedValueException - ' . $e->getMessage() );
             return new \WP_Error( 'invalid_payload', 'Invalid webhook payload: ' . $e->getMessage() );
         } catch ( \Stripe\Exception\SignatureVerificationException $e ) {
             return new \WP_Error( 'invalid_signature', 'Invalid webhook signature: ' . $e->getMessage() );

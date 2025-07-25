@@ -11,6 +11,8 @@
 
 namespace SellMyImages\Managers;
 
+use SellMyImages\Config\Constants;
+
 // Prevent direct access
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
@@ -20,21 +22,6 @@ if ( ! defined( 'ABSPATH' ) ) {
  * JobManager class
  */
 class JobManager {
-    
-    /**
-     * Valid job statuses
-     */
-    const VALID_STATUSES = array( 'pending', 'processing', 'completed', 'failed' );
-    
-    /**
-     * Valid payment statuses
-     */
-    const VALID_PAYMENT_STATUSES = array( 'pending', 'paid', 'failed' );
-    
-    /**
-     * Valid resolutions
-     */
-    const VALID_RESOLUTIONS = array( '2x', '4x', '8x' );
     
     /**
      * Status transitions matrix
@@ -277,7 +264,7 @@ class JobManager {
      */
     public static function update_job_status( $job_id, $new_status, $additional_data = array() ) {
         // Validate new status
-        if ( ! in_array( $new_status, self::VALID_STATUSES, true ) ) {
+        if ( ! Constants::is_valid_job_status( $new_status ) ) {
             return new \WP_Error(
                 'invalid_status',
                 __( 'Invalid job status', 'sell-my-images' ),
@@ -334,7 +321,7 @@ class JobManager {
      */
     public static function update_payment_status( $job_id, $payment_status, $payment_data = array() ) {
         // Validate payment status
-        if ( ! in_array( $payment_status, self::VALID_PAYMENT_STATUSES, true ) ) {
+        if ( ! Constants::is_valid_payment_status( $payment_status ) ) {
             return new \WP_Error(
                 'invalid_payment_status',
                 __( 'Invalid payment status', 'sell-my-images' ),
@@ -458,7 +445,7 @@ class JobManager {
      * @return array|WP_Error Jobs array or error
      */
     public static function get_jobs_by_status( $status, $limit = null ) {
-        if ( ! in_array( $status, self::VALID_STATUSES, true ) ) {
+        if ( ! Constants::is_valid_job_status( $status ) ) {
             return new \WP_Error(
                 'invalid_status',
                 __( 'Invalid job status', 'sell-my-images' ),
@@ -539,7 +526,7 @@ class JobManager {
         }
         
         // Validate resolution
-        if ( ! in_array( $job_data['resolution'], self::VALID_RESOLUTIONS, true ) ) {
+        if ( ! Constants::is_valid_resolution( $job_data['resolution'] ) ) {
             return new \WP_Error(
                 'invalid_resolution',
                 __( 'Invalid resolution specified', 'sell-my-images' ),
@@ -689,17 +676,12 @@ class JobManager {
                 break;
                 
             case 'completed':
-                // Job completed - this is now handled by DownloadManager
-                if ( isset( $additional_data['upscaled_file_path'] ) ) {
-                    // Let DownloadManager handle file storage and notifications
-                    DownloadManager::store_processed_file( $additional_data['upscaled_file_path'], $job_id );
-                }
+                // Job completed - file storage and notifications handled by UpscalingService
                 break;
                 
             case 'failed':
-                // Job failed - log failure reason if provided
-                $reason = isset( $additional_data['failure_reason'] ) ? $additional_data['failure_reason'] : 'Unknown';
-                error_log( sprintf( 'SMI JobManager: Job failed - ID: %s, Reason: %s', $job_id, $reason ) );
+                // Job failed - detailed reason should be logged by the calling service
+                error_log( sprintf( 'SMI JobManager: Job status updated to failed - ID: %s', $job_id ) );
                 break;
         }
         
@@ -713,7 +695,10 @@ class JobManager {
      * @param int $days Days to keep failed jobs (default: 7)
      * @return int Number of jobs cleaned up
      */
-    private static function cleanup_failed_jobs( $days = 7 ) {
+    private static function cleanup_failed_jobs( $days = null ) {
+        if ( $days === null ) {
+            $days = Constants::DEFAULT_FAILED_JOB_CLEANUP_DAYS;
+        }
         return DatabaseManager::cleanup( 'failed', array( 'days' => $days ) );
     }
     
@@ -723,7 +708,10 @@ class JobManager {
      * @param int $hours Hours to keep pending jobs (default: 24)
      * @return int Number of jobs cleaned up
      */
-    private static function cleanup_abandoned_jobs( $hours = 24 ) {
+    private static function cleanup_abandoned_jobs( $hours = null ) {
+        if ( $hours === null ) {
+            $hours = Constants::DEFAULT_ABANDONED_JOB_CLEANUP_HOURS;
+        }
         return DatabaseManager::cleanup( 'abandoned', array( 'hours' => $hours ) );
     }
 }

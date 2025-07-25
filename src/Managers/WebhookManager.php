@@ -10,6 +10,8 @@
 
 namespace SellMyImages\Managers;
 
+use SellMyImages\Config\Constants;
+
 // Prevent direct access
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
@@ -59,6 +61,14 @@ class WebhookManager {
     public static function register_rewrite_rules() {
         // Rules are registered when webhooks are registered
         // This ensures proper order and prevents conflicts
+    }
+    
+    /**
+     * Flush rewrite rules (for debugging)
+     */
+    public static function flush_rules() {
+        flush_rewrite_rules();
+        error_log( 'SMI WebhookManager: Rewrite rules flushed' );
     }
     
     /**
@@ -133,7 +143,7 @@ class WebhookManager {
      */
     public static function read_webhook_payload( $max_size = null ) {
         if ( $max_size === null ) {
-            $max_size = apply_filters( 'smi_max_webhook_payload_size', 1024 * 1024 ); // 1MB default
+            $max_size = apply_filters( 'smi_max_webhook_payload_size', Constants::MAX_WEBHOOK_PAYLOAD_SIZE );
         }
         
         $payload = file_get_contents( 'php://input', false, null, 0, $max_size );

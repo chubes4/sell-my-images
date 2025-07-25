@@ -81,13 +81,13 @@ class SellMyImages {
      * Plugin initialization
      */
     public function init() {
-        // Initialize admin functionality
-        if ( is_admin() ) {
+        // Initialize admin functionality (only for actual admin pages, not AJAX)
+        if ( is_admin() && ! wp_doing_ajax() ) {
             $this->init_admin();
         }
         
-        // Initialize frontend functionality
-        if ( ! is_admin() ) {
+        // Initialize frontend functionality (for frontend AND AJAX requests)
+        if ( ! is_admin() || wp_doing_ajax() ) {
             $this->init_frontend();
         }
     }
@@ -132,10 +132,7 @@ class SellMyImages {
             return;
         }
         
-        // Only load assets if the current post has image blocks
-        if ( ! \SellMyImages\Content\BlockProcessor::post_has_image_blocks() ) {
-            return;
-        }
+        // Load assets on all singular posts (JavaScript will determine which images get buttons)
         
         wp_enqueue_script(
             'smi-modal',
@@ -156,11 +153,13 @@ class SellMyImages {
         wp_localize_script( 'smi-modal', 'smi_ajax', array(
             'ajax_url' => admin_url( 'admin-ajax.php' ),
             'nonce'    => wp_create_nonce( 'smi_nonce' ),
+            'post_id'  => get_the_ID(), // Add current post ID for JavaScript
             'strings'  => array(
                 'processing' => __( 'Processing...', 'sell-my-images' ),
                 'error'      => __( 'An error occurred. Please try again.', 'sell-my-images' ),
                 'download'   => __( 'Download', 'sell-my-images' ),
             ),
+            'terms_conditions_url' => get_option( 'smi_terms_conditions_url', '' ),
         ) );
         
         // Add REST API settings for modal JavaScript
@@ -223,7 +222,7 @@ class SellMyImages {
      */
     public function activate() {
         // Create database tables using DatabaseManager
-        if ( ! \SellMyImages\Api\DatabaseManager::create_tables() ) {
+        if ( ! \SellMyImages\Managers\DatabaseManager::create_tables() ) {
             error_log( 'SMI: Failed to create database tables during activation' );
         }
         
@@ -247,19 +246,7 @@ class SellMyImages {
      * Set default plugin options
      */
     private function set_default_options() {
-        $default_options = array(
-            'smi_enabled'                      => '1',
-            'smi_upsampler_api_key'            => '',
-            'smi_upsampler_webhook_secret'     => '',
-            'smi_stripe_test_mode'             => '1',
-            'smi_stripe_test_publishable_key'  => '',
-            'smi_stripe_test_secret_key'       => '',
-            'smi_stripe_live_publishable_key'  => '',
-            'smi_stripe_live_secret_key'       => '',
-            'smi_stripe_webhook_secret'        => '',
-            'smi_download_expiry_hours'        => '24',
-            'smi_markup_percentage'            => '200',
-        );
+        $default_options = \SellMyImages\Config\Constants::DEFAULT_OPTIONS;
         
         foreach ( $default_options as $option_name => $option_value ) {
             if ( ! get_option( $option_name ) ) {

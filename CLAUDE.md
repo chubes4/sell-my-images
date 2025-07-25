@@ -34,6 +34,7 @@ All classes follow PSR-4 autoloading under the `SellMyImages\` namespace:
 - `SellMyImages\Managers\DownloadManager` - Secure token-based downloads using `wp_generate_password()`
 - `SellMyImages\Managers\FileManager` - File operations with WordPress standards
 - `SellMyImages\Managers\WebhookManager` - Shared webhook utilities and security
+- `SellMyImages\Managers\AnalyticsTracker` - Post meta-based click tracking and conversion rate analytics
 
 **Services Layer:**
 - `SellMyImages\Services\PaymentService` - Payment workflow coordination and business logic, uses StripeApi for HTTP calls
@@ -58,13 +59,20 @@ All classes follow PSR-4 autoloading under the `SellMyImages\` namespace:
 3. Inject buttons with `data-attachment-id="{id}"` and `data-post-id="{post_id}"`
 4. `serialize_blocks()` → return modified content
 
+**Click Tracking & Analytics Pipeline:**
+1. Button click → JavaScript `trackButtonClick()` → AJAX call to `/track-button-click`
+2. `AnalyticsTracker::track_button_click()` → increment post meta click counts
+3. First click on post initializes analytics table with creation timestamp
+4. Click data stored in `_smi_click_analytics` post meta as serialized array
+
 **Payment & Processing Workflow:**
 1. Frontend captures attachment_id and post_id directly from button data attributes
-2. **Price Calculation**: `/calculate-all-prices` with both attachment_id and post_id
-3. **Checkout Creation**: `/create-checkout` → RestApi → PaymentService → StripeApi → creates job with post_id tracking
-4. **Payment Verification**: Stripe webhook → PaymentService → job status 'paid' → triggers `smi_payment_completed` action
-5. **Upscaling Processing**: UpscalingService handles `smi_payment_completed` → Upsampler API → external job_id linking
-6. **Fulfillment**: DownloadManager → secure download tokens via `wp_generate_password()`
+2. **Click Tracking**: Fire-and-forget AJAX call to track button interaction
+3. **Price Calculation**: `/calculate-all-prices` with both attachment_id and post_id
+4. **Checkout Creation**: `/create-checkout` → RestApi → PaymentService → StripeApi → creates job with post_id tracking
+5. **Payment Verification**: Stripe webhook → PaymentService → job status 'paid' → triggers `smi_payment_completed` action
+6. **Upscaling Processing**: UpscalingService handles `smi_payment_completed` → Upsampler API → external job_id linking
+7. **Fulfillment**: DownloadManager → secure download tokens via `wp_generate_password()`
 
 **Webhook System:**
 - Custom rewrite rules bypass WordPress routing: `/smi-webhook/stripe/` and `/smi-webhook/upsampler/`
@@ -117,13 +125,24 @@ Complete job tracking with payment, processing status, and **analytics support**
 ### Analytics Architecture
 - **Post-Centric Display**: `AnalyticsPage` organizes data by post_id at top level with expandable attachment details
 - **Profit Calculations**: Real-time profit margins calculated from `amount_charged - amount_cost`
-- **Summary Statistics**: Total revenue, profit, sales count, profit margins, and customer metrics
+- **Click Tracking**: Post meta-based system using `_smi_click_analytics` for button interaction tracking
+- **Conversion Analytics**: Click-to-purchase rates calculated per post and per attachment
+- **Summary Statistics**: Total revenue, profit, sales count, profit margins, click counts, and conversion rates
 - **Database Optimization**: Uses composite indexes (`post_id`, `attachment_id`) for efficient queries
+
+### Click Tracking System
+- **Storage Method**: WordPress post meta (`_smi_click_analytics`) with serialized array structure
+- **Data Structure**: `array('attachment_123' => count, 'total_clicks' => total, 'first_click_date' => timestamp)`
+- **Automatic Initialization**: First click on post creates analytics baseline
+- **Conversion Metrics**: Calculates click-to-purchase ratios for optimization insights
+- **Performance**: No database schema changes, uses WordPress native post meta system
 
 ### Payment & Webhook Testing
 - **Stripe CLI**: `stripe listen --forward-to=https://yoursite.com/smi-webhook/stripe/`
-- **Test webhooks directly**: Stripe and Upsampler endpoints at `/smi-webhook/` paths
-- **Payment flow testing**: Success/cancel URLs with session_id/job_id parameters
+- **Critical**: Stripe CLI must run in persistent terminal (not tool calls) to forward webhook events
+- **Webhook Secret**: Copy signing secret from CLI output and add to WordPress settings at Admin → Sell My Images → Stripe Webhook Secret
+- **Test Flow**: Create real job via "Download Hi-Res" button → complete Stripe checkout → webhook processes payment → triggers upscaling
+- **Webhook Endpoints**: `/smi-webhook/stripe/` and `/smi-webhook/upsampler/` routes bypass WordPress and go directly to service handlers
 
 ## Key WordPress Integrations & Standards
 
@@ -219,3 +238,39 @@ PaymentService expects specific CostCalculator output format:
 - **SSL Requirements**: Stripe requires HTTPS for live payments and webhooks
 - **Webhook Security**: Both Stripe and Upsampler webhooks must be publicly accessible
 - **Job Linking**: Dual ID system links internal jobs to external Upsampler job IDs
+
+## Common Development Issues & Solutions
+
+### Namespace Import Requirements
+**Critical**: All cross-namespace class references must include proper `use` statements:
+- RestApi requires: `use SellMyImages\Managers\JobManager;` and `use SellMyImages\Managers\DownloadManager;`
+- Services classes have proper imports but verify when adding new dependencies
+- Main plugin file references: `\SellMyImages\Managers\DatabaseManager::create_tables()` (not Api namespace)
+
+### Method Signature Compatibility
+**PaymentService Integration**: When calling JobManager from PaymentService:
+- Correct: `JobManager::update_payment_status($job_id, $payment_status, $payment_data)`
+- Incorrect: `JobManager::update_job_payment_status($job_id, $update_data)` (method doesn't exist)
+
+### Security Token Validation
+**Download Tokens**: Generated with `wp_generate_password(64, false, false)` (alphanumeric only)
+- Validation regex: `/^[a-zA-Z0-9]{64}$/` (not hex-only `/^[a-f0-9]{64}$/i`)
+- Token length: exactly 64 characters
+
+### Database Field Consistency
+**Stripe Integration**: Use standardized field names across all classes:
+- Database field: `stripe_checkout_session_id` (not `stripe_session_id`)
+- PaymentService must use correct field names when building update arrays
+
+### Error Handling Philosophy
+**Simplified Error Management**: The system uses streamlined error handling without overengineering:
+- **Job Status**: Simple status tracking ('pending', 'processing', 'completed', 'failed') without detailed failure reasons
+- **Error Logging**: Detailed errors logged via `error_log()` for debugging purposes
+- **Database**: No `failure_reason` column - status tracking is sufficient for user-facing functionality
+- **User Experience**: Failed jobs show generic failure message; detailed errors are server-side only
+
+### Architecture Enforcement
+**RestApi Boundaries**: Maintain strict separation of concerns:
+- RestApi handles routing, validation, and response formatting only
+- Business logic must reside in Services layer
+- API classes (StripeApi, Upsampler) are pure HTTP clients without business logic

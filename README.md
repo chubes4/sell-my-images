@@ -1,89 +1,128 @@
 # Sell My Images - WordPress Plugin
 
-A WordPress plugin that allows content creators to monetize their images by selling high-resolution versions with AI upscaling and secure payment processing.
+A professional WordPress plugin that monetizes website images by adding "Download Hi-Res" buttons to content images. Users can purchase AI-upscaled versions (4x, 8x) through secure payment processing.
 
-## Features
+## 🚀 Key Features
 
-- **Automatic Image Detection**: Scans post content and adds "Download Hi-Res" buttons to all images
-- **AI Upscaling**: Enhances images to higher resolutions (2x, 4x, 8x)  
-- **Secure Payments**: Stripe integration for safe transactions
-- **Protected Downloads**: Time-limited, secure download links
-- **Universal Compatibility**: Works with any WordPress theme
+- **Smart Image Detection**: Automatically detects Gutenberg image blocks and injects purchase buttons
+- **AI-Powered Upscaling**: Professional quality image enhancement via Upsampler.com API
+- **Secure Payment Processing**: Stripe integration with test/live mode support
+- **Real-time Analytics**: Track clicks, conversions, and revenue per post/image
+- **Webhook-Driven Workflow**: Automated payment verification and processing
+- **Protected Downloads**: Secure, token-based download system with expiration
+- **Mobile-Responsive Design**: Pinterest-style hover buttons with mobile optimization
+- **Developer-Friendly**: Clean PSR-4 architecture with comprehensive documentation
 
-## Development Phases
+## 📋 Current Status: **PRODUCTION READY**
 
-### Phase 1: Foundation ✅ **COMPLETED**
-- [x] Plugin structure and initialization
-- [x] Directory structure creation (migrated to PSR-4 with Composer autoloading)
-- [x] Image detection and button injection (DOM-based with multiple positioning modes)
-- [x] Modal system (complete with HTML templates, JavaScript, and CSS)
-- [x] Basic upscaling functionality (Upsampler.com API integration)
-- [x] Admin settings page (WordPress Settings API integration)
-- [x] REST API endpoints (`/wp-json/smi/v1/`)
-- [x] Frontend completion (responsive modal, JavaScript interactions, CSS styling)
+### ✅ Core Features Completed
+- **Payment Processing**: Full Stripe integration with webhook automation
+- **AI Upscaling**: Upsampler.com API integration with quality enhancement
+- **Analytics System**: Click tracking, conversion rates, and revenue analytics
+- **Admin Interface**: Comprehensive settings and analytics dashboard
+- **Security**: Payment verification, secure downloads, input validation
+- **Mobile Support**: Responsive design with touch-friendly interactions
 
-### Phase 2: Payment Integration ✅ **COMPLETED**
-- [x] Stripe payment processing with test/live mode support
-- [x] Purchase tracking and job management
-- [x] Email confirmations with file attachments
-- [x] Dynamic pricing based on Upsampler API costs
-- [x] Webhook handling for payment and processing events
-- [x] Secure checkout sessions and payment verification
+### 🔄 Workflow Status
+1. **Image Detection & Button Injection** ✅ Working
+2. **Payment Processing** ✅ Working 
+3. **Webhook Automation** ✅ Working
+4. **AI Upscaling** ✅ Working
+5. **Download Delivery** ✅ Working
+6. **Analytics Tracking** ✅ Working
 
-### Phase 3: Advanced Features
-- [x] AI upscaling API integration (Upsampler.com Precise Upscale)
-- [x] Enhanced security (payment verification, file protection)
-- [ ] Analytics and reporting dashboard
-- [ ] Multi-resolution bundle pricing
-- [ ] Batch processing capabilities
+## 🏗️ Architecture Overview
 
-## Directory Structure
-
+### Clean Layered Architecture
 ```
 sell-my-images/
-├── sell-my-images.php          # Main plugin file
-├── composer.json               # PSR-4 autoloading configuration
-├── src/                        # PSR-4 source code
-│   ├── Admin/                  # Admin interface classes
-│   ├── Api/                    # Image processing and external APIs
-│   └── Content/                # Content detection and manipulation
-├── assets/
-│   ├── js/                     # Frontend JavaScript
-│   ├── css/                    # Stylesheets
-│   └── images/                 # Plugin icons and assets
-├── templates/                  # HTML templates
-├── vendor/                     # Composer autoloader
-└── languages/                  # Internationalization files
+├── sell-my-images.php          # Main plugin file (singleton pattern)
+├── composer.json               # PSR-4 autoloading + Stripe SDK
+├── CLAUDE.md                   # Comprehensive developer documentation
+├── src/                        # PSR-4 namespace: SellMyImages\
+│   ├── Admin/                  # WordPress admin interface
+│   ├── Api/                    # External API clients (Stripe, Upsampler)
+│   ├── Content/                # Gutenberg block processing
+│   ├── Managers/               # Data management & business logic
+│   ├── Services/               # Workflow coordination layer
+│   └── Config/                 # Configuration and constants
+├── assets/                     # Frontend resources
+│   ├── js/modal.js            # Modal interactions & AJAX
+│   ├── css/modal.css          # Pinterest-style button design
+│   └── css/admin.css          # Admin dashboard styling
+├── templates/modal.php         # Modal HTML structure
+└── vendor/                     # Composer dependencies
 ```
 
-## Installation
+### Key Design Patterns
+- **Services Layer**: PaymentService & UpscalingService coordinate workflows
+- **Manager Pattern**: Centralized data operations (JobManager, AnalyticsTracker)
+- **API Abstraction**: Pure HTTP clients without business logic
+- **Webhook Architecture**: Custom rewrite rules bypass WordPress routing
 
-1. Upload the plugin folder to `/wp-content/plugins/`
-2. Activate the plugin through the WordPress admin
-3. Configure settings under Settings > Sell My Images
+## 🚀 Quick Start
 
-## Requirements
+### Installation
+1. **Upload & Activate**: Install plugin in `/wp-content/plugins/` and activate
+2. **Install Dependencies**: Run `composer install` in plugin directory
+3. **Configure APIs**: Add Stripe and Upsampler API keys in Admin → Sell My Images
+4. **Test Webhooks**: Use Stripe CLI for local development testing
 
-- WordPress 5.0+
-- PHP 7.4+
-- SSL certificate (required for payments)
+### Production Setup
+1. **SSL Certificate**: Required for Stripe payments and webhooks
+2. **Stripe Configuration**: 
+   - Add live/test API keys in settings
+   - Configure webhook endpoint: `https://yoursite.com/smi-webhook/stripe/`
+3. **Upsampler Setup**: Get API key from upsampler.com
+4. **Analytics**: Enable click tracking for conversion optimization
 
-## Important Legal Notice
+## 📋 Requirements
 
-**Image Rights and Liability Disclaimer**: By using this plugin, you acknowledge and agree that:
+- **WordPress**: 5.0+ (Gutenberg support required)
+- **PHP**: 7.4+ with cURL extension
+- **SSL**: HTTPS required for payment processing
+- **APIs**: Stripe account + Upsampler.com account
+- **Server**: Public webhook endpoint accessibility
 
-- You have the legal right to sell and distribute all images processed through this plugin
-- You are solely responsible for ensuring you own or have proper licensing for all images
-- You are responsible for compliance with copyright laws, model releases, and any other legal requirements
-- The plugin authors and contributors are not responsible for any legal issues, copyright infringement claims, or other problems arising from your use of this plugin
-- It is your responsibility to verify rights and permissions before selling any images
+## 🔧 Development
 
-**Use this plugin at your own risk. Always consult with legal counsel if you have questions about image rights and licensing.**
+### Local Development Setup
+```bash
+# Install dependencies
+composer install
 
-## License
+# Start Stripe webhook listener (keep running)
+stripe listen --forward-to=https://yoursite.local/smi-webhook/stripe/
 
-GPL v2 or later
+# Copy webhook secret to WordPress settings
+# Admin → Sell My Images → Stripe Webhook Secret
+```
 
-## Author
+### Testing Workflow
+1. **Create Test Job**: Click "Download Hi-Res" on any image
+2. **Complete Payment**: Use Stripe test cards (4242 4242 4242 4242)
+3. **Verify Processing**: Check logs for webhook events and upscaling
+4. **Download Test**: Verify secure download delivery
 
-Chris Huber - [chubes.net](https://chubes.net)
+### Database Schema
+- **wp_smi_jobs**: Complete job tracking with analytics support
+- **Post Meta**: Click analytics stored in `_smi_click_analytics`
+- **Indexes**: Optimized for post/attachment cross-reference queries
+
+## 📊 Analytics Dashboard
+
+Track your image monetization performance:
+- **Revenue by Post**: Identify top-performing content
+- **Conversion Rates**: Click-to-purchase optimization
+- **Image Performance**: Most profitable individual images
+- **Profit Margins**: Real-time cost analysis with Upsampler pricing
+
+## ⚖️ Legal Disclaimer
+
+**Important**: You are responsible for ensuring you have proper rights to sell all images processed through this plugin. This includes copyright ownership, model releases, and licensing compliance. Use at your own legal risk.
+
+## 📄 License & Author
+
+**License**: GPL v2 or later  
+**Author**: Chris Huber - [chubes.net](https://chubes.net)  
+**Documentation**: See `CLAUDE.md` for comprehensive developer guide
