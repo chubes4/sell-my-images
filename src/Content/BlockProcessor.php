@@ -170,7 +170,11 @@ class BlockProcessor {
             esc_html( $button_text )
         );
         
-        error_log( 'SMI: Generated button HTML for post ' . $post_id . ', attachment ' . $image_data['attachment_id'] );
+        if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+        
+            error_log( 'SMI: Generated button HTML for post ' . $post_id . ', attachment ' . $image_data['attachment_id']  );
+        
+        }
         return $button_html;
     }
     

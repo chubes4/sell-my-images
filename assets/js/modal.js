@@ -107,9 +107,11 @@
             var attachmentId = $button.data('attachment-id');
             var postId = $button.data('post-id');
             
+            console.log('SMI: Tracking button click - Attachment ID:', attachmentId, 'Post ID:', postId);
+            
             // Validate required data
             if (!attachmentId || !postId) {
-                console.warn('SMI: Missing attachment-id or post-id for click tracking');
+                console.warn('SMI: Missing attachment-id or post-id for click tracking - Button data:', $button.data());
                 return;
             }
             
@@ -125,14 +127,13 @@
                     post_id: postId
                 },
                 success: function(response) {
-                    if (console && console.debug) {
-                        console.debug('SMI: Click tracked successfully', response);
-                    }
+                    console.log('SMI: Click tracked successfully for Attachment ID:', attachmentId, response);
                 },
                 error: function(xhr, status, error) {
                     // Log but don't interrupt user experience
-                    if (console && console.warn) {
-                        console.warn('SMI: Click tracking failed', error);
+                    console.warn('SMI: Click tracking failed for Attachment ID:', attachmentId, 'Error:', error);
+                    if (xhr.responseJSON) {
+                        console.warn('SMI: Server response:', xhr.responseJSON);
                     }
                 }
             });
@@ -630,16 +631,55 @@
                     return;
                 }
                 
-                // Extract attachment ID from img class (wp-image-XXXX)
-                var imgClasses = $img.attr('class') || '';
-                var attachmentMatch = imgClasses.match(/wp-image-(\d+)/);
+                // Extract attachment ID from multiple possible locations
+                var attachmentId = null;
+                var attachmentMatch = null;
+                var detectionSource = '';
                 
-                if (!attachmentMatch) {
-                    console.log('SMI: No attachment ID found for image');
+                // First try: img class (wp-image-XXXX)
+                var imgClasses = $img.attr('class') || '';
+                attachmentMatch = imgClasses.match(/wp-image-(\d+)/);
+                if (attachmentMatch) {
+                    attachmentId = attachmentMatch[1];
+                    detectionSource = 'img class';
+                }
+                
+                // Second try: picture element class (for themes using picture tags)
+                if (!attachmentId) {
+                    var $picture = $figure.find('picture');
+                    if ($picture.length) {
+                        var pictureClasses = $picture.attr('class') || '';
+                        attachmentMatch = pictureClasses.match(/wp-image-(\d+)/);
+                        if (attachmentMatch) {
+                            attachmentId = attachmentMatch[1];
+                            detectionSource = 'picture class';
+                        }
+                    }
+                }
+                
+                // Third try: figure element class (fallback)
+                if (!attachmentId) {
+                    var figureClasses = $figure.attr('class') || '';
+                    attachmentMatch = figureClasses.match(/wp-image-(\d+)/);
+                    if (attachmentMatch) {
+                        attachmentId = attachmentMatch[1];
+                        detectionSource = 'figure class';
+                    }
+                }
+                
+                if (!attachmentId) {
+                    console.warn('SMI: No attachment ID found for image block');
+                    console.log('SMI Debug - Figure classes:', $figure.attr('class'));
+                    console.log('SMI Debug - Img classes:', imgClasses);
+                    var $picture = $figure.find('picture');
+                    if ($picture.length) {
+                        console.log('SMI Debug - Picture classes:', $picture.attr('class'));
+                    }
                     return;
                 }
                 
-                var attachmentId = attachmentMatch[1];
+                // Log successful detection
+                console.log('SMI: Found attachment ID', attachmentId, 'via', detectionSource);
                 var postId = self.getPostId();
                 var imgSrc = $img.attr('src');
                 var imgWidth = $img.attr('width') || $img[0].naturalWidth;
@@ -655,7 +695,20 @@
                 var buttonHtml = self.createButtonHtml(postId, attachmentId, imgSrc, imgWidth, imgHeight);
                 $figure.append(buttonHtml);
                 
-                console.log('SMI: Button injected for attachment ID:', attachmentId);
+                // Validate button was created correctly
+                var $createdButton = $figure.find('.smi-get-button');
+                if ($createdButton.length) {
+                    var buttonAttachmentId = $createdButton.data('attachment-id');
+                    var buttonPostId = $createdButton.data('post-id');
+                    
+                    if (buttonAttachmentId && buttonPostId) {
+                        console.log('SMI: Button successfully injected - Attachment ID:', buttonAttachmentId, 'Post ID:', buttonPostId);
+                    } else {
+                        console.error('SMI: Button created but missing data attributes - Attachment ID:', buttonAttachmentId, 'Post ID:', buttonPostId);
+                    }
+                } else {
+                    console.error('SMI: Button HTML created but not found in DOM');
+                }
             });
         },
         

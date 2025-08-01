@@ -56,7 +56,9 @@ class StripeApi {
             \Stripe\Stripe::setApiKey( $api_key );
             return true;
         } catch ( \Exception $e ) {
-            error_log( 'SMI StripeApi Init Error: ' . $e->getMessage() );
+            if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+                error_log( 'SMI StripeApi Init Error: ' . $e->getMessage()  );
+            }
             return false;
         }
     }
@@ -119,13 +121,61 @@ class StripeApi {
             $event = \Stripe\Webhook::constructEvent( $payload, $signature, $endpoint_secret );
             return $event;
         } catch ( \UnexpectedValueException $e ) {
-            error_log( 'SMI StripeApi: UnexpectedValueException - ' . $e->getMessage() );
+            if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+                error_log( 'SMI StripeApi: UnexpectedValueException - ' . $e->getMessage()  );
+            }
             return new \WP_Error( 'invalid_payload', 'Invalid webhook payload: ' . $e->getMessage() );
         } catch ( \Stripe\Exception\SignatureVerificationException $e ) {
             return new \WP_Error( 'invalid_signature', 'Invalid webhook signature: ' . $e->getMessage() );
         }
     }
     
+    /**
+     * Create refund for a payment intent
+     * 
+     * @param string $payment_intent_id Payment intent ID
+     * @param string $reason Refund reason
+     * @return array|WP_Error Refund data or error
+     */
+    public static function create_refund( $payment_intent_id, $reason = '' ) {
+        if ( ! self::init_stripe() ) {
+            return new \WP_Error( 'stripe_not_configured', __( 'Stripe not configured', 'sell-my-images' ) );
+        }
+        
+        try {
+            $refund = \Stripe\Refund::create( array(
+                'payment_intent' => $payment_intent_id,
+                'reason' => 'requested_by_customer',
+                'metadata' => array(
+                    'reason' => $reason,
+                    'plugin' => 'sell-my-images'
+                )
+            ) );
+            
+            return array(
+                'refund_id' => $refund->id,
+                'amount' => $refund->amount / 100, // Convert cents to dollars
+                'status' => $refund->status,
+                'reason' => $reason
+            );
+            
+        } catch ( \Stripe\Exception\CardException $e ) {
+            return new \WP_Error( 'stripe_card_error', $e->getUserMessage() );
+        } catch ( \Stripe\Exception\RateLimitException $e ) {
+            return new \WP_Error( 'stripe_rate_limit', __( 'Too many requests', 'sell-my-images' ) );
+        } catch ( \Stripe\Exception\InvalidRequestException $e ) {
+            return new \WP_Error( 'stripe_invalid_request', $e->getMessage() );
+        } catch ( \Stripe\Exception\AuthenticationException $e ) {
+            return new \WP_Error( 'stripe_auth_error', __( 'Authentication failed', 'sell-my-images' ) );
+        } catch ( \Stripe\Exception\ApiConnectionException $e ) {
+            return new \WP_Error( 'stripe_connection_error', __( 'Network error', 'sell-my-images' ) );
+        } catch ( \Stripe\Exception\ApiErrorException $e ) {
+            return new \WP_Error( 'stripe_api_error', $e->getMessage() );
+        } catch ( \Exception $e ) {
+            return new \WP_Error( 'stripe_error', __( 'Refund system error', 'sell-my-images' ) );
+        }
+    }
+
     /**
      * Validate Stripe configuration
      * 

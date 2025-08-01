@@ -44,6 +44,12 @@ class AdminInit {
         // Initialize analytics page
         $this->init_analytics_page();
         
+        // Initialize jobs page
+        $this->init_jobs_page();
+        
+        // Register AJAX handlers for jobs page
+        add_action( 'wp_ajax_smi_retry_upscale', array( $this, 'handle_ajax_retry_upscale' ) );
+        
         // Add plugin action links
         add_filter( 'plugin_action_links_' . SMI_PLUGIN_BASENAME, array( $this, 'add_action_links' ) );
         
@@ -53,8 +59,6 @@ class AdminInit {
         // Add startup health check
         add_action( 'admin_init', array( $this, 'run_health_check' ) );
         
-        // Handle AJAX requests for admin
-        add_action( 'wp_ajax_smi_test_api_key', array( $this, 'ajax_test_api_key' ) );
     }
     
     /**
@@ -80,6 +84,16 @@ class AdminInit {
             'sell-my-images-analytics',
             array( $this, 'render_analytics_page' )
         );
+        
+        // Add jobs submenu
+        add_submenu_page(
+            'sell-my-images',
+            __( 'Jobs', 'sell-my-images' ),
+            __( 'Jobs', 'sell-my-images' ),
+            'manage_options',
+            'sell-my-images-jobs',
+            array( $this, 'render_jobs_page' )
+        );
     }
     
     /**
@@ -101,11 +115,18 @@ class AdminInit {
     }
     
     /**
+     * Initialize jobs page
+     */
+    public function init_jobs_page() {
+        // Jobs page is initialized on demand when accessed
+    }
+    
+    /**
      * Render settings page
      */
     public function render_settings_page() {
         if ( ! current_user_can( 'manage_options' ) ) {
-            wp_die( __( 'You do not have sufficient permissions to access this page.', 'sell-my-images' ) );
+            wp_die( esc_html__( 'You do not have sufficient permissions to access this page.', 'sell-my-images' ) );
         }
         
         ?>
@@ -130,15 +151,72 @@ class AdminInit {
      */
     public function render_analytics_page() {
         if ( ! current_user_can( 'manage_options' ) ) {
-            wp_die( __( 'You do not have sufficient permissions to access this page.', 'sell-my-images' ) );
+            wp_die( esc_html__( 'You do not have sufficient permissions to access this page.', 'sell-my-images' ) );
         }
         
         if ( ! class_exists( 'SellMyImages\Admin\AnalyticsPage' ) ) {
-            wp_die( __( 'Analytics page class not found.', 'sell-my-images' ) );
+            wp_die( esc_html__( 'Analytics page class not found.', 'sell-my-images' ) );
         }
         
         $analytics_page = new AnalyticsPage();
         $analytics_page->render_page();
+    }
+    
+    /**
+     * Render jobs page
+     */
+    public function render_jobs_page() {
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_die( esc_html__( 'You do not have sufficient permissions to access this page.', 'sell-my-images' ) );
+        }
+        
+        if ( ! class_exists( 'SellMyImages\Admin\JobsPage' ) ) {
+            wp_die( esc_html__( 'Jobs page class not found.', 'sell-my-images' ) );
+        }
+        
+        $jobs_page = new JobsPage();
+        $jobs_page->render();
+    }
+    
+    /**
+     * Handle AJAX retry upscale request
+     */
+    public function handle_ajax_retry_upscale() {
+        // Verify nonce
+        if ( ! wp_verify_nonce( $_POST['nonce'] ?? '', 'smi_retry_upscale' ) ) {
+            wp_die( 'Security check failed' );
+        }
+        
+        // Check user capabilities
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_send_json_error( __( 'Insufficient permissions', 'sell-my-images' ) );
+        }
+        
+        $job_id = sanitize_text_field( wp_unslash( $_POST['job_id'] ?? '' ) );
+        
+        if ( empty( $job_id ) ) {
+            wp_send_json_error( __( 'Invalid job ID', 'sell-my-images' ) );
+        }
+        
+        // Get job data to verify it exists
+        $job = \SellMyImages\Managers\DatabaseManager::get_row( array( 'job_id' => $job_id ) );
+        
+        if ( ! $job ) {
+            wp_send_json_error( __( 'Job not found', 'sell-my-images' ) );
+        }
+        
+        // Admin can retry ANY job - no restrictions
+        // This provides maximum safety net for delivery issues
+        
+        // Log the retry attempt
+        if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+            error_log( 'SMI AdminInit: Admin retry upscale for job: ' . $job_id );
+        }
+        
+        // Trigger the payment completed action to start upscaling with admin override context
+        do_action( 'smi_payment_completed', $job_id, array( 'admin_override' => true ) );
+        
+        wp_send_json_success( __( 'Upscaling process started successfully', 'sell-my-images' ) );
     }
     
     /**
@@ -218,46 +296,7 @@ class AdminInit {
         }
     }
     
-    /**
-     * AJAX handler to test API key
-     */
-    public function ajax_test_api_key() {
-        // Verify nonce
-        if ( ! wp_verify_nonce( $_POST['nonce'], 'smi_admin_nonce' ) ) {
-            wp_send_json_error( __( 'Security check failed', 'sell-my-images' ) );
-        }
-        
-        // Check permissions
-        if ( ! current_user_can( 'manage_options' ) ) {
-            wp_send_json_error( __( 'Insufficient permissions', 'sell-my-images' ) );
-        }
-        
-        $api_key = sanitize_text_field( $_POST['api_key'] );
-        
-        if ( empty( $api_key ) ) {
-            wp_send_json_error( __( 'API key is required', 'sell-my-images' ) );
-        }
-        
-        // Test the API key using a flexible approach
-        $result = $this->validate_upscaler_api_key( $api_key );
-        
-        if ( is_wp_error( $result ) ) {
-            wp_send_json_error( $result->get_error_message() );
-        }
-        
-        wp_send_json_success( __( 'API key is valid!', 'sell-my-images' ) );
-    }
     
-    /**
-     * Validate Upscaler API key (dependency injection ready)
-     * 
-     * @param string $api_key API key to validate
-     * @return mixed Result from validation or WP_Error on failure
-     */
-    private function validate_upscaler_api_key( $api_key ) {
-        // Use new Upsampler API client
-        return \SellMyImages\Api\Upsampler::validate_api_key( $api_key );
-    }
     
     /**
      * Add admin notice
@@ -345,15 +384,6 @@ class AdminInit {
                 'type' => 'error',
                 'message' => __( 'Upsampler API key is not configured. Image upscaling will not work.', 'sell-my-images' ),
             );
-        } else {
-            // Test API key validity (but don't block if it fails)
-            $result = Upsampler::validate_api_key( $api_key );
-            if ( is_wp_error( $result ) ) {
-                $issues[] = array(
-                    'type' => 'warning',
-                    'message' => sprintf( __( 'Upsampler API key validation failed: %s', 'sell-my-images' ), $result->get_error_message() ),
-                );
-            }
         }
         
         return $issues;
@@ -382,6 +412,7 @@ class AdminInit {
         if ( empty( $secret_key ) || empty( $publishable_key ) ) {
             $issues[] = array(
                 'type' => 'error',
+                /* translators: %s: mode name (test or live) */
                 'message' => sprintf( __( 'Stripe %s mode keys are not configured. Payments will not work.', 'sell-my-images' ), $mode_name ),
             );
         } else {
@@ -390,6 +421,7 @@ class AdminInit {
             if ( is_wp_error( $result ) ) {
                 $issues[] = array(
                     'type' => 'warning',
+                    /* translators: %s: error message */
                     'message' => sprintf( __( 'Stripe configuration validation failed: %s', 'sell-my-images' ), $result->get_error_message() ),
                 );
             }
@@ -410,6 +442,7 @@ class AdminInit {
         if ( version_compare( PHP_VERSION, '7.4', '<' ) ) {
             $issues[] = array(
                 'type' => 'error',
+                /* translators: %s: PHP version number */
                 'message' => sprintf( __( 'PHP version %s is not supported. Please upgrade to PHP 7.4 or higher.', 'sell-my-images' ), PHP_VERSION ),
             );
         }
@@ -419,6 +452,7 @@ class AdminInit {
         if ( version_compare( $wp_version, '5.0', '<' ) ) {
             $issues[] = array(
                 'type' => 'error',
+                /* translators: %s: WordPress version number */
                 'message' => sprintf( __( 'WordPress version %s is not supported. Please upgrade to WordPress 5.0 or higher.', 'sell-my-images' ), $wp_version ),
             );
         }

@@ -33,9 +33,8 @@ class WebhookManager {
      * Initialize webhook handling
      */
     public static function init() {
-        add_action( 'init', array( __CLASS__, 'register_rewrite_rules' ) );
-        add_filter( 'query_vars', array( __CLASS__, 'add_query_vars' ) );
-        add_action( 'template_redirect', array( __CLASS__, 'handle_webhook_requests' ) );
+        // Use parse_request to handle webhooks - more reliable than rewrite rules
+        add_action( 'parse_request', array( __CLASS__, 'handle_webhook_parse_request' ) );
     }
     
     /**
@@ -47,50 +46,34 @@ class WebhookManager {
     public static function register_webhook( $service, $handler ) {
         self::$handlers[ $service ] = $handler;
         
-        // Add rewrite rule for this service
-        add_rewrite_rule(
-            "smi-webhook/{$service}/?$",
-            "index.php?smi_webhook={$service}",
-            'top'
-        );
+        // Rewrite rules will be registered during the init action
+        // by register_rewrite_rules() method
     }
     
     /**
-     * Register all rewrite rules
-     */
-    public static function register_rewrite_rules() {
-        // Rules are registered when webhooks are registered
-        // This ensures proper order and prevents conflicts
-    }
-    
-    /**
-     * Flush rewrite rules (for debugging)
-     */
-    public static function flush_rules() {
-        flush_rewrite_rules();
-        error_log( 'SMI WebhookManager: Rewrite rules flushed' );
-    }
-    
-    /**
-     * Add query variables for webhook handling
+     * Get registered webhook services (for debugging)
      * 
-     * @param array $vars Existing query vars
-     * @return array Modified query vars
+     * @return array List of registered webhook services
      */
-    public static function add_query_vars( $vars ) {
-        $vars[] = 'smi_webhook';
-        return $vars;
+    public static function get_registered_services() {
+        return array_keys( self::$handlers );
     }
     
     /**
-     * Handle webhook requests
+     * Handle webhook requests using parse_request
+     * 
+     * @param WP $wp WordPress environment instance
      */
-    public static function handle_webhook_requests() {
-        $webhook_service = get_query_var( 'smi_webhook' );
+    public static function handle_webhook_parse_request( $wp ) {
+        // Check if this is a webhook request
+        $request_uri = $_SERVER['REQUEST_URI'] ?? '';
         
-        if ( empty( $webhook_service ) ) {
-            return;
+        // Match webhook pattern: /smi-webhook/{service}/
+        if ( ! preg_match( '#^/smi-webhook/([^/]+)/?(?:\?.*)?$#', $request_uri, $matches ) ) {
+            return; // Not a webhook request
         }
+        
+        $webhook_service = $matches[1];
         
         // Check if we have a handler for this service
         if ( ! isset( self::$handlers[ $webhook_service ] ) ) {
@@ -103,7 +86,9 @@ class WebhookManager {
         if ( is_callable( $handler ) ) {
             call_user_func( $handler );
         } else {
-            error_log( "SMI WebhookManager: Invalid handler for service: {$webhook_service}" );
+            if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+                error_log( "SMI WebhookManager: Invalid handler for service: {$webhook_service}"  );
+            }
             status_header( 500 );
             exit;
         }
@@ -149,7 +134,9 @@ class WebhookManager {
         $payload = file_get_contents( 'php://input', false, null, 0, $max_size );
         
         if ( $payload === false ) {
-            error_log( 'SMI WebhookManager: Failed to read webhook payload or payload too large' );
+            if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+                error_log( 'SMI WebhookManager: Failed to read webhook payload or payload too large'  );
+            }
             status_header( 400 );
             exit;
         }
@@ -182,7 +169,9 @@ class WebhookManager {
      */
     public static function send_webhook_error( $message = '', $status_code = 400 ) {
         if ( ! empty( $message ) ) {
-            error_log( "SMI WebhookManager Error: {$message}" );
+            if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+                error_log( "SMI WebhookManager Error: {$message}"  );
+            }
         }
         
         status_header( $status_code );

@@ -22,6 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 // Build email subject
 $subject = sprintf(
+    /* translators: %s is the site name */
     __( 'Your high-resolution image is ready - %s', 'sell-my-images' ),
     $site_name
 );
@@ -30,6 +31,7 @@ $subject = sprintf(
 $terms_section = '';
 if ( ! empty( $terms_conditions_url ) ) {
     $terms_section = sprintf( 
+        /* translators: %s is the terms and conditions URL */
         __( "\n\nTerms & Conditions: %s", 'sell-my-images' ),
         $terms_conditions_url
     );
@@ -37,7 +39,8 @@ if ( ! empty( $terms_conditions_url ) ) {
 
 // Build email message
 $message = sprintf(
-    __( "Hi there!\n\nYour %s resolution image has been processed and is ready for download.\n\nDownload your image:\n%s\n\nThis link will expire on %s.\n\nOriginal image: %s\nResolution: %s%s\n\nThanks for using our service!\n\n%s", 'sell-my-images' ),
+    /* translators: 1: resolution, 2: download URL, 3: expiry date, 4: original image URL, 5: resolution, 6: terms section, 7: site name */
+    __( "Hi there!\n\nYour %1\$s resolution image has been processed and is ready for download.\n\nDownload your image:\n%2\$s\n\nThis link will expire on %3\$s.\n\nOriginal image: %4\$s\nResolution: %5\$s%6\$s\n\nThanks for using our service!\n\nBest regards,\nSarai Chinwag\n%7\$s", 'sell-my-images' ),
     $job->resolution,
     $download_url,
     $expiry_date,

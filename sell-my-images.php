@@ -81,8 +81,8 @@ class SellMyImages {
      * Plugin initialization
      */
     public function init() {
-        // Initialize admin functionality (only for actual admin pages, not AJAX)
-        if ( is_admin() && ! wp_doing_ajax() ) {
+        // Initialize admin functionality (for admin pages and admin AJAX requests)
+        if ( is_admin() ) {
             $this->init_admin();
         }
         
@@ -110,7 +110,7 @@ class SellMyImages {
         new \SellMyImages\Content\BlockProcessor();
         new \SellMyImages\Api\RestApi();
         
-        // Initialize services (business logic)
+        // Initialize services (business logic) - this registers the webhook handlers
         new \SellMyImages\Services\PaymentService();
         new \SellMyImages\Services\UpscalingService();
     }
@@ -203,18 +203,6 @@ class SellMyImages {
             SMI_VERSION
         );
         
-        wp_enqueue_script(
-            'smi-admin',
-            SMI_PLUGIN_URL . 'assets/js/admin.js',
-            array( 'jquery' ),
-            SMI_VERSION,
-            true
-        );
-        
-        // Localize script for admin functionality
-        wp_localize_script( 'smi-admin', 'smi_admin', array(
-            'nonce' => wp_create_nonce( 'smi_admin_nonce' ),
-        ) );
     }
     
     /**

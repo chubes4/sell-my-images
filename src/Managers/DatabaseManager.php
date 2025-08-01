@@ -58,6 +58,7 @@ class DatabaseManager {
             image_height int unsigned DEFAULT NULL,
             status varchar(20) DEFAULT 'pending',
             upsampler_job_id varchar(255) DEFAULT NULL,
+            upscaled_url text DEFAULT NULL,
             upscaled_file_path text DEFAULT NULL,
             stripe_payment_intent_id varchar(255) DEFAULT NULL,
             stripe_checkout_session_id varchar(255) DEFAULT NULL,
@@ -69,6 +70,12 @@ class DatabaseManager {
             download_expires_at datetime DEFAULT NULL,
             email_sent tinyint(1) DEFAULT 0,
             paid_at datetime DEFAULT NULL,
+            processing_started_at datetime DEFAULT NULL,
+            completed_at datetime DEFAULT NULL,
+            failed_at datetime DEFAULT NULL,
+            refunded_at datetime DEFAULT NULL,
+            refund_reason text DEFAULT NULL,
+            refund_amount decimal(10,2) DEFAULT NULL,
             created_at datetime DEFAULT CURRENT_TIMESTAMP,
             updated_at datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             PRIMARY KEY (id),
@@ -90,11 +97,9 @@ class DatabaseManager {
         $result = dbDelta( $sql_jobs );
         
         if ( empty( $result ) ) {
-            error_log( 'SMI DatabaseManager: Failed to create tables' );
             return false;
         }
         
-        error_log( 'SMI DatabaseManager: Tables created successfully' );
         return true;
     }
     
@@ -121,7 +126,6 @@ class DatabaseManager {
         $result = $wpdb->insert( $table, $data, $formats );
         
         if ( $result === false ) {
-            error_log( 'SMI DatabaseManager: Insert failed - ' . $wpdb->last_error );
             return new \WP_Error(
                 'insert_failed',
                 __( 'Failed to insert record', 'sell-my-images' ),
@@ -168,7 +172,9 @@ class DatabaseManager {
         $result = $wpdb->update( $table, $data, $where, $data_formats, $where_formats );
         
         if ( $result === false ) {
-            error_log( 'SMI DatabaseManager: Update failed - ' . $wpdb->last_error );
+            if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+                error_log( 'SMI DatabaseManager: Update failed - ' . $wpdb->last_error  );
+            }
             return new \WP_Error(
                 'update_failed',
                 __( 'Failed to update record', 'sell-my-images' ),
@@ -202,7 +208,9 @@ class DatabaseManager {
         $result = $wpdb->delete( $table, $where, $where_formats );
         
         if ( $result === false ) {
-            error_log( 'SMI DatabaseManager: Delete failed - ' . $wpdb->last_error );
+            if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+                error_log( 'SMI DatabaseManager: Delete failed - ' . $wpdb->last_error  );
+            }
             return new \WP_Error(
                 'delete_failed',
                 __( 'Failed to delete record', 'sell-my-images' ),
@@ -238,7 +246,6 @@ class DatabaseManager {
         $row = $wpdb->get_row( $wpdb->prepare( $query, $values ) );
         
         if ( $wpdb->last_error ) {
-            error_log( 'SMI DatabaseManager: Query failed - ' . $wpdb->last_error );
             return new \WP_Error(
                 'query_failed',
                 __( 'Database query failed', 'sell-my-images' ),
@@ -304,7 +311,6 @@ class DatabaseManager {
         $results = empty( $values ) ? $wpdb->get_results( $query ) : $wpdb->get_results( $wpdb->prepare( $query, $values ) );
         
         if ( $wpdb->last_error ) {
-            error_log( 'SMI DatabaseManager: Query failed - ' . $wpdb->last_error );
             return new \WP_Error(
                 'query_failed',
                 __( 'Database query failed', 'sell-my-images' ),
@@ -332,7 +338,6 @@ class DatabaseManager {
         }
         
         if ( $wpdb->last_error ) {
-            error_log( 'SMI DatabaseManager: Custom query failed - ' . $wpdb->last_error );
             return new \WP_Error(
                 'query_failed',
                 __( 'Database query failed', 'sell-my-images' ),
@@ -365,7 +370,6 @@ class DatabaseManager {
         $count = empty( $values ) ? $wpdb->get_var( $query ) : $wpdb->get_var( $wpdb->prepare( $query, $values ) );
         
         if ( $wpdb->last_error ) {
-            error_log( 'SMI DatabaseManager: Count query failed - ' . $wpdb->last_error );
             return new \WP_Error(
                 'query_failed',
                 __( 'Database query failed', 'sell-my-images' ),
@@ -377,87 +381,55 @@ class DatabaseManager {
     }
     
     /**
-     * Cleanup operations
+     * Cleanup expired downloads - removes physical files and download tokens while preserving job records
      * 
-     * @param string $type Type of cleanup (failed, abandoned, expired_downloads)
-     * @param array $options Cleanup options
-     * @return int Number of records cleaned up
+     * @return int Number of downloads cleaned up
      */
-    public static function cleanup( $type, $options = array() ) {
+    public static function cleanup_expired_downloads() {
         global $wpdb;
         
         $table = self::get_jobs_table();
-        $deleted_count = 0;
+        $current_time = current_time( 'mysql' );
+        $cleaned_count = 0;
         
-        switch ( $type ) {
-            case 'failed':
-                $days = isset( $options['days'] ) ? intval( $options['days'] ) : 7;
-                $cutoff_date = date( 'Y-m-d H:i:s', strtotime( "-{$days} days" ) );
-                
-                $deleted_count = $wpdb->query( $wpdb->prepare(
-                    "DELETE FROM $table WHERE status = 'failed' AND created_at < %s",
-                    $cutoff_date
-                ) );
-                break;
-                
-            case 'abandoned':
-                $hours = isset( $options['hours'] ) ? intval( $options['hours'] ) : 24;
-                $cutoff_date = date( 'Y-m-d H:i:s', strtotime( "-{$hours} hours" ) );
-                
-                $deleted_count = $wpdb->query( $wpdb->prepare(
-                    "DELETE FROM $table WHERE payment_status = 'pending' AND created_at < %s",
-                    $cutoff_date
-                ) );
-                break;
-                
-            case 'expired_downloads':
-                $current_time = current_time( 'mysql' );
-                
-                // First get expired downloads to delete files
-                $expired_jobs = $wpdb->get_results( $wpdb->prepare(
-                    "SELECT job_id, upscaled_file_path FROM $table 
-                     WHERE download_expires_at < %s 
-                     AND download_expires_at IS NOT NULL 
-                     AND upscaled_file_path IS NOT NULL",
-                    $current_time
-                ) );
-                
-                foreach ( $expired_jobs as $job ) {
-                    // Delete physical file
-                    if ( file_exists( $job->upscaled_file_path ) ) {
-                        if ( unlink( $job->upscaled_file_path ) ) {
-                            error_log( 'SMI DatabaseManager: Deleted expired file: ' . $job->upscaled_file_path );
-                        } else {
-                            error_log( 'SMI DatabaseManager: Failed to delete expired file: ' . $job->upscaled_file_path );
-                            continue; // Skip database update if file deletion failed
-                        }
-                    }
-                    
-                    // Clear download data from database
-                    $updated = $wpdb->update(
-                        $table,
-                        array(
-                            'upscaled_file_path' => null,
-                            'download_token' => null,
-                            'download_expires_at' => null,
-                        ),
-                        array( 'job_id' => $job->job_id ),
-                        array( '%s', '%s', '%s' ),
-                        array( '%s' )
-                    );
-                    
-                    if ( $updated ) {
-                        $deleted_count++;
-                    }
+        // Get expired downloads to delete files
+        $expired_jobs = $wpdb->get_results( $wpdb->prepare(
+            "SELECT job_id, upscaled_file_path FROM $table 
+             WHERE download_expires_at < %s 
+             AND download_expires_at IS NOT NULL 
+             AND upscaled_file_path IS NOT NULL",
+            $current_time
+        ) );
+        
+        foreach ( $expired_jobs as $job ) {
+            // Delete physical file
+            if ( file_exists( $job->upscaled_file_path ) ) {
+                if ( wp_delete_file( $job->upscaled_file_path ) ) {
+                    // File deleted successfully
+                } else {
+                    continue; // Skip database update if file deletion failed
                 }
-                break;
+            }
+            
+            // Clear download data from database (preserves job record)
+            $updated = $wpdb->update(
+                $table,
+                array(
+                    'upscaled_file_path' => null,
+                    'download_token' => null,
+                    'download_expires_at' => null,
+                ),
+                array( 'job_id' => $job->job_id ),
+                array( '%s', '%s', '%s' ),
+                array( '%s' )
+            );
+            
+            if ( $updated ) {
+                $cleaned_count++;
+            }
         }
         
-        if ( $deleted_count > 0 ) {
-            error_log( "SMI DatabaseManager: Cleaned up $deleted_count $type records" );
-        }
-        
-        return intval( $deleted_count );
+        return intval( $cleaned_count );
     }
     
     /**

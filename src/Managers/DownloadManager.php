@@ -68,20 +68,12 @@ class DownloadManager {
     
     /**
      * Check if download is authorized for a job
+     * Authorization is based on token possession and job completion status
      * 
      * @param object $job Job object from database
      * @return bool|WP_Error True if authorized, WP_Error if not
      */
     public static function is_download_authorized( $job ) {
-        // Check payment status
-        if ( $job->payment_status !== 'paid' ) {
-            return new \WP_Error(
-                'payment_required',
-                __( 'Payment required for download', 'sell-my-images' ),
-                array( 'status' => 402 )
-            );
-        }
-        
         // Check job completion status
         if ( $job->status !== 'completed' ) {
             return new \WP_Error(
@@ -140,14 +132,12 @@ class DownloadManager {
         $uploads_path = realpath( $uploads_dir['basedir'] );
         
         if ( ! $safe_path || ! $uploads_path || strpos( $safe_path, $uploads_path ) !== 0 ) {
-            error_log( 'SMI DownloadManager: Directory traversal attempt blocked for job ' . $job_id );
             status_header( 403 );
             exit;
         }
         
         // Check file exists and is readable
         if ( ! file_exists( $safe_path ) || ! is_readable( $safe_path ) ) {
-            error_log( 'SMI DownloadManager: File not found or not readable: ' . $safe_path );
             status_header( 404 );
             exit;
         }
@@ -155,8 +145,6 @@ class DownloadManager {
         // Get file size for Content-Length header
         $file_size = filesize( $safe_path );
         
-        // Log download attempt
-        error_log( 'SMI DownloadManager: Serving download for job ' . $job_id . ', file size: ' . $file_size . ' bytes' );
         
         // Set headers for file download
         $filename = basename( $safe_path );
@@ -174,26 +162,36 @@ class DownloadManager {
             ob_end_clean();
         }
         
-        // Serve file in chunks to prevent memory exhaustion
-        $handle = fopen( $safe_path, 'rb' );
-        if ( ! $handle ) {
-            error_log( 'SMI DownloadManager: Failed to open file for reading: ' . $safe_path );
-            status_header( 500 );
-            exit;
-        }
+        // For file downloads, we need to use direct file operations for streaming
+        // WP_Filesystem is not suitable for chunked streaming of large files
+        // We've already validated the path security above
         
-        $chunk_size = apply_filters( 'smi_download_chunk_size', Constants::DOWNLOAD_CHUNK_SIZE );
-        
-        while ( ! feof( $handle ) ) {
-            $chunk = fread( $handle, $chunk_size );
-            if ( $chunk === false ) {
-                break;
+        // Use readfile() for better performance if file is small
+        $file_size = filesize( $safe_path );
+        if ( $file_size < 50 * 1024 * 1024 ) { // Less than 50MB
+            readfile( $safe_path );
+        } else {
+            // Use chunked reading for larger files
+            $handle = fopen( $safe_path, 'rb' );
+            if ( ! $handle ) {
+                status_header( 500 );
+                exit;
             }
-            echo $chunk;
-            flush();
+            
+            $chunk_size = apply_filters( 'smi_download_chunk_size', Constants::DOWNLOAD_CHUNK_SIZE );
+            
+            while ( ! feof( $handle ) ) {
+                $chunk = fread( $handle, $chunk_size );
+                if ( $chunk === false ) {
+                    break;
+                }
+                // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Binary file content must not be escaped
+                echo $chunk;
+                flush();
+            }
+            
+            fclose( $handle );
         }
-        
-        fclose( $handle );
         exit;
     }
     
@@ -212,7 +210,7 @@ class DownloadManager {
             // Generate download token and update job
             $download_token = self::generate_download_token();
             $expiry_hours = get_option( 'smi_download_expiry_hours', Constants::DEFAULT_DOWNLOAD_EXPIRY_HOURS );
-            $expires_at = date( 'Y-m-d H:i:s', time() + ( $expiry_hours * 3600 ) );
+            $expires_at = gmdate( 'Y-m-d H:i:s', time() + ( $expiry_hours * 3600 ) );
             
             // Update job with download info
             self::update_job_download_data( $job_id, array(
@@ -224,7 +222,6 @@ class DownloadManager {
             // Send download notification
             self::send_download_notification( $job_id );
             
-            error_log( 'SMI DownloadManager: File stored and download prepared for job ' . $job_id );
         }
         
         return $local_path;
@@ -239,27 +236,35 @@ class DownloadManager {
     public static function send_download_notification( $job_id ) {
         $job = JobManager::get_job( $job_id );
         if ( is_wp_error( $job ) || ! $job->download_token ) {
-            error_log( 'SMI DownloadManager: Cannot send notification - invalid job or missing token: ' . $job_id );
             return false;
         }
         
         // Load email template
         $email_data = self::load_email_template( $job );
         if ( ! $email_data ) {
-            error_log( 'SMI DownloadManager: Failed to load email template for job: ' . $job_id );
             return false;
         }
         
-        $email_sent = wp_mail( $job->email, $email_data['subject'], $email_data['message'] );
+        // Set custom headers for "Sarai Chinwag" sender
+        $headers = array(
+            'From: Sarai Chinwag <' . get_option( 'admin_email' ) . '>',
+            'Reply-To: ' . get_option( 'admin_email' ),
+            'Content-Type: text/html; charset=UTF-8'
+        );
+        
+        // Send to customer
+        $email_sent = wp_mail( $job->email, $email_data['subject'], $email_data['message'], $headers );
+        
+        // Send copy to admin
+        $admin_email = get_option( 'admin_email' );
+        if ( $admin_email && $admin_email !== $job->email ) {
+            $admin_subject = 'Copy: ' . $email_data['subject'];
+            $admin_message = $email_data['message'];
+            wp_mail( $admin_email, $admin_subject, $admin_message, $headers );
+        }
         
         // Update email status
         self::update_job_email_status( $job_id, $email_sent );
-        
-        if ( $email_sent ) {
-            error_log( 'SMI DownloadManager: Download notification sent to ' . $job->email . ' for job ' . $job_id );
-        } else {
-            error_log( 'SMI DownloadManager: Failed to send notification to ' . $job->email . ' for job ' . $job_id );
-        }
         
         return $email_sent;
     }
@@ -286,7 +291,7 @@ class DownloadManager {
      */
     public static function cleanup_expired_downloads() {
         // Use DatabaseManager cleanup utility
-        return DatabaseManager::cleanup( 'expired_downloads' );
+        return DatabaseManager::cleanup_expired_downloads();
     }
     
     /**
@@ -304,7 +309,7 @@ class DownloadManager {
         
         // Prepare template variables
         $download_url = rest_url( 'smi/v1/download/' . $job->download_token );
-        $expiry_date = date( 'M j, Y \a\t g:i A', strtotime( $job->download_expires_at ) );
+        $expiry_date = gmdate( 'M j, Y \a\t g:i A', strtotime( $job->download_expires_at ) );
         $terms_conditions_url = get_option( 'smi_terms_conditions_url', '' );
         $site_name = get_bloginfo( 'name' );
         
@@ -325,7 +330,6 @@ class DownloadManager {
         $result = DatabaseManager::update( $data, array( 'job_id' => $job_id ) );
         
         if ( is_wp_error( $result ) ) {
-            error_log( 'SMI DownloadManager: Failed to update job download data for job ' . $job_id . ' - ' . $result->get_error_message() );
             return false;
         }
         

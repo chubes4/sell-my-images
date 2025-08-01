@@ -111,69 +111,84 @@ class FileManager {
      * @return string|false Local file path or false on failure
      */
     public static function download_from_upsampler( $upscaled_url, $job_id ) {
-        // Generate local file name
-        $file_name = 'smi_' . $job_id . '_' . time() . '.jpg';
-        $local_path = self::get_upload_dir() . '/' . $file_name;
+        // Generate temporary file name (we'll rename after determining the actual type)
+        $temp_file_name = 'smi_' . $job_id . '_' . time() . '_temp';
+        $temp_path = self::get_upload_dir() . '/' . $temp_file_name;
         
-        // Download the file
+        // Download the file to temporary location
         $response = wp_remote_get( $upscaled_url, array(
             'timeout' => self::DOWNLOAD_TIMEOUT,
             'stream'  => true,
-            'filename' => $local_path,
+            'filename' => $temp_path,
         ) );
         
         if ( is_wp_error( $response ) ) {
-            error_log( 'SMI FileManager: Failed to download from Upsampler: ' . $response->get_error_message() );
+            if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+                error_log( 'SMI FileManager: Failed to download from Upsampler: ' . $response->get_error_message()  );
+            }
             return false;
         }
         
         $status_code = wp_remote_retrieve_response_code( $response );
         if ( $status_code !== self::HTTP_OK ) {
-            error_log( 'SMI FileManager: Upsampler download failed with status: ' . $status_code );
+            if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+                error_log( 'SMI FileManager: Upsampler download failed with status: ' . $status_code  );
+            }
             return false;
         }
         
         // Verify file was created and has content
-        if ( ! file_exists( $local_path ) || filesize( $local_path ) === 0 ) {
-            error_log( 'SMI FileManager: Downloaded file is empty or missing' );
+        if ( ! file_exists( $temp_path ) || filesize( $temp_path ) === 0 ) {
+            if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+                error_log( 'SMI FileManager: Downloaded file is empty or missing'  );
+            }
             return false;
         }
         
-        
-        // Verify it's a valid image
-        $image_info = getimagesize( $local_path );
+        // Verify it's a valid image and get MIME type
+        $image_info = getimagesize( $temp_path );
         if ( ! $image_info ) {
-            unlink( $local_path );
-            error_log( 'SMI FileManager: Downloaded file is not a valid image' );
+            unlink( $temp_path );
+            if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+                error_log( 'SMI FileManager: Downloaded file is not a valid image'  );
+            }
             return false;
         }
         
         // Verify MIME type is allowed
         $mime_type = $image_info['mime'];
         if ( ! in_array( $mime_type, self::ALLOWED_IMAGE_TYPES, true ) ) {
-            unlink( $local_path );
-            error_log( 'SMI FileManager: Downloaded file has disallowed MIME type: ' . $mime_type );
+            unlink( $temp_path );
+            if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+                error_log( 'SMI FileManager: Downloaded file has disallowed MIME type: ' . $mime_type  );
+            }
             return false;
         }
         
-        // Additional security: check file extension matches MIME type
-        $file_extension = pathinfo( $local_path, PATHINFO_EXTENSION );
-        $expected_extensions = array(
-            'image/jpeg' => array( 'jpg', 'jpeg' ),
-            'image/jpg'  => array( 'jpg', 'jpeg' ),
-            'image/png'  => array( 'png' ),
-            'image/webp' => array( 'webp' )
+        // Determine proper file extension based on MIME type
+        $extension_map = array(
+            'image/jpeg' => 'jpg',
+            'image/jpg'  => 'jpg',
+            'image/png'  => 'png',
+            'image/webp' => 'webp'
         );
         
-        if ( isset( $expected_extensions[ $mime_type ] ) ) {
-            if ( ! in_array( strtolower( $file_extension ), $expected_extensions[ $mime_type ], true ) ) {
-                unlink( $local_path );
-                error_log( 'SMI FileManager: File extension does not match MIME type - Extension: ' . $file_extension . ', MIME: ' . $mime_type );
-                return false;
+        $extension = $extension_map[ $mime_type ] ?? 'jpg'; // Default to jpg if unknown
+        
+        // Generate final file name with correct extension
+        $final_file_name = 'smi_' . $job_id . '_' . time() . '.' . $extension;
+        $final_path = self::get_upload_dir() . '/' . $final_file_name;
+        
+        // Rename temporary file to final location
+        if ( ! rename( $temp_path, $final_path ) ) {
+            unlink( $temp_path );
+            if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+                error_log( 'SMI FileManager: Failed to rename temporary file to final location'  );
             }
+            return false;
         }
         
-        return $local_path;
+        return $final_path;
     }
     
     

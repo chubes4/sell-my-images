@@ -662,8 +662,15 @@ figure.wp-block-image:hover .smi-get-button {
     padding: 20px;
 }
 
+.smi-status-container p {
+    color: #1d2327;
+    font-size: 14px;
+    line-height: 1.5;
+    margin: 10px 0;
+}
+
 .smi-status-icon {
-    font-size: 48px;
+    font-size: 24px;
     margin-bottom: 15px;
 }
 
@@ -674,12 +681,14 @@ figure.wp-block-image:hover .smi-get-button {
 
 .smi-status-title {
     margin-bottom: 15px;
+    font-weight: 600;
+    color: #1d2327;
 }
 
-.smi-status-title.success { color: #00a32a; }
-.smi-status-title.error { color: #d63638; }
-.smi-status-title.info { color: #0073aa; }
-.smi-status-title.warning { color: #f0b90b; }
+.smi-status-title.success { color: #1d7331; }
+.smi-status-title.error { color: #a82229; }
+.smi-status-title.info { color: #0f4d73; }
+.smi-status-title.warning { color: #986505; }
 
 .smi-button-container {
     margin-top: 20px;

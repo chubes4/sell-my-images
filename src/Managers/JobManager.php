@@ -58,7 +58,7 @@ class JobManager {
             'resolution'     => $sanitized_data['resolution'],
             'email'          => $sanitized_data['email'],
             'post_id'        => $sanitized_data['post_id'],
-            'status'         => 'pending',
+            'status'         => 'awaiting_payment',
             'payment_status' => 'pending',
             'created_at'     => current_time( 'mysql' ),
         );
@@ -79,7 +79,6 @@ class JobManager {
         $result = DatabaseManager::insert( $insert_data );
         
         if ( is_wp_error( $result ) ) {
-            error_log( 'SMI JobManager: Failed to create job - ' . $result->get_error_message() );
             return $result;
         }
         
@@ -88,8 +87,6 @@ class JobManager {
             'db_id'  => $result['id'],
         );
         
-        // Log job creation
-        error_log( 'SMI JobManager: Job created successfully - ID: ' . $job_id );
         
         return $job_data;
     }
@@ -282,7 +279,8 @@ class JobManager {
         if ( ! self::is_valid_status_transition( $job->status, $new_status ) ) {
             return new \WP_Error(
                 'invalid_status_transition',
-                sprintf( __( 'Cannot transition from %s to %s', 'sell-my-images' ), $job->status, $new_status ),
+                /* translators: 1: current status, 2: new status */
+                sprintf( __( 'Cannot transition from %1$s to %2$s', 'sell-my-images' ), $job->status, $new_status ),
                 array( 'status' => 400 )
             );
         }
@@ -301,9 +299,6 @@ class JobManager {
             return $result;
         }
         
-        // Log status change
-        error_log( sprintf( 'SMI JobManager: Job status updated - ID: %s, Status: %s → %s', 
-            $job_id, $job->status, $new_status ) );
         
         // Trigger status change hooks
         self::handle_status_change( $job_id, $job->status, $new_status, $additional_data );
@@ -349,9 +344,6 @@ class JobManager {
             return $result;
         }
         
-        // Log payment status change
-        error_log( sprintf( 'SMI JobManager: Payment status updated - ID: %s, Status: %s', 
-            $job_id, $payment_status ) );
         
         return true;
     }
@@ -425,7 +417,6 @@ class JobManager {
         $result = DatabaseManager::delete( array( 'job_id' => $job_id ) );
         
         if ( is_wp_error( $result ) ) {
-            error_log( 'SMI JobManager: Failed to delete job - ID: ' . $job_id . ' - ' . $result->get_error_message() );
             return new \WP_Error(
                 'job_deletion_failed',
                 __( 'Failed to delete job', 'sell-my-images' ),
@@ -433,7 +424,6 @@ class JobManager {
             );
         }
         
-        error_log( 'SMI JobManager: Job deleted - ID: ' . $job_id );
         return true;
     }
     
@@ -466,7 +456,6 @@ class JobManager {
         $jobs = DatabaseManager::get_results( $args );
         
         if ( is_wp_error( $jobs ) ) {
-            error_log( 'SMI JobManager: Database error getting jobs by status - ' . $jobs->get_error_message() );
             return new \WP_Error(
                 'database_error',
                 __( 'Database error occurred', 'sell-my-images' ),
@@ -477,24 +466,6 @@ class JobManager {
         return $jobs;
     }
     
-    /**
-     * Clean up expired jobs
-     * 
-     * @return int Number of jobs cleaned up
-     */
-    public static function cleanup_expired_jobs() {
-        $failed_count = self::cleanup_failed_jobs();
-        $abandoned_count = self::cleanup_abandoned_jobs();
-        
-        $total_cleaned = $failed_count + $abandoned_count;
-        
-        if ( $total_cleaned > 0 ) {
-            error_log( sprintf( 'SMI JobManager: Job cleanup completed - Failed: %d, Abandoned: %d', 
-                $failed_count, $abandoned_count ) );
-        }
-        
-        return $total_cleaned;
-    }
     
     /**
      * Validate job data
@@ -510,6 +481,7 @@ class JobManager {
             if ( empty( $job_data[ $field ] ) ) {
                 return new \WP_Error(
                     'missing_required_field',
+                    /* translators: %s: field name */
                     sprintf( __( 'Required field missing: %s', 'sell-my-images' ), $field ),
                     array( 'status' => 400 )
                 );
@@ -628,7 +600,6 @@ class JobManager {
         $result = DatabaseManager::update( $update_data, array( 'job_id' => $job_id ) );
         
         if ( is_wp_error( $result ) ) {
-            error_log( 'SMI JobManager: Failed to update job data - ID: ' . $job_id . ' - ' . $result->get_error_message() );
             return new \WP_Error(
                 'job_update_failed',
                 __( 'Failed to update job', 'sell-my-images' ),
@@ -681,7 +652,6 @@ class JobManager {
                 
             case 'failed':
                 // Job failed - detailed reason should be logged by the calling service
-                error_log( sprintf( 'SMI JobManager: Job status updated to failed - ID: %s', $job_id ) );
                 break;
         }
         
@@ -689,29 +659,4 @@ class JobManager {
         do_action( 'smi_job_status_changed', $job_id, $old_status, $new_status, $additional_data );
     }
     
-    /**
-     * Clean up failed jobs older than specified days
-     * 
-     * @param int $days Days to keep failed jobs (default: 7)
-     * @return int Number of jobs cleaned up
-     */
-    private static function cleanup_failed_jobs( $days = null ) {
-        if ( $days === null ) {
-            $days = Constants::DEFAULT_FAILED_JOB_CLEANUP_DAYS;
-        }
-        return DatabaseManager::cleanup( 'failed', array( 'days' => $days ) );
-    }
-    
-    /**
-     * Clean up abandoned jobs (pending payment > 24 hours)
-     * 
-     * @param int $hours Hours to keep pending jobs (default: 24)
-     * @return int Number of jobs cleaned up
-     */
-    private static function cleanup_abandoned_jobs( $hours = null ) {
-        if ( $hours === null ) {
-            $hours = Constants::DEFAULT_ABANDONED_JOB_CLEANUP_HOURS;
-        }
-        return DatabaseManager::cleanup( 'abandoned', array( 'hours' => $hours ) );
-    }
 }

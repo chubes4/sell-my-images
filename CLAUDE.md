@@ -77,7 +77,7 @@ All classes follow PSR-4 autoloading under the `SellMyImages\` namespace:
 **Webhook System:**
 - Custom rewrite rules bypass WordPress routing: `/smi-webhook/stripe/` and `/smi-webhook/upsampler/`
 - Dual job ID system: internal UUIDs + external Upsampler job IDs
-- Pay-first security model with payment verification before processing
+- Token-based security model with admin override capabilities for operational flexibility
 
 ## Database Architecture
 
@@ -86,7 +86,7 @@ All database operations use centralized `DatabaseManager` class:
 - **Schema Management**: `DatabaseManager::create_tables()` handles table creation/migration
 - **Type-Safe Operations**: Automatic format detection (%s, %d, %f) for all CRUD operations
 - **Standardized Methods**: `insert()`, `update()`, `delete()`, `get_row()`, `get_results()`
-- **Cleanup Utilities**: Built-in cleanup for failed jobs, abandoned payments, expired downloads
+- **File Management**: Automated cleanup of expired download files to prevent server bloat while preserving customer data
 
 ### `wp_smi_jobs` Table
 Complete job tracking with payment, processing status, and **analytics support**:
@@ -116,11 +116,36 @@ Complete job tracking with payment, processing status, and **analytics support**
 - **WordPress debug logging**: Enable `WP_DEBUG_LOG` in wp-config.php
 - **Plugin activation test**: Activate/deactivate to test database table creation
 
+### Local Development Setup
+- **WordPress Environment**: Requires WordPress 5.0+ with Gutenberg support
+- **PHP Requirements**: PHP 7.4+ with curl and json extensions
+- **SSL Certificate**: Required for Stripe integration (use local SSL or ngrok for testing)
+- **Database**: MySQL/MariaDB with InnoDB support for proper indexing
+
 ### Database Operations for Analytics
 - **Most profitable posts**: `SELECT post_id, COUNT(*) as sales, SUM(amount_charged) as revenue FROM wp_smi_jobs WHERE payment_status='paid' GROUP BY post_id ORDER BY revenue DESC;`
 - **Most profitable images**: `SELECT attachment_id, COUNT(*) as sales, SUM(amount_charged) as revenue FROM wp_smi_jobs WHERE payment_status='paid' GROUP BY attachment_id ORDER BY revenue DESC;`
 - **Profit analysis**: `SELECT post_id, SUM(amount_charged - COALESCE(amount_cost, 0)) as profit, (SUM(amount_charged - COALESCE(amount_cost, 0)) / SUM(amount_charged)) * 100 as margin FROM wp_smi_jobs WHERE payment_status='paid' GROUP BY post_id;`
 - **Cross-reference analysis**: `SELECT p.post_title, j.attachment_id, COUNT(*) as sales, SUM(j.amount_charged) as revenue FROM wp_smi_jobs j JOIN wp_posts p ON j.post_id = p.ID WHERE j.payment_status='paid' GROUP BY j.post_id, j.attachment_id ORDER BY revenue DESC;`
+
+### Data Retention Policy
+- **Job Records**: All job records are preserved indefinitely for customer analytics and business intelligence
+- **Customer Data**: Email addresses and payment information are retained for re-engagement and analytics
+- **File Management**: Physical upscaled files are automatically deleted after download expiration to prevent server bloat
+- **Download Tokens**: Expired download tokens are cleared from database while preserving job history
+- **Pagination**: Jobs management interface supports pagination (10-100 jobs per page) to handle large datasets efficiently
+
+### Download Security Model
+- **Token-Based Authorization**: Download access controlled by secure 64-character tokens generated with `wp_generate_password()`
+- **Natural Expiration**: Time-limited access provides security boundaries without overengineering
+- **Admin Override System**: Administrators can retry failed operations with bypass capabilities and audit logging
+- **Simplified Verification**: Possession of valid, non-expired token is sufficient proof of purchase authorization
+
+### Admin Operations
+- **Retry System**: Administrators can retry any job regardless of payment status mismatches via admin override context
+- **Email Transparency**: Admin receives identical HTML emails as customers (not plaintext) with "Copy:" subject prefix
+- **Comprehensive Logging**: All admin overrides logged with job details and payment status for audit trail
+- **Jobs Management**: Full pagination, filtering, and bulk operations interface at Admin → Jobs
 
 ### Analytics Architecture
 - **Post-Centric Display**: `AnalyticsPage` organizes data by post_id at top level with expandable attachment details
@@ -167,6 +192,8 @@ Complete job tracking with payment, processing status, and **analytics support**
 - **Performance Strategy**: Assets load only on posts with image blocks
 - **Detection Method**: `BlockProcessor::post_has_image_blocks()` content scanning
 - **Version Control**: `SMI_VERSION` constant for cache invalidation
+- **Frontend Assets**: `assets/css/modal.css` and `assets/js/modal.js` with jQuery dependency
+- **Admin Assets**: Separate CSS for admin interface with conditional loading
 
 ### Pricing Configuration
 - **Upsampler Costs**: Hardcoded at $0.04/credit (updated in `CostCalculator::UPSAMPLER_COST_PER_CREDIT`)
@@ -274,3 +301,24 @@ PaymentService expects specific CostCalculator output format:
 - RestApi handles routing, validation, and response formatting only
 - Business logic must reside in Services layer
 - API classes (StripeApi, Upsampler) are pure HTTP clients without business logic
+
+## Frontend Implementation Details
+
+### JavaScript Architecture
+- **Modal System**: jQuery-based modal with AJAX integration for price calculations and checkout
+- **Event Handling**: Click tracking with fire-and-forget AJAX calls to `/wp-json/smi/v1/track-button-click`
+- **Payment Integration**: Stripe Checkout redirection with status polling on return
+- **Error Handling**: User-friendly error messages with detailed server-side logging
+- **Status Updates**: Real-time job status polling with exponential backoff and timeout handling
+
+### CSS Structure  
+- **Modal Styling**: Responsive design with mobile-friendly breakpoints
+- **Button Integration**: Seamless integration with theme styles via CSS custom properties
+- **Loading States**: Visual feedback for processing, payment, and download states
+- **Admin Interface**: Dedicated admin styles with WordPress admin color scheme compliance
+
+### Security Implementation
+- **CSRF Protection**: WordPress nonces for all AJAX requests
+- **Input Validation**: Client-side validation with server-side sanitization
+- **Download Security**: Time-limited tokens generated with `wp_generate_password(64, false, false)`
+- **Webhook Verification**: Signature validation for both Stripe and Upsampler webhooks using stored secrets

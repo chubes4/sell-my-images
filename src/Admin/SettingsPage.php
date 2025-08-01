@@ -285,10 +285,6 @@ class SettingsPage {
         $value = get_option( 'smi_upsampler_api_key', '' );
         ?>
         <input type="password" id="smi_upsampler_api_key" name="smi_upsampler_api_key" value="<?php echo esc_attr( $value ); ?>" class="regular-text" />
-        <button type="button" id="smi-test-api-key" class="button button-secondary" style="margin-left: 10px;">
-            <?php esc_html_e( 'Test API Key', 'sell-my-images' ); ?>
-        </button>
-        <div id="smi-api-test-result" style="margin-top: 10px;"></div>
         <p class="description">
             <?php esc_html_e( 'Your Upsampler API key for image upscaling. Keep this secure and never share it publicly.', 'sell-my-images' ); ?>
         </p>
@@ -364,7 +360,9 @@ class SettingsPage {
         <input type="password" id="smi_stripe_webhook_secret" name="smi_stripe_webhook_secret" value="<?php echo esc_attr( $value ); ?>" class="regular-text" placeholder="whsec_..." />
         <p class="description">
             <?php esc_html_e( 'Webhook endpoint secret from Stripe dashboard for secure webhook verification (optional but recommended).', 'sell-my-images' ); ?><br>
-            <?php printf( __( 'Webhook URL: %s', 'sell-my-images' ), '<code>' . home_url( 'smi-webhook/stripe/' ) . '</code>' ); ?>
+            <?php 
+            /* translators: %s: webhook URL */
+            printf( esc_html__( 'Webhook URL: %s', 'sell-my-images' ), '<code>' . esc_url( home_url( 'smi-webhook/stripe/' ) ) . '</code>' ); ?>
         </p>
         <?php
     }
@@ -376,7 +374,9 @@ class SettingsPage {
         <span>%</span>
         <p class="description">
             <?php esc_html_e( 'Markup percentage applied to Upsampler costs. Upsampler charges $0.04/credit (hardcoded).', 'sell-my-images' ); ?><br>
-            <?php printf( esc_html__( 'Current setting: Customer pays %s%% more than our cost. Default: 500%% (6x total price). Minimum $0.50 enforced for Stripe.', 'sell-my-images' ), '<span id="markup-display">' . esc_html( $value ) . '</span>' ); ?>
+            <?php 
+            /* translators: %s: markup percentage value */
+            printf( esc_html__( 'Current setting: Customer pays %s%% more than our cost. Default: 500%% (6x total price). Minimum $0.50 enforced for Stripe.', 'sell-my-images' ), '<span id="markup-display">' . esc_html( $value ) . '</span>' ); ?>
         </p>
         <script>
         document.getElementById('smi_markup_percentage').addEventListener('input', function() {

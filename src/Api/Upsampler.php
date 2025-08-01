@@ -68,6 +68,7 @@ class Upsampler {
             'webhook' => $webhook_url,
             'input' => array(
                 'imageUrl' => $image_url,
+                'inputImageType' => 'universal',
                 'upscaleFactor' => $upscale_factor,
                 'globalCreativity' => 7,  // Default setting for balanced creativity
                 'detail' => 8,            // High detail preservation for precise upscaling
@@ -78,64 +79,6 @@ class Upsampler {
         return self::make_api_request( Constants::UPSAMPLER_PRECISE_UPSCALE_ENDPOINT, $request_data );
     }
     
-    /**
-     * Validate API key by making a test request
-     * 
-     * @param string $api_key API key to validate
-     * @return bool|WP_Error True if valid, WP_Error if invalid
-     */
-    public static function validate_api_key( $api_key ) {
-        if ( empty( $api_key ) ) {
-            return new \WP_Error( 'no_api_key', __( 'API key is required', 'sell-my-images' ) );
-        }
-        
-        // Try a GET request to the base API URL first (since /status endpoint may not exist)
-        $response = wp_remote_get( Constants::UPSAMPLER_API_BASE_URL, array(
-            'headers' => array(
-                'Authorization' => 'Bearer ' . $api_key,
-                'Content-Type' => 'application/json',
-            ),
-            'timeout' => 30,
-        ) );
-        
-        // Log full response for debugging
-        error_log( 'SMI Upsampler API Validation Response: ' . print_r( array(
-            'url' => Constants::UPSAMPLER_API_BASE_URL,
-            'response' => $response,
-            'is_wp_error' => is_wp_error( $response ),
-            'status_code' => is_wp_error( $response ) ? 'N/A' : wp_remote_retrieve_response_code( $response ),
-            'body' => is_wp_error( $response ) ? 'N/A' : wp_remote_retrieve_body( $response ),
-            'headers' => is_wp_error( $response ) ? 'N/A' : wp_remote_retrieve_headers( $response ),
-        ), true ) );
-        
-        if ( is_wp_error( $response ) ) {
-            $error_message = $response->get_error_message();
-            error_log( 'SMI Upsampler API Connection Error: ' . $error_message );
-            return new \WP_Error( 'connection_failed', 
-                sprintf( __( 'Could not connect to Upsampler API: %s', 'sell-my-images' ), $error_message ) 
-            );
-        }
-        
-        $status_code = wp_remote_retrieve_response_code( $response );
-        $response_body = wp_remote_retrieve_body( $response );
-        
-        if ( $status_code === 401 || $status_code === 403 ) {
-            return new \WP_Error( 'invalid_api_key', 
-                sprintf( __( 'Invalid API key (HTTP %d): %s', 'sell-my-images' ), $status_code, $response_body ) 
-            );
-        } elseif ( $status_code === 404 ) {
-            // If base URL returns 404, the API key might still be valid
-            // Let's consider this as potentially valid since endpoint may not exist
-            error_log( 'SMI Upsampler API: Base URL returned 404, API key may still be valid' );
-            return true;
-        } elseif ( $status_code !== 200 ) {
-            return new \WP_Error( 'api_error', 
-                sprintf( __( 'API validation failed (HTTP %d): %s', 'sell-my-images' ), $status_code, $response_body ) 
-            );
-        }
-        
-        return true;
-    }
     
     /**
      * Make API request to Upsampler
@@ -147,6 +90,11 @@ class Upsampler {
     private static function make_api_request( $endpoint, $data ) {
         $api_key = self::get_api_key();
         $url = Constants::UPSAMPLER_API_BASE_URL . $endpoint;
+        
+        if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+            error_log( 'SMI Upsampler: Making API request to: ' . $url );
+            error_log( 'SMI Upsampler: Request data: ' . wp_json_encode( $data ) );
+        }
         
         $response = wp_remote_post( $url, array(
             'headers' => array(
@@ -163,10 +111,20 @@ class Upsampler {
         
         $status_code = wp_remote_retrieve_response_code( $response );
         $body = wp_remote_retrieve_body( $response );
+        
+        if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+            error_log( 'SMI Upsampler: Response status: ' . $status_code );
+            error_log( 'SMI Upsampler: Response body: ' . $body );
+        }
+        
         $data = json_decode( $body, true );
         
         if ( $status_code !== 200 ) {
             $error_message = isset( $data['error'] ) ? $data['error'] : 'Unknown API error';
+            // Ensure error message is always a string
+            if ( is_array( $error_message ) ) {
+                $error_message = wp_json_encode( $error_message );
+            }
             return new \WP_Error( 'api_error', $error_message, array( 'status' => $status_code ) );
         }
         
@@ -174,8 +132,9 @@ class Upsampler {
             return new \WP_Error( 'invalid_response', __( 'Invalid API response format', 'sell-my-images' ) );
         }
         
-        if ( ! isset( $data['jobId'] ) ) {
-            return new \WP_Error( 'invalid_response', __( 'Invalid API response format', 'sell-my-images' ) );
+        // Fix: Upsampler returns 'id', not 'jobId'
+        if ( ! isset( $data['id'] ) ) {
+            return new \WP_Error( 'invalid_response', __( 'Invalid API response format - missing job ID', 'sell-my-images' ) );
         }
         
         return $data;

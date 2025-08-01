@@ -76,11 +76,13 @@ class PaymentService {
                         'currency' => 'usd',
                         'product_data' => array(
                             'name' => sprintf(
+                                /* translators: %s: resolution multiplier (2x, 4x, 8x) */
                                 __( 'High-Resolution Image (%s)', 'sell-my-images' ),
                                 $resolution
                             ),
                             'description' => sprintf(
-                                __( 'Upscaled from %dx%d to %dx%d pixels', 'sell-my-images' ),
+                                /* translators: 1: original width, 2: original height, 3: new width, 4: new height */
+                                __( 'Upscaled from %1$dx%2$d to %3$dx%4$d pixels', 'sell-my-images' ),
                                 $image_data['width'],
                                 $image_data['height'],
                                 $cost_data['output_dimensions']['width'],
@@ -107,11 +109,9 @@ class PaymentService {
         $result = $this->stripe_api->create_checkout_session( $session_data );
         
         if ( is_wp_error( $result ) ) {
-            error_log( 'SMI PaymentService: Failed to create checkout session - ' . $result->get_error_message() );
             return $result;
         }
         
-        error_log( 'SMI PaymentService: Created checkout session for job: ' . $job_id . ' (Session ID: ' . $result['session_id'] . ')' );
         
         return $result;
     }
@@ -126,7 +126,7 @@ class PaymentService {
         // Get webhook payload using shared method
         $payload = WebhookManager::read_webhook_payload();
         
-        $sig_header = $_SERVER['HTTP_STRIPE_SIGNATURE'] ?? '';
+        $sig_header = isset( $_SERVER['HTTP_STRIPE_SIGNATURE'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_STRIPE_SIGNATURE'] ) ) : '';
         
         // Get webhook secret
         $endpoint_secret = get_option( 'smi_stripe_webhook_secret', '' );
@@ -167,8 +167,12 @@ class PaymentService {
                 $this->handle_payment_failed( $event['data']['object'] );
                 break;
                 
+            case 'charge.refunded':
+                $this->handle_charge_refunded( $event['data']['object'] );
+                break;
+                
             default:
-                error_log( 'SMI PaymentService: Unhandled webhook event type: ' . $event['type'] );
+                // Unhandled event type
         }
     }
     
@@ -181,7 +185,6 @@ class PaymentService {
         $job_id = $session['metadata']['job_id'] ?? null;
         
         if ( ! $job_id ) {
-            error_log( 'SMI PaymentService: No job_id in checkout session metadata' );
             return;
         }
         
@@ -195,14 +198,17 @@ class PaymentService {
         );
         
         if ( is_wp_error( $result ) ) {
-            error_log( 'SMI PaymentService: Failed to update payment status - Job: ' . $job_id . ' - Error: ' . $result->get_error_message() );
             return;
         }
+        
+        // Move job from 'awaiting_payment' to 'pending' now that payment is complete
+        JobManager::update_job_status( $job_id, 'pending', array(
+            'paid_at' => current_time( 'mysql' )
+        ) );
         
         // Trigger upscaling via action (separation of concerns)
         do_action( 'smi_payment_completed', $job_id );
         
-        error_log( 'SMI PaymentService: Checkout completed for job: ' . $job_id );
     }
     
     /**
@@ -216,7 +222,6 @@ class PaymentService {
         
         if ( $job_id ) {
             $this->update_job_payment_status( $job_id, 'paid', null, $payment_intent['id'] );
-            error_log( 'SMI PaymentService: Payment succeeded for job: ' . $job_id );
         }
     }
     
@@ -236,8 +241,22 @@ class PaymentService {
             
             // Also update job status to failed
             JobManager::update_job_status( $job_id, 'failed' );
+        }
+    }
+    
+    /**
+     * Handle charge refunded event
+     * 
+     * @param array $charge Stripe charge data
+     */
+    private function handle_charge_refunded( $charge ) {
+        $job_id = $charge['metadata']['job_id'] ?? null;
+        
+        if ( $job_id ) {
+            $this->update_job_payment_status( $job_id, 'refunded', null, null, $charge['amount'] / 100 );
             
-            error_log( 'SMI PaymentService: Payment failed for job: ' . $job_id . ' - ' . $failure_reason );
+            // Also update job status to refunded
+            JobManager::update_job_status( $job_id, 'refunded' );
         }
     }
     
@@ -269,7 +288,7 @@ class PaymentService {
         $result = JobManager::update_payment_status( $job_id, $payment_status, $payment_data );
         
         if ( is_wp_error( $result ) ) {
-            error_log( 'SMI PaymentService: Failed to update payment status via JobManager - Job: ' . $job_id . ' - Error: ' . $result->get_error_message() );
+            // Payment status update failed
         }
         
         return $result;
@@ -282,8 +301,8 @@ class PaymentService {
      */
     private function get_current_page_url() {
         // Try to get from HTTP_REFERER first (most reliable for checkout flow)
-        if ( ! empty( $_SERVER['HTTP_REFERER'] ) ) {
-            $referer = esc_url_raw( $_SERVER['HTTP_REFERER'] );
+        if ( isset( $_SERVER['HTTP_REFERER'] ) && ! empty( $_SERVER['HTTP_REFERER'] ) ) {
+            $referer = esc_url_raw( wp_unslash( $_SERVER['HTTP_REFERER'] ) );
             // Make sure it's from the same domain
             if ( strpos( $referer, home_url() ) === 0 ) {
                 return $referer;
@@ -292,8 +311,8 @@ class PaymentService {
         
         // Fallback to current page
         $protocol = is_ssl() ? 'https://' : 'http://';
-        $host = $_SERVER['HTTP_HOST'] ?? '';
-        $uri = $_SERVER['REQUEST_URI'] ?? '';
+        $host = isset( $_SERVER['HTTP_HOST'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_HOST'] ) ) : '';
+        $uri = isset( $_SERVER['REQUEST_URI'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REQUEST_URI'] ) ) : '';
         
         return $protocol . $host . $uri;
     }

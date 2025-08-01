@@ -37,30 +37,47 @@ class AnalyticsTracker {
         $post_id = intval( $post_id );
         $attachment_id = intval( $attachment_id );
         
+        if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+            error_log( 'SMI AnalyticsTracker: Tracking click - Post ID: ' . $post_id . ', Attachment ID: ' . $attachment_id );
+        }
+        
         // Validate inputs
         if ( $post_id <= 0 || $attachment_id <= 0 ) {
-            error_log( 'SMI AnalyticsTracker: Invalid post_id or attachment_id provided' );
+            if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+                error_log( 'SMI AnalyticsTracker: Invalid input - Post ID: ' . $post_id . ', Attachment ID: ' . $attachment_id );
+            }
             return false;
         }
         
         // Verify post exists
         if ( ! get_post( $post_id ) ) {
-            error_log( 'SMI AnalyticsTracker: Post does not exist - ID: ' . $post_id );
+            if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+                error_log( 'SMI AnalyticsTracker: Post not found - Post ID: ' . $post_id );
+            }
             return false;
         }
         
         // Verify attachment exists
         if ( ! wp_attachment_is_image( $attachment_id ) ) {
-            error_log( 'SMI AnalyticsTracker: Invalid image attachment - ID: ' . $attachment_id );
+            if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+                error_log( 'SMI AnalyticsTracker: Attachment not found or not image - Attachment ID: ' . $attachment_id );
+            }
             return false;
         }
         
         // Get current analytics data
         $analytics_data = self::get_analytics_data( $post_id );
         
+        if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+            error_log( 'SMI AnalyticsTracker: Current analytics data: ' . print_r( $analytics_data, true ) );
+        }
+        
         // Initialize if this is the first click for this post
         if ( empty( $analytics_data ) ) {
             $analytics_data = self::initialize_analytics_data();
+            if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+                error_log( 'SMI AnalyticsTracker: Initialized new analytics data: ' . print_r( $analytics_data, true ) );
+            }
         }
         
         // Increment click count for this attachment
@@ -74,19 +91,27 @@ class AnalyticsTracker {
         $analytics_data['total_clicks']++;
         $analytics_data['last_click_date'] = current_time( 'mysql' );
         
+        if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+            error_log( 'SMI AnalyticsTracker: Updated analytics data: ' . print_r( $analytics_data, true ) );
+        }
+        
         // Update post meta
         $result = update_post_meta( $post_id, self::META_KEY, $analytics_data );
         
-        if ( $result ) {
-            error_log( sprintf( 
-                'SMI AnalyticsTracker: Click tracked - Post: %d, Attachment: %d, Total: %d', 
-                $post_id, 
-                $attachment_id, 
-                $analytics_data[ $attachment_key ] 
-            ) );
+        if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+            error_log( 'SMI AnalyticsTracker: update_post_meta result: ' . print_r( $result, true ) );
+        }
+        
+        // For update_post_meta, false means failure, anything else (true or meta_id) means success
+        if ( $result !== false ) {
+            if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+                error_log( 'SMI AnalyticsTracker: Click tracked successfully for Post ID: ' . $post_id . ', Attachment ID: ' . $attachment_id );
+            }
             return true;
         } else {
-            error_log( 'SMI AnalyticsTracker: Failed to update post meta for click tracking' );
+            if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+                error_log( 'SMI AnalyticsTracker: Failed to update post meta for Post ID: ' . $post_id );
+            }
             return false;
         }
     }
@@ -187,12 +212,14 @@ class AnalyticsTracker {
             $post_id = $post_data->post_id;
             $post_clicks = isset( $click_data[ $post_id ] ) ? $click_data[ $post_id ] : array();
             
-            // Add post-level click data
-            $post_data->total_clicks = isset( $post_clicks['total_clicks'] ) ? intval( $post_clicks['total_clicks'] ) : 0;
-            $post_data->first_click_date = isset( $post_clicks['first_click_date'] ) ? $post_clicks['first_click_date'] : null;
-            $post_data->last_click_date = isset( $post_clicks['last_click_date'] ) ? $post_clicks['last_click_date'] : null;
+            // Add post-level click data (only if not already set by click-only posts method)
+            if ( ! isset( $post_data->total_clicks ) ) {
+                $post_data->total_clicks = isset( $post_clicks['total_clicks'] ) ? intval( $post_clicks['total_clicks'] ) : 0;
+                $post_data->first_click_date = isset( $post_clicks['first_click_date'] ) ? $post_clicks['first_click_date'] : null;
+                $post_data->last_click_date = isset( $post_clicks['last_click_date'] ) ? $post_clicks['last_click_date'] : null;
+            }
             
-            // Calculate post-level conversion rate
+            // Calculate post-level conversion rate (always recalculate to ensure accuracy)
             $post_data->conversion_rate = $post_data->total_clicks > 0 ? 
                 ( $post_data->total_sales / $post_data->total_clicks ) * 100 : 0;
             
@@ -224,28 +251,18 @@ class AnalyticsTracker {
             return $purchase_stats;
         }
         
-        // Get all posts that have sales to calculate click stats
-        global $wpdb;
+        // Get all posts that have click tracking data (not just those with sales)
+        $posts_with_clicks = self::get_posts_with_click_data();
         
-        $jobs_table = DatabaseManager::get_jobs_table();
-        
-        // Get distinct post IDs with sales
-        $post_ids = $wpdb->get_col( "
-            SELECT DISTINCT post_id 
-            FROM {$jobs_table} 
-            WHERE payment_status = 'paid' 
-            AND post_id IS NOT NULL
-        " );
-        
-        if ( empty( $post_ids ) ) {
+        if ( empty( $posts_with_clicks ) ) {
             $purchase_stats->total_clicks = 0;
             $purchase_stats->avg_conversion_rate = 0;
             return $purchase_stats;
         }
         
-        // Calculate total clicks across all posts with sales
+        // Calculate total clicks across all posts with click data
         $total_clicks = 0;
-        foreach ( $post_ids as $post_id ) {
+        foreach ( $posts_with_clicks as $post_id ) {
             $total_clicks += self::get_total_clicks( $post_id );
         }
         
@@ -256,6 +273,158 @@ class AnalyticsTracker {
             ( $purchase_stats->total_paid_jobs / $total_clicks ) * 100 : 0;
         
         return $purchase_stats;
+    }
+    
+    /**
+     * Get all posts that have click tracking data
+     * 
+     * @return array Array of post IDs with click data
+     */
+    public static function get_posts_with_click_data() {
+        global $wpdb;
+        
+        $post_ids = $wpdb->get_col( $wpdb->prepare( "
+            SELECT post_id 
+            FROM {$wpdb->postmeta} 
+            WHERE meta_key = %s
+            AND meta_value != ''
+        ", self::META_KEY ) );
+        
+        return array_map( 'intval', $post_ids );
+    }
+    
+    /**
+     * Get click-only posts data (posts with clicks but no sales)
+     * 
+     * @param array $params Optional parameters for pagination and sorting
+     * @return array Array of post data for posts with clicks but no sales
+     */
+    public static function get_click_only_posts_data( $params = array() ) {
+        global $wpdb;
+        
+        $jobs_table = DatabaseManager::get_jobs_table();
+        
+        // Get posts with clicks
+        $posts_with_clicks = self::get_posts_with_click_data();
+        
+        if ( empty( $posts_with_clicks ) ) {
+            return array();
+        }
+        
+        $post_ids_string = implode( ',', $posts_with_clicks );
+        
+        // Get posts with clicks but no paid sales
+        $query = "
+            SELECT p.ID as post_id, p.post_title, p.post_date
+            FROM {$wpdb->posts} p
+            WHERE p.ID IN ({$post_ids_string})
+            AND p.ID NOT IN (
+                SELECT DISTINCT post_id 
+                FROM {$jobs_table} 
+                WHERE payment_status = 'paid' 
+                AND post_id IS NOT NULL
+            )
+            AND p.post_status = 'publish'
+            ORDER BY p.post_date DESC
+        ";
+        
+        $click_only_posts = $wpdb->get_results( $query );
+        
+        // Format data to match AnalyticsPage structure
+        $formatted_posts = array();
+        foreach ( $click_only_posts as $post ) {
+            $click_data = self::get_click_counts( $post->post_id );
+            
+            // Build attachment data from click tracking
+            $attachments = array();
+            if ( ! empty( $click_data ) ) {
+                foreach ( $click_data as $key => $value ) {
+                    if ( strpos( $key, 'attachment_' ) === 0 ) {
+                        $attachment_id = intval( str_replace( 'attachment_', '', $key ) );
+                        
+                        // Get attachment metadata
+                        $attachment_meta = wp_get_attachment_metadata( $attachment_id );
+                        $attachment_url = wp_get_attachment_url( $attachment_id );
+                        
+                        $attachments[] = (object) array(
+                            'attachment_id' => $attachment_id,
+                            'image_url' => $attachment_url ?: '',
+                            'image_width' => isset( $attachment_meta['width'] ) ? $attachment_meta['width'] : null,
+                            'image_height' => isset( $attachment_meta['height'] ) ? $attachment_meta['height'] : null,
+                            'sales_count' => 0,
+                            'revenue' => 0,
+                            'total_cost' => 0,
+                            'profit' => 0,
+                            'avg_price' => 0,
+                            'avg_cost' => 0,
+                            'resolutions_sold' => '',
+                            'last_sale_date' => null,
+                            'first_sale_date' => null,
+                            'click_count' => intval( $value ),
+                            'conversion_rate' => 0 // No sales, so 0% conversion
+                        );
+                    }
+                }
+            }
+            
+            $formatted_posts[] = (object) array(
+                'post_id' => $post->post_id,
+                'post_title' => $post->post_title,
+                'post_date' => $post->post_date,
+                'total_sales' => 0,
+                'total_revenue' => 0,
+                'total_cost' => 0,
+                'total_profit' => 0,
+                'unique_images_sold' => 0,
+                'customer_emails' => array(),
+                'attachments' => $attachments,
+                'total_clicks' => isset( $click_data['total_clicks'] ) ? intval( $click_data['total_clicks'] ) : 0,
+                'first_click_date' => isset( $click_data['first_click_date'] ) ? $click_data['first_click_date'] : null,
+                'last_click_date' => isset( $click_data['last_click_date'] ) ? $click_data['last_click_date'] : null,
+                'conversion_rate' => 0, // No sales, so 0% conversion
+                'avg_sale_price' => 0,
+                'avg_cost' => 0,
+                'unique_customers' => 0
+            );
+        }
+        
+        return $formatted_posts;
+    }
+    
+    /**
+     * Get count of click-only posts (posts with clicks but no sales)
+     * 
+     * @return int Count of click-only posts
+     */
+    public static function get_click_only_posts_count() {
+        global $wpdb;
+        
+        $jobs_table = DatabaseManager::get_jobs_table();
+        
+        // Get posts with clicks
+        $posts_with_clicks = self::get_posts_with_click_data();
+        
+        if ( empty( $posts_with_clicks ) ) {
+            return 0;
+        }
+        
+        $post_ids_string = implode( ',', $posts_with_clicks );
+        
+        // Count posts with clicks but no paid sales
+        $count = $wpdb->get_var( "
+            SELECT COUNT(DISTINCT p.ID)
+            FROM {$wpdb->posts} p
+            WHERE p.ID IN ({$post_ids_string})
+            AND p.ID NOT IN (
+                SELECT DISTINCT post_id 
+                FROM {$jobs_table} 
+                WHERE payment_status = 'paid' 
+                AND post_id IS NOT NULL
+            )
+            AND p.post_status = 'publish'
+        " );
+        
+        return intval( $count );
     }
     
     /**
@@ -288,9 +457,6 @@ class AnalyticsTracker {
             }
         }
         
-        if ( $cleaned_count > 0 ) {
-            error_log( "SMI AnalyticsTracker: Cleaned up {$cleaned_count} old analytics records" );
-        }
         
         return $cleaned_count;
     }
