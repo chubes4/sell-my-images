@@ -10,6 +10,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 - No need for backwards compatibility, this is a brand new system in development
 - **Post ID Tracking**: The system now tracks both `attachment_id` and `post_id` for comprehensive analytics
+- **Analytics Philosophy**: The system prioritizes engagement metrics (clicks) over financial metrics (revenue) by default to promote user-focused optimization
 
 ## Architecture
 
@@ -49,7 +50,7 @@ All classes follow PSR-4 autoloading under the `SellMyImages\` namespace:
 **Admin Layer:**
 - `SellMyImages\Admin\AdminInit` - Top-level admin menu and settings initialization
 - `SellMyImages\Admin\SettingsPage` - Individual option registration (not group-based)
-- `SellMyImages\Admin\AnalyticsPage` - Post-centric analytics with profit margin calculations
+- `SellMyImages\Admin\AnalyticsPage` - Engagement-first analytics with clickable navigation and enhanced click tracking
 
 ### System Architecture & Data Flow
 
@@ -115,6 +116,7 @@ Complete job tracking with payment, processing status, and **analytics support**
 - **Syntax check**: `php -l sell-my-images.php` or `php -l src/Api/RestApi.php`
 - **WordPress debug logging**: Enable `WP_DEBUG_LOG` in wp-config.php
 - **Plugin activation test**: Activate/deactivate to test database table creation
+- **Analytics Testing**: View Admin → Analytics to verify click tracking, default sorting, and navigation features
 
 ### Local Development Setup
 - **WordPress Environment**: Requires WordPress 5.0+ with Gutenberg support
@@ -123,10 +125,12 @@ Complete job tracking with payment, processing status, and **analytics support**
 - **Database**: MySQL/MariaDB with InnoDB support for proper indexing
 
 ### Database Operations for Analytics
+- **Most clicked posts**: `SELECT post_id, SUM(meta_value) as clicks FROM wp_postmeta WHERE meta_key='_smi_click_analytics' GROUP BY post_id ORDER BY clicks DESC;`
 - **Most profitable posts**: `SELECT post_id, COUNT(*) as sales, SUM(amount_charged) as revenue FROM wp_smi_jobs WHERE payment_status='paid' GROUP BY post_id ORDER BY revenue DESC;`
 - **Most profitable images**: `SELECT attachment_id, COUNT(*) as sales, SUM(amount_charged) as revenue FROM wp_smi_jobs WHERE payment_status='paid' GROUP BY attachment_id ORDER BY revenue DESC;`
 - **Profit analysis**: `SELECT post_id, SUM(amount_charged - COALESCE(amount_cost, 0)) as profit, (SUM(amount_charged - COALESCE(amount_cost, 0)) / SUM(amount_charged)) * 100 as margin FROM wp_smi_jobs WHERE payment_status='paid' GROUP BY post_id;`
 - **Cross-reference analysis**: `SELECT p.post_title, j.attachment_id, COUNT(*) as sales, SUM(j.amount_charged) as revenue FROM wp_smi_jobs j JOIN wp_posts p ON j.post_id = p.ID WHERE j.payment_status='paid' GROUP BY j.post_id, j.attachment_id ORDER BY revenue DESC;`
+- **Conversion analysis**: Combines click data from post meta with sales data for comprehensive conversion rate calculations
 
 ### Data Retention Policy
 - **Job Records**: All job records are preserved indefinitely for customer analytics and business intelligence
@@ -142,25 +146,35 @@ Complete job tracking with payment, processing status, and **analytics support**
 - **Simplified Verification**: Possession of valid, non-expired token is sufficient proof of purchase authorization
 
 ### Admin Operations
+- **Analytics Navigation**: Post titles in Analytics page are clickable links that open posts in new tabs for easy content review
+- **Default Sorting**: Analytics page defaults to 'clicks' sorting to prioritize engagement insights over revenue metrics
+- **Enhanced UX**: Improved error handling prevents undefined property warnings in analytics display
+- **Batch Operations**: Efficient click data processing reduces database queries for better performance
 - **Retry System**: Administrators can retry any job regardless of payment status mismatches via admin override context
 - **Email Transparency**: Admin receives identical HTML emails as customers (not plaintext) with "Copy:" subject prefix
 - **Comprehensive Logging**: All admin overrides logged with job details and payment status for audit trail
 - **Jobs Management**: Full pagination, filtering, and bulk operations interface at Admin → Jobs
 
 ### Analytics Architecture
-- **Post-Centric Display**: `AnalyticsPage` organizes data by post_id at top level with expandable attachment details
+- **Engagement-First Display**: `AnalyticsPage` defaults to sorting by clicks (not revenue) to prioritize engagement metrics
+- **Post-Centric Organization**: Data organized by post_id at top level with expandable attachment details and clickable post titles
+- **Batch Click Processing**: Enhanced performance with `add_click_data_to_results()` and `get_click_data_for_posts()` methods for efficient bulk operations
+- **Navigation Enhancement**: Post titles are clickable links using `get_permalink()` that open in new tabs for easy content review
 - **Profit Calculations**: Real-time profit margins calculated from `amount_charged - amount_cost`
-- **Click Tracking**: Post meta-based system using `_smi_click_analytics` for button interaction tracking
-- **Conversion Analytics**: Click-to-purchase rates calculated per post and per attachment
+- **Click Tracking**: Post meta-based system using `_smi_click_analytics` for button interaction tracking with robust error handling
+- **Conversion Analytics**: Click-to-purchase rates calculated per post and per attachment with proper null checking
 - **Summary Statistics**: Total revenue, profit, sales count, profit margins, click counts, and conversion rates
-- **Database Optimization**: Uses composite indexes (`post_id`, `attachment_id`) for efficient queries
+- **Database Optimization**: Uses composite indexes (`post_id`, `attachment_id`) for efficient queries with intelligent caching
 
 ### Click Tracking System
 - **Storage Method**: WordPress post meta (`_smi_click_analytics`) with serialized array structure
 - **Data Structure**: `array('attachment_123' => count, 'total_clicks' => total, 'first_click_date' => timestamp)`
+- **Batch Processing**: New `get_click_data_for_posts()` method fetches click data for multiple posts efficiently using single query with IN clause
+- **Enhanced Integration**: `add_click_data_to_results()` method seamlessly merges click data with sales results for comprehensive analytics
+- **Error Prevention**: Proper `isset()` checks prevent undefined property warnings when accessing `total_clicks`
 - **Automatic Initialization**: First click on post creates analytics baseline
-- **Conversion Metrics**: Calculates click-to-purchase ratios for optimization insights
-- **Performance**: No database schema changes, uses WordPress native post meta system
+- **Conversion Metrics**: Calculates click-to-purchase ratios for optimization insights with safe division handling
+- **Performance**: No database schema changes, uses WordPress native post meta system with optimized bulk retrieval
 
 ### Payment & Webhook Testing
 - **Stripe CLI**: `stripe listen --forward-to=https://yoursite.com/smi-webhook/stripe/`
@@ -173,9 +187,10 @@ Complete job tracking with payment, processing status, and **analytics support**
 
 - **Content Filtering**: Uses `the_content` filter with Gutenberg block processing
 - **REST API**: Custom `/wp-json/smi/v1/` namespace with proper authentication
-- **WordPress Native Functions**: `wp_generate_password()`, `wp_remote_get()`, `wp_mail()`, `wp_generate_uuid4()`
+- **WordPress Native Functions**: `wp_generate_password()`, `wp_remote_get()`, `wp_mail()`, `wp_generate_uuid4()`, `get_permalink()`
 - **Asset Loading**: Conditional loading based on content analysis
 - **Settings API**: Individual option registration (not group-based) for proper field display
+- **Post Meta Integration**: Uses WordPress post meta system for click tracking with bulk retrieval optimization
 
 ## External Dependencies
 
@@ -201,6 +216,22 @@ Complete job tracking with payment, processing status, and **analytics support**
 - **Credit Formula**: 1 credit per 4 megapixels of output for Precise Upscale
 - **Shared Utilities**: `CostCalculator::get_upscale_factor()` public method used by both CostCalculator and Upscaler
 - **Price Updates**: When Upsampler changes pricing, update the constant in CostCalculator class
+
+## Recent Analytics Enhancements
+
+### AnalyticsPage Class Improvements
+- **New Methods**:
+  - `add_click_data_to_results()` - Efficiently merges click data with sales results using batch processing
+  - `get_click_data_for_posts()` - Fetches click data for multiple posts in single database query using IN clause
+  - Enhanced `get_sort_value()` with proper null checking for `total_clicks` property
+- **UX Improvements**:
+  - Default sorting changed from 'revenue' to 'clicks' for engagement-first analytics approach
+  - Post titles are now clickable links using `get_permalink()` that open in new tabs
+  - Robust error handling prevents undefined property warnings
+- **Performance Optimizations**:
+  - Batch click data processing reduces N+1 query problems
+  - Single query retrieval for multiple posts' click analytics
+  - Proper `isset()` checks throughout to prevent PHP notices
 
 ## Architecture Patterns & Implementation Guidelines
 
@@ -257,9 +288,13 @@ PaymentService expects specific CostCalculator output format:
 - **Asset Loading**: Admin assets load only on plugin settings page
 
 ### Analytics & Job Tracking
+- **Default Sorting**: Analytics page defaults to 'clicks' (engagement-first) instead of 'revenue' for better user experience
+- **Enhanced Click Processing**: New batch processing methods improve performance and prevent undefined property errors
+- **Navigation Integration**: Post titles are clickable with `get_permalink()` integration for seamless content access
 - **Required Fields**: Both post_id and attachment_id are required (NOT NULL)
 - **Index Usage**: Use composite indexes for cross-reference queries
 - **Job Lifecycle**: `pending` → `paid` → `processing` → `completed`/`failed`
+- **Error Prevention**: Proper null checking prevents warnings when accessing click data properties
 
 ### Payment Integration
 - **SSL Requirements**: Stripe requires HTTPS for live payments and webhooks
@@ -295,6 +330,8 @@ PaymentService expects specific CostCalculator output format:
 - **Error Logging**: Detailed errors logged via `error_log()` for debugging purposes
 - **Database**: No `failure_reason` column - status tracking is sufficient for user-facing functionality
 - **User Experience**: Failed jobs show generic failure message; detailed errors are server-side only
+- **Analytics Error Prevention**: Proper `isset()` checks prevent undefined property warnings when accessing click data
+- **Null Safety**: All analytics methods include robust null checking for undefined or missing data properties
 
 ### Architecture Enforcement
 **RestApi Boundaries**: Maintain strict separation of concerns:

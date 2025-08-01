@@ -38,7 +38,7 @@ class AnalyticsPage {
         $params = array(
             'paged' => 1,
             'per_page' => 10,
-            'orderby' => 'revenue',
+            'orderby' => 'clicks',
             'order' => 'desc'
         );
         
@@ -124,6 +124,9 @@ class AnalyticsPage {
             
             $raw_data = $wpdb->get_results( $query );
             
+            // Enhance data with click tracking information
+            $raw_data = $this->add_click_data_to_results( $raw_data );
+            
             // Cache for 5 minutes
             wp_cache_set( $cache_key, $raw_data, 'smi_analytics', 5 * MINUTE_IN_SECONDS );
         }
@@ -194,7 +197,7 @@ class AnalyticsPage {
             case 'sales':
                 return $post_data->total_sales ?: 0;
             case 'clicks':
-                return $post_data->total_clicks ?: 0;
+                return isset($post_data->total_clicks) ? $post_data->total_clicks : 0;
             case 'conversion':
                 return $post_data->conversion_rate ?: 0;
             case 'date':
@@ -263,6 +266,7 @@ class AnalyticsPage {
                     'total_revenue' => 0,
                     'total_cost' => 0,
                     'total_profit' => 0,
+                    'total_clicks' => $row->total_clicks ?? 0,
                     'unique_images_sold' => 0,
                     'customer_emails' => array(),
                     'attachments' => array()
@@ -283,7 +287,9 @@ class AnalyticsPage {
                 'avg_cost' => $row->avg_cost,
                 'resolutions_sold' => $row->resolutions_sold,
                 'last_sale_date' => $row->last_sale_date,
-                'first_sale_date' => $row->first_sale_date
+                'first_sale_date' => $row->first_sale_date,
+                'attachment_clicks' => $row->attachment_clicks ?? 0,
+                'conversion_rate' => $row->conversion_rate ?? 0
             );
             
             $organized[$post_id]->attachments[] = $attachment_data;
@@ -312,6 +318,10 @@ class AnalyticsPage {
             $post_data->avg_cost = $post_data->total_sales > 0 ? 
                 $post_data->total_cost / $post_data->total_sales : 0;
             $post_data->unique_customers = count( $post_data->customer_emails );
+            
+            // Calculate post-level conversion rate (total sales / total clicks)
+            $post_data->conversion_rate = $post_data->total_clicks > 0 ? 
+                ( $post_data->total_sales / $post_data->total_clicks ) * 100 : 0;
         }
         
         // Sort by total revenue (descending)
@@ -815,7 +825,13 @@ class AnalyticsPage {
                     <div class="smi-post-header">
                         <div>
                             <div class="smi-post-title">
-                                <?php echo esc_html( $post_data->post_title ?: __( 'Unknown Post', 'sell-my-images' ) ); ?>
+                                <?php if ( $post_data->post_id ) : ?>
+                                    <a href="<?php echo esc_url( get_permalink( $post_data->post_id ) ); ?>" target="_blank">
+                                        <?php echo esc_html( $post_data->post_title ?: __( 'Unknown Post', 'sell-my-images' ) ); ?>
+                                    </a>
+                                <?php else : ?>
+                                    <?php echo esc_html( $post_data->post_title ?: __( 'Unknown Post', 'sell-my-images' ) ); ?>
+                                <?php endif; ?>
                                 <span class="smi-toggle-icon">▶</span>
                             </div>
                             <div class="smi-post-meta">
@@ -949,5 +965,90 @@ class AnalyticsPage {
             <?php endforeach; ?>
         </div>
         <?php
+    }
+    
+    /**
+     * Add click data from post meta to sales results
+     * 
+     * @param array $raw_data Raw data from sales query
+     * @return array Enhanced data with click information
+     */
+    private function add_click_data_to_results( $raw_data ) {
+        if ( empty( $raw_data ) ) {
+            return $raw_data;
+        }
+        
+        // Get unique post IDs from the results
+        $post_ids = array_unique( array_column( $raw_data, 'post_id' ) );
+        
+        // Fetch click data for all posts in a single query
+        $click_data_by_post = $this->get_click_data_for_posts( $post_ids );
+        
+        // Enhance each result with click data
+        foreach ( $raw_data as $result ) {
+            $post_id = $result->post_id;
+            $attachment_id = $result->attachment_id;
+            
+            // Get click data for this post
+            $post_click_data = $click_data_by_post[ $post_id ] ?? array();
+            
+            // Calculate clicks for this specific attachment
+            $attachment_key = 'attachment_' . $attachment_id;
+            $attachment_clicks = isset( $post_click_data[ $attachment_key ] ) ? intval( $post_click_data[ $attachment_key ] ) : 0;
+            
+            // Add click data to result
+            $result->attachment_clicks = $attachment_clicks;
+            $result->total_clicks = isset( $post_click_data['total_clicks'] ) ? intval( $post_click_data['total_clicks'] ) : 0;
+            
+            // Calculate conversion rate (sales / clicks)
+            if ( $attachment_clicks > 0 ) {
+                $result->conversion_rate = ( $result->sales_count / $attachment_clicks ) * 100;
+            } else {
+                $result->conversion_rate = 0;
+            }
+        }
+        
+        return $raw_data;
+    }
+    
+    /**
+     * Get click data for multiple posts efficiently
+     * 
+     * @param array $post_ids Array of post IDs
+     * @return array Click data indexed by post ID
+     */
+    private function get_click_data_for_posts( $post_ids ) {
+        if ( empty( $post_ids ) ) {
+            return array();
+        }
+        
+        // Prepare IN clause for post IDs
+        $post_ids_placeholders = implode( ',', array_fill( 0, count( $post_ids ), '%d' ) );
+        
+        global $wpdb;
+        
+        // Fetch all click analytics meta in one query
+        $query = "
+            SELECT post_id, meta_value 
+            FROM {$wpdb->postmeta} 
+            WHERE post_id IN ($post_ids_placeholders) 
+            AND meta_key = %s
+        ";
+        
+        $query_args = array_merge( $post_ids, array( \SellMyImages\Managers\AnalyticsTracker::META_KEY ) );
+        $results = $wpdb->get_results( $wpdb->prepare( $query, ...$query_args ) );
+        
+        $click_data_by_post = array();
+        
+        foreach ( $results as $result ) {
+            $post_id = $result->post_id;
+            $click_data = maybe_unserialize( $result->meta_value );
+            
+            if ( is_array( $click_data ) ) {
+                $click_data_by_post[ $post_id ] = $click_data;
+            }
+        }
+        
+        return $click_data_by_post;
     }
 }
