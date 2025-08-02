@@ -228,8 +228,210 @@
 }
 
 /* ==========================================================================
+   Tabbed Interface Styles
+   ========================================================================== */
+
+/* Tab container */
+.smi-tabbed-settings {
+    margin-top: 20px;
+}
+
+/* Tab navigation */
+.smi-tab-nav {
+    border-bottom: 1px solid #ccd0d4;
+    margin-bottom: 20px;
+    display: flex;
+    gap: 0;
+}
+
+.smi-tab-link {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 20px;
+    text-decoration: none;
+    color: #646970;
+    background: #f6f7f7;
+    border: 1px solid #ccd0d4;
+    border-bottom: none;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    position: relative;
+    top: 1px;
+}
+
+.smi-tab-link:first-child {
+    border-top-left-radius: 4px;
+}
+
+.smi-tab-link:last-child {
+    border-top-right-radius: 4px;
+}
+
+.smi-tab-link:hover {
+    background: #fff;
+    color: #2271b1;
+    text-decoration: none;
+}
+
+.smi-tab-link.smi-tab-active {
+    background: #fff;
+    color: #2271b1;
+    border-bottom: 1px solid #fff;
+    margin-bottom: -1px;
+}
+
+.smi-tab-link .dashicons {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+}
+
+/* Tab content */
+.smi-tab-content {
+    background: #fff;
+    border: 1px solid #ccd0d4;
+    border-radius: 0 4px 4px 4px;
+    padding: 0;
+}
+
+.smi-tab-panel {
+    display: none;
+    padding: 30px;
+}
+
+.smi-tab-panel.smi-tab-active {
+    display: block;
+}
+
+/* Tab sections within panels */
+.smi-tab-section {
+    margin-bottom: 40px;
+}
+
+.smi-tab-section:last-child {
+    margin-bottom: 0;
+}
+
+.smi-tab-section h3 {
+    margin: 0 0 15px 0;
+    padding: 0 0 10px 0;
+    border-bottom: 1px solid #e1e1e1;
+    color: #1d2327;
+    font-size: 16px;
+}
+
+.smi-tab-section h4 {
+    margin: 20px 0 10px 0;
+    color: #1d2327;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+/* Display modes in Display tab */
+.smi-display-modes {
+    border: none;
+    padding: 0;
+    margin: 0 0 30px 0;
+}
+
+.smi-display-modes p {
+    margin-bottom: 12px;
+}
+
+.smi-display-modes label {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    cursor: pointer;
+}
+
+.smi-display-modes input[type="radio"] {
+    margin: 2px 0 0 0;
+    flex-shrink: 0;
+}
+
+.smi-display-modes strong {
+    color: #1d2327;
+}
+
+.smi-display-modes .description {
+    color: #646970;
+    font-style: italic;
+    margin-left: 0;
+}
+
+/* Webhook info styling */
+.smi-webhook-info {
+    background: #f6f7f7;
+    border: 1px solid #c3c4c7;
+    border-radius: 4px;
+    padding: 15px;
+    margin-top: 20px;
+}
+
+.smi-webhook-info h4 {
+    margin: 0 0 8px 0;
+    color: #1d2327;
+}
+
+.smi-webhook-info code {
+    background: #fff;
+    padding: 4px 8px;
+    border-radius: 3px;
+    border: 1px solid #ddd;
+    font-family: Consolas, Monaco, monospace;
+    font-size: 12px;
+}
+
+/* Responsive tabs */
+@media (max-width: 782px) {
+    .smi-tab-nav {
+        flex-direction: column;
+        border-bottom: none;
+    }
+    
+    .smi-tab-link {
+        border-radius: 0 !important;
+        border-bottom: 1px solid #ccd0d4;
+        top: 0;
+        margin-bottom: 0;
+    }
+    
+    .smi-tab-link.smi-tab-active {
+        border-bottom: 1px solid #ccd0d4;
+        margin-bottom: 0;
+    }
+    
+    .smi-tab-content {
+        border-radius: 4px;
+        margin-top: 10px;
+    }
+    
+    .smi-tab-panel {
+        padding: 20px;
+    }
+    
+    .smi-display-modes label {
+        flex-direction: column;
+        gap: 4px;
+        align-items: flex-start;
+    }
+    
+    .smi-display-modes input[type="radio"] {
+        margin-bottom: 4px;
+    }
+}
+
+/* ==========================================================================
    Button Display Filter Styles
    ========================================================================== */
+
+/* Filter criteria container - full width section */
+#smi-filter-criteria-table {
+    margin-top: 20px;
+    width: 100%;
+}
 
 /* Filter criteria table */
 .smi-filter-table {
@@ -240,6 +442,7 @@
     border: 1px solid #ccd0d4;
     border-radius: 4px;
 }
+
 
 .smi-filter-table th {
     background: #f1f1f1;
@@ -326,13 +529,26 @@
     margin-left: 0;
 }
 
-/* Filter criteria visibility toggle */
-#smi-filter-criteria-table {
-    transition: opacity 0.3s ease;
+/* Filter criteria disabled state */
+#smi-filter-criteria-table.smi-disabled {
+    opacity: 0.5;
+    pointer-events: none;
+    position: relative;
 }
 
-#smi-filter-criteria-table[style*="display: none"] {
-    opacity: 0;
+#smi-filter-criteria-table.smi-disabled::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.7);
+    z-index: 1;
+}
+
+#smi-filter-criteria-table {
+    transition: opacity 0.3s ease;
 }
 
 /* Filter table responsive design */

@@ -4,7 +4,7 @@ Tags: images, monetization, ecommerce, ai, upscaling
 Requires at least: 5.0
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 1.0.0
+Stable tag: 1.2.0
 License: GPL v2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -17,13 +17,14 @@ A professional WordPress plugin that monetizes website images by adding "Downloa
 ## 🚀 Key Features
 
 - **Smart Image Detection**: Automatically detects Gutenberg image blocks and injects purchase buttons
+- **Professional Admin Interface**: Modern tabbed interface with API Configuration, Display Control, and Download Settings
 - **Granular Button Control**: Show buttons on all posts, or selectively include/exclude by post type, category, tag, or specific post IDs
 - **AI-Powered Upscaling**: Professional quality image enhancement via Upsampler.com API
 - **Secure Payment Processing**: Stripe integration with test/live mode support
 - **Real-time Analytics**: Track clicks, conversions, and revenue per post/image
 - **Webhook-Driven Workflow**: Automated payment verification and processing
 - **Protected Downloads**: Secure, token-based download system with expiration
-- **Mobile-Responsive Design**: Clean, professional buttons optimized for all devices
+- **Mobile-Responsive Design**: Clean, professional buttons and admin interface optimized for all devices
 - **Performance-Optimized**: Smart asset loading - CSS/JS only loads when buttons will appear
 - **Developer-Friendly**: Clean PSR-4 architecture with comprehensive documentation
 
@@ -80,13 +81,14 @@ This plugin relies on external services to provide its core functionality. By us
 
 **User Control:** Customers provide explicit consent during checkout. No data is transmitted without user-initiated purchase action.
 
-## 📋 Current Status: **PRODUCTION READY**
+## 📋 Current Status: **PRODUCTION READY** (Version 1.2.0)
 
 ### ✅ Core Features Completed
 - **Payment Processing**: Full Stripe integration with webhook automation
 - **AI Upscaling**: Upsampler.com API integration with quality enhancement
 - **Analytics System**: Click tracking, conversion rates, and revenue analytics
-- **Admin Interface**: Comprehensive settings and analytics dashboard
+- **Professional Admin Interface**: Modern tabbed design with enhanced UX
+- **Button Display Control**: Comprehensive filtering system with visual feedback
 - **Security**: Payment verification, secure downloads, input validation
 - **Mobile Support**: Responsive design with touch-friendly interactions
 
@@ -132,18 +134,20 @@ sell-my-images/
 ### Installation
 1. **Upload & Activate**: Install plugin in `/wp-content/plugins/` and activate
 2. **Install Dependencies**: Run `composer install` in plugin directory
-3. **Configure APIs**: Add Stripe and Upsampler API keys in Admin → Sell My Images
-4. **Control Button Display**: Choose where download buttons appear (all posts, or selective filtering)
-5. **Test Webhooks**: Use Stripe CLI for local development testing
+3. **Configure APIs**: Use the new tabbed interface - API Configuration tab for Stripe and Upsampler setup
+4. **Control Button Display**: Use the Display Control tab to choose where download buttons appear
+5. **Configure Downloads**: Use the Download Settings tab for expiry and pricing settings
+6. **Test Webhooks**: Use Stripe CLI for local development testing
 
 ### Production Setup
 1. **SSL Certificate**: Required for Stripe payments and webhooks
 2. **Stripe Configuration**: 
-   - Add live/test API keys in settings
+   - Use API Configuration tab to add live/test API keys
    - Configure webhook endpoint: `https://yoursite.com/smi-webhook/stripe/`
-3. **Upsampler Setup**: Get API key from upsampler.com
-4. **Button Display Setup**: Configure where buttons appear using the granular control system
-5. **Analytics**: Enable click tracking for conversion optimization
+3. **Upsampler Setup**: Add API key in API Configuration tab
+4. **Button Display Setup**: Use Display Control tab for comprehensive filtering system
+5. **Download Settings**: Configure expiry and pricing in Download Settings tab
+6. **Analytics**: Enable click tracking for conversion optimization
 
 ## 📋 Requirements
 
@@ -185,6 +189,37 @@ Track your image monetization performance:
 - **Conversion Rates**: Click-to-purchase optimization
 - **Image Performance**: Most profitable individual images
 - **Profit Margins**: Real-time cost analysis with Upsampler pricing
+
+## 🎨 Professional Admin Interface (New in v1.2.0)
+
+Experience a modern, organized settings interface with three dedicated tabs for comprehensive plugin management:
+
+### Tabbed Organization
+
+**API Configuration Tab**
+- Upsampler API key setup with direct signup links
+- Complete Stripe configuration (test/live modes) 
+- Webhook endpoint documentation and guidance
+- Service integration instructions
+
+**Display Control Tab**
+- Button display mode selection with visual indicators
+- Comprehensive filter criteria table (always visible for clarity)
+- Real-time validation and contextual help
+- Professional responsive design
+
+**Download Settings Tab**
+- Download link expiry configuration (1-168 hours)
+- Markup percentage control with live preview
+- Terms & Conditions integration
+- Business logic transparency
+
+### UX Improvements
+- **Progressive Enhancement**: Works with and without JavaScript
+- **Mobile Responsive**: Adapts seamlessly to all screen sizes  
+- **WordPress Integration**: Professional styling that matches WordPress admin
+- **Contextual Feedback**: Disabled states and visual cues for better understanding
+- **Single Form Submission**: Efficient processing while maintaining organization
 
 ## 🎯 Button Display Control
 

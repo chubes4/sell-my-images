@@ -928,12 +928,6 @@ class AnalyticsPage {
                                                 /* translators: %s: list of resolutions */
                                                 printf( esc_html__( 'Resolutions sold: %s', 'sell-my-images' ), esc_html( $attachment->resolutions_sold ) ); ?></div>
                                             <?php endif; ?>
-                                            <div><?php printf( 
-                                                /* translators: 1: start date, 2: end date */
-                                                esc_html__( 'Sales period: %1$s to %2$s', 'sell-my-images' ), 
-                                                esc_html( $attachment->first_sale_date ? gmdate( 'M j', strtotime( $attachment->first_sale_date ) ) : __( 'Unknown', 'sell-my-images' ) ),
-                                                esc_html( $attachment->last_sale_date ? gmdate( 'M j, Y', strtotime( $attachment->last_sale_date ) ) : __( 'Unknown', 'sell-my-images' ) )
-                                            ); ?></div>
                                         </div>
                                     </div>
                                     

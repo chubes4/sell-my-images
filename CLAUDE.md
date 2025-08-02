@@ -4,20 +4,22 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Plugin Overview
 
-**Sell My Images** is a WordPress plugin that monetizes website images by adding "Download Hi-Res" buttons to content images. When clicked, users can purchase upscaled versions (4x, 8x) of images via AI upscaling and secure payment processing. Features granular button control system for precise targeting of monetizable content.
+**Sell My Images** is a WordPress plugin that monetizes website images by adding "Download Hi-Res" buttons to content images. When clicked, users can purchase upscaled versions (4x, 8x) of images via AI upscaling and secure payment processing. Features comprehensive button display control system with tabbed admin interface for precise targeting of monetizable content.
 
 ## Development Notes
 
 - No need for backwards compatibility, this is a brand new system in development
+- **Version 1.2.0**: Major UX upgrade with tabbed admin interface and enhanced button display control
 - **Post ID Tracking**: The system now tracks both `attachment_id` and `post_id` for comprehensive analytics
 - **Analytics Philosophy**: The system prioritizes engagement metrics (clicks) over financial metrics (revenue) by default to promote user-focused optimization
+- **Tabbed Interface**: Professional WordPress admin design replaces traditional Settings API for improved organization
 
 ## Architecture
 
 ### Core Components
 
 - **Main Plugin File**: `sell-my-images.php` - Singleton pattern with Composer autoloader and WordPress hooks initialization
-- **Admin Interface**: `src/Admin/` - Settings page with top-level menu and WordPress Settings API
+- **Admin Interface**: `src/Admin/` - Professional tabbed settings interface with comprehensive button display control
 - **Content Processing**: `src/Content/` - Gutenberg block-based image detection and button injection
 - **Managers Layer**: `src/Managers/` - Data management, file operations, and system coordination
 - **API Layer**: `src/Api/` - REST endpoints, external API integration, and payment processing
@@ -49,8 +51,8 @@ All classes follow PSR-4 autoloading under the `SellMyImages\` namespace:
 - `SellMyImages\Api\Upsampler` - Pure Upsampler.com HTTP client without business logic
 
 **Admin Layer:**
-- `SellMyImages\Admin\AdminInit` - Top-level admin menu and settings initialization
-- `SellMyImages\Admin\SettingsPage` - Individual option registration with comprehensive button display filtering interface
+- `SellMyImages\Admin\AdminInit` - Top-level admin menu and tabbed settings initialization
+- `SellMyImages\Admin\SettingsPage` - Tabbed interface with API Configuration, Display Control, and Download Settings tabs
 - `SellMyImages\Admin\AnalyticsPage` - Engagement-first analytics with clickable navigation and enhanced click tracking
 - `SellMyImages\Admin\JobsPage` - Complete job management interface with pagination and filtering
 
@@ -207,15 +209,15 @@ Complete job tracking with payment, processing status, and **analytics support**
 ## Plugin Configuration & Constants
 
 ### Core Constants (defined in `sell-my-images.php`)
-- `SMI_VERSION` (1.0.0), `SMI_PLUGIN_DIR`, `SMI_PLUGIN_URL`, `SMI_PLUGIN_BASENAME`
+- `SMI_VERSION` (1.2.0), `SMI_PLUGIN_DIR`, `SMI_PLUGIN_URL`, `SMI_PLUGIN_BASENAME`
 
 ### Asset Management
 - **Performance Strategy**: Smart asset loading - CSS/JS only loads when buttons will appear on current post
 - **Filter Integration**: `FilterManager::should_show_buttons()` determines asset loading in main plugin file
 - **Detection Method**: Combined filtering logic and content analysis for optimal performance
-- **Version Control**: `SMI_VERSION` constant for cache invalidation
+- **Version Control**: `SMI_VERSION` constant for cache invalidation (current: 1.2.0)
 - **Frontend Assets**: `assets/css/modal.css` and `assets/js/modal.js` with jQuery dependency
-- **Admin Assets**: Enhanced admin.css with responsive filter table design and admin.js for dynamic filtering interface
+- **Admin Assets**: Enhanced admin.css with tabbed interface design and admin.js for tab navigation and dynamic filtering
 
 ### Pricing Configuration
 - **Upsampler Costs**: Hardcoded at $0.04/credit (updated in `CostCalculator::UPSAMPLER_COST_PER_CREDIT`)
@@ -224,10 +226,51 @@ Complete job tracking with payment, processing status, and **analytics support**
 - **Shared Utilities**: `CostCalculator::get_upscale_factor()` public method used by both CostCalculator and Upscaler
 - **Price Updates**: When Upsampler changes pricing, update the constant in CostCalculator class
 
+## Version 1.2.0 Major Updates
+
+### Tabbed Admin Interface Architecture
+
+Version 1.2.0 introduces a complete restructure of the admin interface from WordPress Settings API to a modern, professional tabbed design for improved user experience and logical organization.
+
+**Key Improvements:**
+- **Three Organized Tabs**: API Configuration, Display Control, Download Settings
+- **Enhanced UX**: Professional WordPress admin styling with responsive design
+- **Single Form Submission**: Maintains efficient form processing while improving organization
+- **Progressive Enhancement**: JavaScript-powered tab navigation with accessibility support
+- **Mobile Responsive**: Adapts seamlessly to all device sizes
+- **Disabled State Handling**: Filter criteria table remains visible but disabled when not applicable
+
+**Tab Organization:**
+
+**API Configuration Tab:**
+- Upsampler API key configuration
+- Complete Stripe payment setup (test/live modes)
+- Webhook endpoint documentation
+- Service integration guidance
+
+**Display Control Tab:**
+- Button display mode selection (All Posts, Exclude Selected, Include Only Selected)
+- Comprehensive filter criteria table (always visible, contextually disabled)
+- Multi-criteria filtering: Post types, categories, tags, specific post IDs
+- Real-time mode validation and sanitization
+
+**Download Settings Tab:**
+- Download link expiry configuration (1-168 hours)
+- Markup percentage control with real-time preview
+- Terms & Conditions URL integration
+- Pricing transparency and business logic settings
+
+**Technical Implementation:**
+- `AdminInit::render_settings_page()` → `SettingsPage::render_tabbed_page()`
+- Individual tab rendering methods: `render_api_tab()`, `render_display_tab()`, `render_downloads_tab()`
+- Enhanced CSS: Tabbed interface styles, disabled state handling, responsive design
+- Enhanced JavaScript: Tab navigation, active state management, progressive enhancement
+- Maintains backward compatibility with existing settings registration
+
 ## Button Display Control System (FilterManager)
 
 ### Overview
-The FilterManager class provides granular control over where download buttons appear, supporting three display modes with multi-criteria filtering for precise content targeting.
+The FilterManager class provides granular control over where download buttons appear, supporting three display modes with multi-criteria filtering for precise content targeting. Now accessible through the dedicated Display Control tab in the new admin interface.
 
 ### FilterManager Architecture
 
@@ -269,13 +312,20 @@ if ( ! \SellMyImages\Content\FilterManager::should_show_buttons() ) {
 
 ### Admin Interface Integration
 
-**Professional Table Layout**:
+**Tabbed Professional Interface**:
+- Three organized tabs: API Configuration, Display Control, Download Settings
+- Responsive design with mobile-friendly layout throughout
+- Professional WordPress admin styling with seamless integration
+- Enhanced UX with tab navigation and smooth transitions
+
+**Professional Filter Table Layout**:
 - Responsive design with mobile-friendly stacked layout
 - Scrollable sections for categories/tags with many items
-- Real-time visibility toggle based on display mode selection
+- Disabled state display when "All Posts" mode is selected (table remains visible but grayed out)
 - Data validation and sanitization for all filter criteria
 
 **JavaScript Enhancement**:
+- Tab navigation with active state management
 - Dynamic show/hide of filter criteria table via admin.js
 - Smooth transitions and user experience improvements
 - Progressive enhancement pattern for accessibility
@@ -345,7 +395,15 @@ Post IDs: "123, 456, 789, 1011"
 - Settings page display and validation
 - Future extensibility for additional criteria types
 
-## Recent Analytics Enhancements
+## Recent Major Enhancements
+
+### Version 1.2.0 - Tabbed Admin Interface (December 2024)
+- **Complete Admin Restructure**: Professional tabbed interface replacing WordPress Settings API
+- **Enhanced Organization**: Three logical tabs for API Configuration, Display Control, and Download Settings
+- **Improved UX**: Professional WordPress admin styling with responsive design and accessibility features
+- **Filter Table Enhancement**: Always-visible filter table with contextual disabled state for better user understanding
+- **Performance Maintained**: Zero-overhead filtering logic and smart asset loading preserved
+- **Mobile Responsive**: Seamless experience across all device sizes with progressive enhancement
 
 ### AnalyticsPage Class Improvements
 - **New Methods**:
@@ -411,10 +469,12 @@ PaymentService expects specific CostCalculator output format:
 ## Troubleshooting Common Issues
 
 ### Settings Page
+- **Tabbed Interface**: Professional three-tab design replacing traditional WordPress Settings API
 - **Individual Registration**: Settings must be registered individually, not as groups
 - **Top-Level Menu**: Hook condition is `toplevel_page_sell-my-images`
 - **Asset Loading**: Admin assets load only on plugin settings page
-- **Button Display Filtering**: Filter criteria table visibility controlled by JavaScript based on display mode selection
+- **Tab Organization**: API Configuration, Display Control, Download Settings for logical organization
+- **Button Display Filtering**: Filter criteria table always visible but disabled state when "All Posts" mode selected
 
 ### Analytics & Job Tracking
 - **Default Sorting**: Analytics page defaults to 'clicks' (engagement-first) instead of 'revenue' for better user experience
@@ -426,10 +486,12 @@ PaymentService expects specific CostCalculator output format:
 - **Error Prevention**: Proper null checking prevents warnings when accessing click data properties
 
 ### Button Display Control
+- **Tabbed Interface**: Dedicated Display Control tab for comprehensive button targeting
 - **Filter Logic**: Default 'all' mode provides zero-overhead performance with immediate true return
 - **Asset Loading**: Smart integration prevents CSS/JS loading when buttons won't appear
 - **Mode Validation**: FilterManager gracefully handles invalid configurations by defaulting to showing buttons
 - **Performance**: OR logic in criteria evaluation - returns true on first match for efficiency
+- **UX Enhancement**: Filter table shows in disabled state rather than hiding when "All Posts" selected
 
 ### Payment Integration
 - **SSL Requirements**: Stripe requires HTTPS for live payments and webhooks
@@ -489,8 +551,10 @@ PaymentService expects specific CostCalculator output format:
 - **Button Design**: Clean, professional appearance without promotional symbols for better user experience
 - **Button Integration**: Seamless integration with theme styles via CSS custom properties
 - **Loading States**: Visual feedback for processing, payment, and download states
-- **Admin Interface**: Dedicated admin styles with responsive filter table design and WordPress admin color scheme compliance
-- **Filter Table Styling**: Professional table layout with scrollable sections, mobile responsiveness, and high contrast support
+- **Admin Interface**: Comprehensive admin styles with tabbed interface design and WordPress admin color scheme compliance
+- **Tabbed Navigation**: Professional tab interface with active states, transitions, and responsive behavior
+- **Filter Table Styling**: Professional table layout with scrollable sections, mobile responsiveness, disabled state handling, and high contrast support
+- **Progressive Enhancement**: CSS handles graceful degradation when JavaScript is disabled
 
 ### Security Implementation
 - **CSRF Protection**: WordPress nonces for all AJAX requests

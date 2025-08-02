@@ -18,8 +18,60 @@
          * Bind event handlers
          */
         bindEvents: function() {
+            // Tab navigation
+            this.bindTabNavigation();
+            
             // Display mode toggle for button filtering
             this.bindDisplayModeToggle();
+        },
+        
+        /**
+         * Bind tab navigation functionality
+         */
+        bindTabNavigation: function() {
+            var $tabLinks = $('.smi-tab-link');
+            var $tabPanels = $('.smi-tab-panel');
+            
+            if ($tabLinks.length === 0) {
+                return; // Not on a tabbed settings page
+            }
+            
+            // Handle tab clicks
+            $tabLinks.on('click', function(e) {
+                e.preventDefault();
+                
+                var targetTab = $(this).data('tab');
+                var $targetPanel = $('#smi-tab-' + targetTab);
+                
+                if ($targetPanel.length === 0) {
+                    return;
+                }
+                
+                // Remove active state from all tabs and panels
+                $tabLinks.removeClass('smi-tab-active');
+                $tabPanels.removeClass('smi-tab-active');
+                
+                // Add active state to clicked tab and corresponding panel
+                $(this).addClass('smi-tab-active');
+                $targetPanel.addClass('smi-tab-active');
+                
+                // Update URL hash without scrolling
+                if (history.pushState) {
+                    history.pushState(null, null, '#' + targetTab);
+                } else {
+                    window.location.hash = targetTab;
+                }
+            });
+            
+            // Handle initial tab state from URL hash
+            var hash = window.location.hash.substring(1);
+            if (hash && $('#smi-tab-' + hash).length > 0) {
+                $tabLinks.removeClass('smi-tab-active');
+                $tabPanels.removeClass('smi-tab-active');
+                
+                $('[data-tab="' + hash + '"]').addClass('smi-tab-active');
+                $('#smi-tab-' + hash).addClass('smi-tab-active');
+            }
         },
         
         /**
@@ -38,21 +90,15 @@
                 var selectedMode = $('input[name="smi_display_mode"]:checked').val();
                 
                 if (selectedMode === 'all') {
-                    // Hide filter criteria table
-                    $filterTable.slideUp(300);
+                    // Disable filter criteria table
+                    $filterTable.addClass('smi-disabled');
                 } else {
-                    // Show filter criteria table
-                    $filterTable.slideDown(300);
+                    // Enable filter criteria table
+                    $filterTable.removeClass('smi-disabled');
                 }
             });
             
-            // Set initial state on page load
-            var initialMode = $('input[name="smi_display_mode"]:checked').val();
-            if (initialMode === 'all') {
-                $filterTable.hide();
-            } else {
-                $filterTable.show();
-            }
+            // Set initial state on page load is handled by PHP class assignment
         },
         
     };

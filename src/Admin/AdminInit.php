@@ -122,7 +122,15 @@ class AdminInit {
     }
     
     /**
-     * Render settings page
+     * Render settings page with tabbed interface
+     * 
+     * Version 1.2.0 introduces professional tabbed interface replacing traditional
+     * WordPress Settings API for enhanced UX and logical organization.
+     * 
+     * Maintains single form submission while providing three organized tabs:
+     * - API Configuration: Stripe & Upsampler setup
+     * - Display Control: Button filtering system
+     * - Download Settings: Expiry, pricing, terms
      */
     public function render_settings_page() {
         if ( ! current_user_can( 'manage_options' ) ) {
@@ -136,11 +144,17 @@ class AdminInit {
             <?php $this->show_page_notices(); ?>
             
             <form action="options.php" method="post">
+                <?php settings_fields( 'smi_settings' ); ?>
+                
                 <?php
-                settings_fields( 'smi_settings' );
-                do_settings_sections( 'smi_settings' );
-                submit_button();
+                // Render tabbed interface
+                if ( class_exists( 'SellMyImages\\Admin\\SettingsPage' ) ) {
+                    $settings_page = new SettingsPage();
+                    $settings_page->render_tabbed_page();
+                }
                 ?>
+                
+                <?php submit_button(); ?>
             </form>
         </div>
         <?php
