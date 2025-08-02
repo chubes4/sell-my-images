@@ -238,17 +238,6 @@ class AdminInit {
             <?php
         }
         
-        // Check if plugin is enabled
-        if ( ! get_option( 'smi_enabled', '1' ) ) {
-            ?>
-            <div class="notice notice-info">
-                <p>
-                    <strong><?php esc_html_e( 'Plugin Disabled', 'sell-my-images' ); ?></strong><br>
-                    <?php esc_html_e( 'The plugin is currently disabled. Enable it below to start showing buy buttons on images.', 'sell-my-images' ); ?>
-                </p>
-            </div>
-            <?php
-        }
     }
     
     
@@ -345,10 +334,6 @@ class AdminInit {
     public function validate_configuration() {
         $issues = array();
         
-        // Check if plugin is enabled
-        if ( ! get_option( 'smi_enabled', '1' ) ) {
-            return $issues; // Skip other checks if plugin is disabled
-        }
         
         // Validate Upsampler configuration
         $upsampler_issues = $this->validate_upsampler_config();

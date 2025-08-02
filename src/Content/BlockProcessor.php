@@ -50,8 +50,8 @@ class BlockProcessor {
             return $content;
         }
         
-        // Check if plugin is enabled
-        if ( ! get_option( 'smi_enabled', '1' ) ) {
+        // Check if buttons should appear on this post
+        if ( ! FilterManager::should_show_buttons() ) {
             return $content;
         }
         
@@ -160,7 +160,6 @@ class BlockProcessor {
         $button_html = sprintf(
             '<button class="smi-get-button" data-post-id="%d" data-attachment-id="%d" data-src="%s" data-width="%d" data-height="%d">
                 <span class="smi-button-text">%s</span>
-                <span class="smi-button-icon">💰</span>
             </button>',
             intval( $post_id ),
             intval( $image_data['attachment_id'] ),

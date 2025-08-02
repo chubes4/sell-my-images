@@ -20,4 +20,4 @@ error_log
 
 # Backups
 *.bak
-*~
+*~.DS_Store

@@ -11,9 +11,8 @@
  * Text Domain: sell-my-images
  * Domain Path: /languages
  * Requires at least: 5.0
- * Tested up to: 6.7
+ * Tested up to: 6.8
  * Requires PHP: 7.4
- * Network: false
  */
 
 // Prevent direct access
@@ -132,7 +131,12 @@ class SellMyImages {
             return;
         }
         
-        // Load assets on all singular posts (JavaScript will determine which images get buttons)
+        // Check if buttons should appear on this post before loading assets
+        if ( ! \SellMyImages\Content\FilterManager::should_show_buttons() ) {
+            return;
+        }
+        
+        // Load assets only when buttons will actually appear
         
         wp_enqueue_script(
             'smi-modal',
@@ -203,6 +207,14 @@ class SellMyImages {
             SMI_VERSION
         );
         
+        wp_enqueue_script(
+            'smi-admin',
+            SMI_PLUGIN_URL . 'assets/js/admin.js',
+            array( 'jquery' ),
+            SMI_VERSION,
+            true
+        );
+        
     }
     
     /**
@@ -211,7 +223,8 @@ class SellMyImages {
     public function activate() {
         // Create database tables using DatabaseManager
         if ( ! \SellMyImages\Managers\DatabaseManager::create_tables() ) {
-            error_log( 'SMI: Failed to create database tables during activation' );
+            // Database table creation failed during activation
+            wp_die( esc_html__( 'Failed to create database tables during plugin activation.', 'sell-my-images' ) );
         }
         
         // Set default options

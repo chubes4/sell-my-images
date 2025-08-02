@@ -227,6 +227,175 @@
     outline-offset: 2px;
 }
 
+/* ==========================================================================
+   Button Display Filter Styles
+   ========================================================================== */
+
+/* Filter criteria table */
+.smi-filter-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+    background: #fff;
+    border: 1px solid #ccd0d4;
+    border-radius: 4px;
+}
+
+.smi-filter-table th {
+    background: #f1f1f1;
+    padding: 12px;
+    text-align: left;
+    font-weight: 600;
+    border-bottom: 1px solid #ccd0d4;
+    border-right: 1px solid #ccd0d4;
+}
+
+.smi-filter-table th:last-child {
+    border-right: none;
+}
+
+.smi-filter-table td {
+    padding: 15px 12px;
+    vertical-align: top;
+    border-right: 1px solid #e1e1e1;
+    min-height: 120px;
+}
+
+.smi-filter-table td:last-child {
+    border-right: none;
+}
+
+/* Scrollable areas for categories and tags */
+.smi-filter-scrollable {
+    max-height: 150px;
+    overflow-y: auto;
+    border: 1px solid #ddd;
+    padding: 8px;
+    border-radius: 3px;
+    background: #fafafa;
+}
+
+/* Filter checkboxes and labels */
+.smi-filter-table label {
+    display: block;
+    margin-bottom: 4px;
+    font-size: 13px;
+    line-height: 1.4;
+}
+
+.smi-filter-table input[type="checkbox"] {
+    margin-right: 6px;
+}
+
+/* Post IDs textarea */
+.smi-filter-table textarea {
+    width: 100%;
+    resize: vertical;
+    font-family: monospace;
+    font-size: 12px;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+    padding: 8px;
+}
+
+/* Display mode radio buttons */
+.smi-filter-table fieldset {
+    border: none;
+    padding: 0;
+    margin: 0;
+}
+
+.smi-filter-table fieldset p {
+    margin-bottom: 8px;
+}
+
+.smi-filter-table fieldset label {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+}
+
+.smi-filter-table fieldset input[type="radio"] {
+    margin: 2px 0 0 0;
+    flex-shrink: 0;
+}
+
+.smi-filter-table fieldset .description {
+    color: #646970;
+    font-style: italic;
+    margin-left: 0;
+}
+
+/* Filter criteria visibility toggle */
+#smi-filter-criteria-table {
+    transition: opacity 0.3s ease;
+}
+
+#smi-filter-criteria-table[style*="display: none"] {
+    opacity: 0;
+}
+
+/* Filter table responsive design */
+@media (max-width: 1200px) {
+    .smi-filter-table {
+        font-size: 13px;
+    }
+    
+    .smi-filter-table th,
+    .smi-filter-table td {
+        padding: 10px 8px;
+    }
+    
+    .smi-filter-scrollable {
+        max-height: 120px;
+    }
+}
+
+@media (max-width: 782px) {
+    .smi-filter-table {
+        display: block;
+        border: none;
+    }
+    
+    .smi-filter-table thead {
+        display: none;
+    }
+    
+    .smi-filter-table tbody,
+    .smi-filter-table tr,
+    .smi-filter-table td {
+        display: block;
+        width: 100%;
+    }
+    
+    .smi-filter-table td {
+        border: 1px solid #ccd0d4;
+        margin-bottom: 10px;
+        border-radius: 4px;
+        padding: 15px;
+        position: relative;
+    }
+    
+    .smi-filter-table td::before {
+        content: attr(data-label);
+        font-weight: 600;
+        display: block;
+        margin-bottom: 8px;
+        color: #1d2327;
+    }
+    
+    .smi-filter-scrollable {
+        max-height: 100px;
+    }
+}
+
+/* Empty state styling */
+.smi-filter-table em {
+    color: #646970;
+    font-style: italic;
+    font-size: 12px;
+}
+
 /* High Contrast Support */
 @media (prefers-contrast: high) {
     .smi-stat-card {
@@ -234,6 +403,15 @@
     }
     
     .button.smi-button-primary {
+        border-width: 2px;
+    }
+    
+    .smi-filter-table {
+        border-width: 2px;
+    }
+    
+    .smi-filter-table th,
+    .smi-filter-table td {
         border-width: 2px;
     }
 }
@@ -252,5 +430,24 @@
     .admin-color-scheme-auto .smi-stat-card .smi-stat-subtitle,
     .admin-color-scheme-dark .smi-stat-card .smi-stat-subtitle {
         color: #ccc;
+    }
+    
+    .admin-color-scheme-auto .smi-filter-table,
+    .admin-color-scheme-dark .smi-filter-table {
+        background: #1e1e1e;
+        border-color: #404040;
+        color: #fff;
+    }
+    
+    .admin-color-scheme-auto .smi-filter-table th,
+    .admin-color-scheme-dark .smi-filter-table th {
+        background: #2c2c2c;
+        border-color: #404040;
+    }
+    
+    .admin-color-scheme-auto .smi-filter-scrollable,
+    .admin-color-scheme-dark .smi-filter-scrollable {
+        background: #2c2c2c;
+        border-color: #404040;
     }
 }

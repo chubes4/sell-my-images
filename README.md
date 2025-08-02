@@ -1,17 +1,84 @@
-# Sell My Images - WordPress Plugin
+=== Sell My Images ===
+Contributors: chubes
+Tags: images, monetization, ecommerce, ai, upscaling
+Requires at least: 5.0
+Tested up to: 6.8
+Requires PHP: 7.4
+Stable tag: 1.0.0
+License: GPL v2 or later
+License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-A professional WordPress plugin that monetizes website images by adding "Download Hi-Res" buttons to content images. Users can purchase AI-upscaled versions (4x, 8x) through secure payment processing.
+Monetize website images with AI-upscaled versions via secure Stripe payments. Uses Stripe and Upsampler.com services.
+
+== Description ==
+
+A professional WordPress plugin that monetizes website images by adding "Download Hi-Res" buttons to content images. Users can purchase AI-upscaled versions (4x, 8x) through secure payment processing with Stripe and AI enhancement via Upsampler.com.
 
 ## 🚀 Key Features
 
 - **Smart Image Detection**: Automatically detects Gutenberg image blocks and injects purchase buttons
+- **Granular Button Control**: Show buttons on all posts, or selectively include/exclude by post type, category, tag, or specific post IDs
 - **AI-Powered Upscaling**: Professional quality image enhancement via Upsampler.com API
 - **Secure Payment Processing**: Stripe integration with test/live mode support
 - **Real-time Analytics**: Track clicks, conversions, and revenue per post/image
 - **Webhook-Driven Workflow**: Automated payment verification and processing
 - **Protected Downloads**: Secure, token-based download system with expiration
-- **Mobile-Responsive Design**: Pinterest-style hover buttons with mobile optimization
+- **Mobile-Responsive Design**: Clean, professional buttons optimized for all devices
+- **Performance-Optimized**: Smart asset loading - CSS/JS only loads when buttons will appear
 - **Developer-Friendly**: Clean PSR-4 architecture with comprehensive documentation
+
+== Third Party Services ==
+
+This plugin relies on external services to provide its core functionality. By using this plugin, you acknowledge and agree to data transmission to these services under the conditions described below.
+
+=== Stripe Payment Processing ===
+
+**What it is:** Secure payment processing service for handling customer purchases
+**When data is sent:** When customers initiate checkout and during payment verification
+**Data transmitted:**
+- Customer email address
+- Payment amount and currency
+- Billing information (if provided by customer)
+- Transaction metadata (post ID, image details)
+
+**Service URLs:**
+- Terms of Service: https://stripe.com/legal/consumer
+- Privacy Policy: https://stripe.com/privacy
+- Website: https://stripe.com
+
+**Data handling:** No payment card data is stored on your server. All sensitive payment information is processed directly by Stripe's secure servers.
+
+=== Upsampler.com AI Image Enhancement ===
+
+**What it is:** AI-powered image upscaling service that enhances image resolution and quality
+**When data is sent:** After successful payment completion, to process purchased image enhancements
+**Data transmitted:**
+- Original image URLs from your WordPress site
+- Upscaling parameters (resolution multiplier: 4x or 8x)
+- Webhook callback URLs for processing notifications
+- Job tracking identifiers
+
+**Pricing:** $0.04 per credit (1 credit per 4 megapixels of output)
+
+**Service URLs:**
+- Terms of Service: https://upsampler.com/terms-of-service
+- Privacy Policy: https://upsampler.com/privacy-policy  
+- Website: https://upsampler.com
+
+**Data handling:** Images are processed temporarily and automatically deleted from Upsampler servers after completion. Enhanced images are delivered via secure download links.
+
+=== Data Protection & Privacy ===
+
+**GDPR Compliance:** If you serve EU customers, ensure you have appropriate data processing agreements and user consent for transmitting data to these US-based services.
+
+**Data Retention:** 
+- Stripe: Retains transaction data per their privacy policy
+- Upsampler: Temporary processing only, automatic deletion after completion
+- Your site: Stores job records and analytics locally (can be deleted via admin interface)
+
+**Service Availability:** Plugin functionality depends on third-party service availability. Automatic refunds are processed if services are unavailable during processing.
+
+**User Control:** Customers provide explicit consent during checkout. No data is transmitted without user-initiated purchase action.
 
 ## 📋 Current Status: **PRODUCTION READY**
 
@@ -66,7 +133,8 @@ sell-my-images/
 1. **Upload & Activate**: Install plugin in `/wp-content/plugins/` and activate
 2. **Install Dependencies**: Run `composer install` in plugin directory
 3. **Configure APIs**: Add Stripe and Upsampler API keys in Admin → Sell My Images
-4. **Test Webhooks**: Use Stripe CLI for local development testing
+4. **Control Button Display**: Choose where download buttons appear (all posts, or selective filtering)
+5. **Test Webhooks**: Use Stripe CLI for local development testing
 
 ### Production Setup
 1. **SSL Certificate**: Required for Stripe payments and webhooks
@@ -74,7 +142,8 @@ sell-my-images/
    - Add live/test API keys in settings
    - Configure webhook endpoint: `https://yoursite.com/smi-webhook/stripe/`
 3. **Upsampler Setup**: Get API key from upsampler.com
-4. **Analytics**: Enable click tracking for conversion optimization
+4. **Button Display Setup**: Configure where buttons appear using the granular control system
+5. **Analytics**: Enable click tracking for conversion optimization
 
 ## 📋 Requirements
 
@@ -117,9 +186,92 @@ Track your image monetization performance:
 - **Image Performance**: Most profitable individual images
 - **Profit Margins**: Real-time cost analysis with Upsampler pricing
 
+## 🎯 Button Display Control
+
+Control exactly where download buttons appear on your site with three flexible display modes:
+
+### Display Modes
+
+**All Posts** (Default)
+- Shows buttons on all eligible posts with images
+- Zero configuration required
+- Best for sites where all content is monetizable
+
+**Exclude Selected**
+- Hide buttons on posts matching your criteria
+- Perfect for excluding specific categories (e.g., "Free Resources")
+- Useful for bloggers who want to exclude personal content
+
+**Include Only Selected**
+- Show buttons only on posts matching your criteria  
+- Ideal for photographers focusing on specific portfolios
+- Great for e-commerce sites with dedicated product categories
+
+### Filter Criteria
+
+Combine any of these filtering options:
+
+- **Post Types**: Target specific content types (posts, pages, custom post types)
+- **Categories**: Include/exclude entire content categories
+- **Tags**: Fine-tune targeting with post tags
+- **Specific Post IDs**: Granular control over individual posts
+
+### Use Cases
+
+**Professional Photographers**
+- Include only "Portfolio" and "Gallery" categories
+- Exclude "Behind the Scenes" or "Blog" content
+
+**Content Creators**
+- Exclude "Free Downloads" category
+- Include only "Premium Content" posts
+
+**E-commerce Sites**
+- Include only "Products" post type
+- Exclude "News" and "Support" categories
+
+**Multi-Author Blogs**
+- Include only posts tagged "Monetizable"
+- Exclude guest author content
+
 ## ⚖️ Legal Disclaimer
 
 **Important**: You are responsible for ensuring you have proper rights to sell all images processed through this plugin. This includes copyright ownership, model releases, and licensing compliance. Use at your own legal risk.
+
+== Privacy & External Services ==
+
+**Important Privacy Notice:** This plugin transmits data to external services (Stripe for payments, Upsampler.com for image processing). Review the third-party services section above and ensure compliance with your privacy policy and applicable data protection laws.
+
+**Recommended Actions:**
+1. Update your site's privacy policy to disclose data transmission to Stripe and Upsampler.com
+2. Ensure appropriate user consent mechanisms for EU visitors (GDPR compliance)
+3. Review service terms and privacy policies linked above
+4. Consider data processing agreements if required by your jurisdiction
+
+== Installation ==
+
+=== Basic Setup ===
+1. **Upload & Activate**: Install plugin in WordPress admin or upload to `/wp-content/plugins/`
+2. **Install Dependencies**: Run `composer install` in plugin directory
+3. **Review Service Terms**: Read and agree to Stripe and Upsampler.com terms of service
+4. **Configure Button Display**: Set up where download buttons should appear on your site
+5. **Update Privacy Policy**: Add disclosure of external service usage to your site's privacy policy
+
+=== Service Configuration ===
+Before using this plugin:
+
+1. **Create Stripe Account:** Sign up at stripe.com and obtain API keys
+2. **Create Upsampler Account:** Sign up at upsampler.com and obtain API key  
+3. **Configure APIs**: Add API keys in WordPress Admin → Sell My Images
+4. **Configure Button Display**: Choose where download buttons appear using the filtering system
+5. **Set Up Webhooks**: Configure Stripe webhook endpoint as documented
+6. **Test Configuration**: Use test mode to verify functionality
+
+=== Production Requirements ===
+- **SSL Certificate**: Required for Stripe payments and webhooks
+- **HTTPS**: All payment processing requires secure connections
+- **Webhook Endpoint**: Must be publicly accessible for payment processing
+- **PHP 7.4+**: Required for Stripe SDK compatibility
 
 ## 📄 License & Author
 

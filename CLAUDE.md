@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Plugin Overview
 
-**Sell My Images** is a WordPress plugin that monetizes website images by adding "Download Hi-Res" buttons to content images. When clicked, users can purchase upscaled versions (2x, 4x, 8x) of images via AI upscaling and secure payment processing.
+**Sell My Images** is a WordPress plugin that monetizes website images by adding "Download Hi-Res" buttons to content images. When clicked, users can purchase upscaled versions (4x, 8x) of images via AI upscaling and secure payment processing. Features granular button control system for precise targeting of monetizable content.
 
 ## Development Notes
 
@@ -28,6 +28,7 @@ All classes follow PSR-4 autoloading under the `SellMyImages\` namespace:
 
 **Content Layer:**
 - `SellMyImages\Content\BlockProcessor` - Processes Gutenberg blocks using `parse_blocks()` and `serialize_blocks()`, injects buy buttons with `data-attachment-id` and `data-post-id` attributes
+- `SellMyImages\Content\FilterManager` - Centralized filtering logic for granular button display control with three modes: all posts, exclude selected, include only selected
 
 **Managers Layer:**
 - `SellMyImages\Managers\DatabaseManager` - Centralized database operations, schema management, and CRUD with auto-formatting
@@ -49,16 +50,17 @@ All classes follow PSR-4 autoloading under the `SellMyImages\` namespace:
 
 **Admin Layer:**
 - `SellMyImages\Admin\AdminInit` - Top-level admin menu and settings initialization
-- `SellMyImages\Admin\SettingsPage` - Individual option registration (not group-based)
+- `SellMyImages\Admin\SettingsPage` - Individual option registration with comprehensive button display filtering interface
 - `SellMyImages\Admin\AnalyticsPage` - Engagement-first analytics with clickable navigation and enhanced click tracking
+- `SellMyImages\Admin\JobsPage` - Complete job management interface with pagination and filtering
 
 ### System Architecture & Data Flow
 
 **Content Processing Pipeline:**
 1. WordPress `the_content` filter → `BlockProcessor::process_content()`
-2. `parse_blocks()` → identify `core/image` blocks → extract attachment metadata
-3. Inject buttons with `data-attachment-id="{id}"` and `data-post-id="{post_id}"`
-4. `serialize_blocks()` → return modified content
+2. `FilterManager::should_show_buttons()` → evaluate display criteria and mode
+3. JavaScript injection handles button placement (no server-side content modification)
+4. Smart asset loading - CSS/JS only enqueued when buttons will appear
 
 **Click Tracking & Analytics Pipeline:**
 1. Button click → JavaScript `trackButtonClick()` → AJAX call to `/track-button-click`
@@ -117,6 +119,7 @@ Complete job tracking with payment, processing status, and **analytics support**
 - **WordPress debug logging**: Enable `WP_DEBUG_LOG` in wp-config.php
 - **Plugin activation test**: Activate/deactivate to test database table creation
 - **Analytics Testing**: View Admin → Analytics to verify click tracking, default sorting, and navigation features
+- **Filter Testing**: Test button display control by configuring different display modes and criteria combinations
 
 ### Local Development Setup
 - **WordPress Environment**: Requires WordPress 5.0+ with Gutenberg support
@@ -150,6 +153,9 @@ Complete job tracking with payment, processing status, and **analytics support**
 - **Default Sorting**: Analytics page defaults to 'clicks' sorting to prioritize engagement insights over revenue metrics
 - **Enhanced UX**: Improved error handling prevents undefined property warnings in analytics display
 - **Batch Operations**: Efficient click data processing reduces database queries for better performance
+- **Button Display Control**: Professional admin interface for managing where download buttons appear
+- **Responsive Design**: Filter table adapts to mobile devices with stacked layout and data labels
+- **Real-time Filtering**: JavaScript-powered dynamic interface with smooth transitions
 - **Retry System**: Administrators can retry any job regardless of payment status mismatches via admin override context
 - **Email Transparency**: Admin receives identical HTML emails as customers (not plaintext) with "Copy:" subject prefix
 - **Comprehensive Logging**: All admin overrides logged with job details and payment status for audit trail
@@ -204,11 +210,12 @@ Complete job tracking with payment, processing status, and **analytics support**
 - `SMI_VERSION` (1.0.0), `SMI_PLUGIN_DIR`, `SMI_PLUGIN_URL`, `SMI_PLUGIN_BASENAME`
 
 ### Asset Management
-- **Performance Strategy**: Assets load only on posts with image blocks
-- **Detection Method**: `BlockProcessor::post_has_image_blocks()` content scanning
+- **Performance Strategy**: Smart asset loading - CSS/JS only loads when buttons will appear on current post
+- **Filter Integration**: `FilterManager::should_show_buttons()` determines asset loading in main plugin file
+- **Detection Method**: Combined filtering logic and content analysis for optimal performance
 - **Version Control**: `SMI_VERSION` constant for cache invalidation
 - **Frontend Assets**: `assets/css/modal.css` and `assets/js/modal.js` with jQuery dependency
-- **Admin Assets**: Separate CSS for admin interface with conditional loading
+- **Admin Assets**: Enhanced admin.css with responsive filter table design and admin.js for dynamic filtering interface
 
 ### Pricing Configuration
 - **Upsampler Costs**: Hardcoded at $0.04/credit (updated in `CostCalculator::UPSAMPLER_COST_PER_CREDIT`)
@@ -216,6 +223,127 @@ Complete job tracking with payment, processing status, and **analytics support**
 - **Credit Formula**: 1 credit per 4 megapixels of output for Precise Upscale
 - **Shared Utilities**: `CostCalculator::get_upscale_factor()` public method used by both CostCalculator and Upscaler
 - **Price Updates**: When Upsampler changes pricing, update the constant in CostCalculator class
+
+## Button Display Control System (FilterManager)
+
+### Overview
+The FilterManager class provides granular control over where download buttons appear, supporting three display modes with multi-criteria filtering for precise content targeting.
+
+### FilterManager Architecture
+
+**Core Method**: `FilterManager::should_show_buttons($post_id)`
+- Main decision point for button visibility
+- Zero overhead for default 'all' mode (fast path)
+- Returns boolean for current or specified post
+
+**Display Modes**:
+- `all` - Show buttons on all eligible posts (default, zero config)
+- `exclude` - Hide buttons on posts matching filter criteria 
+- `include` - Show buttons only on posts matching filter criteria
+
+**Filter Criteria** (combinable):
+- **Post Types**: Target specific content types using `get_post_types()`
+- **Categories**: Include/exclude by category using `has_category()`
+- **Tags**: Filter by post tags using `has_tag()`
+- **Post IDs**: Granular control with comma-separated ID list
+
+### Performance Optimization
+
+**Smart Asset Loading Integration**:
+```php
+// In main plugin file enqueue_frontend_assets()
+if ( ! \SellMyImages\Content\FilterManager::should_show_buttons() ) {
+    return; // Skip asset loading entirely
+}
+```
+
+**Zero-Overhead Default Mode**:
+- Fast path for 'all' mode returns true immediately
+- No database queries or processing when using default settings
+- Maintains performance for sites not using filtering
+
+**Efficient Filtering Logic**:
+- Short-circuit evaluation - returns true on first match
+- WordPress native functions for optimal performance
+- Proper type casting and validation throughout
+
+### Admin Interface Integration
+
+**Professional Table Layout**:
+- Responsive design with mobile-friendly stacked layout
+- Scrollable sections for categories/tags with many items
+- Real-time visibility toggle based on display mode selection
+- Data validation and sanitization for all filter criteria
+
+**JavaScript Enhancement**:
+- Dynamic show/hide of filter criteria table via admin.js
+- Smooth transitions and user experience improvements
+- Progressive enhancement pattern for accessibility
+
+### Settings Integration
+
+**New Settings Options**:
+- `smi_display_mode` - Controls filtering behavior ('all', 'exclude', 'include')
+- `smi_filter_post_types` - Array of selected post types
+- `smi_filter_categories` - Array of category IDs
+- `smi_filter_tags` - Array of tag IDs  
+- `smi_filter_post_ids` - Comma-separated string of post IDs
+
+**Validation & Sanitization**:
+- `FilterManager::sanitize_filter_settings()` - Comprehensive validation
+- WordPress native functions: `term_exists()`, `get_post()`
+- Type safety with `intval()` and `sanitize_text_field()`
+- Invalid options filtered out automatically
+
+### Use Case Examples
+
+**Professional Photography Portfolio**:
+```php
+// Include only 'portfolio' and 'gallery' categories
+Mode: include
+Categories: [5, 12] // Portfolio, Gallery category IDs
+```
+
+**Content Creator Blog**:
+```php  
+// Exclude 'free-resources' category
+Mode: exclude
+Categories: [8] // Free Resources category ID
+```
+
+**E-commerce Product Showcase**:
+```php
+// Include only 'product' post type with 'featured' tag
+Mode: include
+Post Types: ['product']
+Tags: [15] // Featured tag ID
+```
+
+**Multi-Author Platform**:
+```php
+// Include only specific high-value posts
+Mode: include  
+Post IDs: "123, 456, 789, 1011"
+```
+
+### Technical Implementation Details
+
+**Method Flow**:
+1. `should_show_buttons()` - Entry point with post ID resolution
+2. `evaluate_filters()` - Mode-based decision logic
+3. `post_matches_criteria()` - Multi-criteria evaluation with OR logic
+4. Individual match methods for each criteria type
+
+**Error Handling**:
+- Graceful fallback to showing buttons on invalid configurations
+- Proper null checking and type validation throughout
+- WordPress function return value verification
+
+**Integration Points**:
+- Main plugin asset loading logic
+- BlockProcessor content processing decisions  
+- Settings page display and validation
+- Future extensibility for additional criteria types
 
 ## Recent Analytics Enhancements
 
@@ -286,6 +414,7 @@ PaymentService expects specific CostCalculator output format:
 - **Individual Registration**: Settings must be registered individually, not as groups
 - **Top-Level Menu**: Hook condition is `toplevel_page_sell-my-images`
 - **Asset Loading**: Admin assets load only on plugin settings page
+- **Button Display Filtering**: Filter criteria table visibility controlled by JavaScript based on display mode selection
 
 ### Analytics & Job Tracking
 - **Default Sorting**: Analytics page defaults to 'clicks' (engagement-first) instead of 'revenue' for better user experience
@@ -295,6 +424,12 @@ PaymentService expects specific CostCalculator output format:
 - **Index Usage**: Use composite indexes for cross-reference queries
 - **Job Lifecycle**: `pending` → `paid` → `processing` → `completed`/`failed`
 - **Error Prevention**: Proper null checking prevents warnings when accessing click data properties
+
+### Button Display Control
+- **Filter Logic**: Default 'all' mode provides zero-overhead performance with immediate true return
+- **Asset Loading**: Smart integration prevents CSS/JS loading when buttons won't appear
+- **Mode Validation**: FilterManager gracefully handles invalid configurations by defaulting to showing buttons
+- **Performance**: OR logic in criteria evaluation - returns true on first match for efficiency
 
 ### Payment Integration
 - **SSL Requirements**: Stripe requires HTTPS for live payments and webhooks
@@ -332,6 +467,7 @@ PaymentService expects specific CostCalculator output format:
 - **User Experience**: Failed jobs show generic failure message; detailed errors are server-side only
 - **Analytics Error Prevention**: Proper `isset()` checks prevent undefined property warnings when accessing click data
 - **Null Safety**: All analytics methods include robust null checking for undefined or missing data properties
+- **Button Display Filtering**: Clean error handling in FilterManager with graceful fallback to showing buttons
 
 ### Architecture Enforcement
 **RestApi Boundaries**: Maintain strict separation of concerns:
@@ -350,9 +486,11 @@ PaymentService expects specific CostCalculator output format:
 
 ### CSS Structure  
 - **Modal Styling**: Responsive design with mobile-friendly breakpoints
+- **Button Design**: Clean, professional appearance without promotional symbols for better user experience
 - **Button Integration**: Seamless integration with theme styles via CSS custom properties
 - **Loading States**: Visual feedback for processing, payment, and download states
-- **Admin Interface**: Dedicated admin styles with WordPress admin color scheme compliance
+- **Admin Interface**: Dedicated admin styles with responsive filter table design and WordPress admin color scheme compliance
+- **Filter Table Styling**: Professional table layout with scrollable sections, mobile responsiveness, and high contrast support
 
 ### Security Implementation
 - **CSRF Protection**: WordPress nonces for all AJAX requests

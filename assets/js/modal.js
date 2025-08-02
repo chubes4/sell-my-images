@@ -723,7 +723,6 @@
                    'data-width="' + imgWidth + '" ' +
                    'data-height="' + imgHeight + '">' +
                    '<span class="smi-button-text">Download Hi-Res</span>' +
-                   '<span class="smi-button-icon">💰</span>' +
                    '</button>';
         },
         

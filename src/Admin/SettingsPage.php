@@ -10,6 +10,8 @@
 
 namespace SellMyImages\Admin;
 
+use SellMyImages\Content\FilterManager;
+
 // Prevent direct access
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
@@ -40,11 +42,6 @@ class SettingsPage {
      */
     public function register_settings() {
         // Register individual settings
-        register_setting( 'smi_settings', 'smi_enabled', array(
-            'type' => 'string',
-            'default' => '1',
-            'sanitize_callback' => 'sanitize_text_field'
-        ) );
         
         register_setting( 'smi_settings', 'smi_upsampler_api_key', array(
             'type' => 'string',
@@ -107,6 +104,37 @@ class SettingsPage {
             'sanitize_callback' => 'esc_url_raw'
         ) );
         
+        // Button Display Filter Settings
+        register_setting( 'smi_settings', 'smi_display_mode', array(
+            'type' => 'string',
+            'default' => 'all',
+            'sanitize_callback' => array( $this, 'sanitize_display_mode' )
+        ) );
+        
+        register_setting( 'smi_settings', 'smi_filter_post_types', array(
+            'type' => 'array',
+            'default' => array(),
+            'sanitize_callback' => array( $this, 'sanitize_post_types' )
+        ) );
+        
+        register_setting( 'smi_settings', 'smi_filter_categories', array(
+            'type' => 'array',
+            'default' => array(),
+            'sanitize_callback' => array( $this, 'sanitize_categories' )
+        ) );
+        
+        register_setting( 'smi_settings', 'smi_filter_tags', array(
+            'type' => 'array',
+            'default' => array(),
+            'sanitize_callback' => array( $this, 'sanitize_tags' )
+        ) );
+        
+        register_setting( 'smi_settings', 'smi_filter_post_ids', array(
+            'type' => 'string',
+            'default' => '',
+            'sanitize_callback' => array( $this, 'sanitize_post_ids' )
+        ) );
+        
         // General Settings Section
         add_settings_section(
             'smi_general_section',
@@ -131,6 +159,14 @@ class SettingsPage {
             'smi_settings'
         );
         
+        // Button Display Section
+        add_settings_section(
+            'smi_display_section',
+            __( 'Button Display Control', 'sell-my-images' ),
+            array( $this, 'display_section_callback' ),
+            'smi_settings'
+        );
+        
         // Download Settings Section
         add_settings_section(
             'smi_download_section',
@@ -148,14 +184,7 @@ class SettingsPage {
      * Add all settings fields
      */
     private function add_settings_fields() {
-        // General Settings
-        add_settings_field(
-            'smi_enabled',
-            __( 'Enable Plugin', 'sell-my-images' ),
-            array( $this, 'enabled_field_callback' ),
-            'smi_settings',
-            'smi_general_section'
-        );
+        // General Settings (removed enabled field - use plugin activation/deactivation instead)
         
         // API Settings
         add_settings_field(
@@ -241,6 +270,23 @@ class SettingsPage {
             'smi_settings',
             'smi_download_section'
         );
+        
+        // Button Display Fields
+        add_settings_field(
+            'smi_display_mode',
+            __( 'Display Mode', 'sell-my-images' ),
+            array( $this, 'display_mode_field_callback' ),
+            'smi_settings',
+            'smi_display_section'
+        );
+        
+        add_settings_field(
+            'smi_filter_criteria',
+            __( 'Filter Criteria', 'sell-my-images' ),
+            array( $this, 'filter_criteria_field_callback' ),
+            'smi_settings',
+            'smi_display_section'
+        );
     }
     
     /**
@@ -265,6 +311,10 @@ class SettingsPage {
         echo '<p><a href="https://dashboard.stripe.com/apikeys" target="_blank">' . esc_html__( 'Get your API keys from the Stripe Dashboard', 'sell-my-images' ) . '</a></p>';
     }
     
+    public function display_section_callback() {
+        echo '<p>' . esc_html__( 'Control where download buttons appear on your site. Choose to show buttons on all posts, or selectively include/exclude specific content.', 'sell-my-images' ) . '</p>';
+    }
+    
     public function download_section_callback() {
         echo '<p>' . esc_html__( 'Configure how long download links remain valid after purchase.', 'sell-my-images' ) . '</p>';
     }
@@ -273,13 +323,6 @@ class SettingsPage {
     /**
      * Field callbacks
      */
-    public function enabled_field_callback() {
-        $value = get_option( 'smi_enabled', '1' );
-        ?>
-        <input type="checkbox" id="smi_enabled" name="smi_enabled" value="1" <?php checked( $value, '1' ); ?>>
-        <label for="smi_enabled"><?php esc_html_e( 'Enable "Download Hi-Res" buttons on images', 'sell-my-images' ); ?></label>
-        <?php
-    }
     
     public function api_key_field_callback() {
         $value = get_option( 'smi_upsampler_api_key', '' );
@@ -423,5 +466,238 @@ class SettingsPage {
             $value = 500;
         }
         return $value;
+    }
+    
+    /**
+     * Display mode field callback
+     */
+    public function display_mode_field_callback() {
+        $value = get_option( 'smi_display_mode', 'all' );
+        ?>
+        <fieldset>
+            <legend class="screen-reader-text"><?php esc_html_e( 'Display Mode', 'sell-my-images' ); ?></legend>
+            <p>
+                <label>
+                    <input type="radio" name="smi_display_mode" value="all" <?php checked( $value, 'all' ); ?> />
+                    <?php esc_html_e( 'All Posts', 'sell-my-images' ); ?>
+                    <span class="description"><?php esc_html_e( ' - Show buttons on all eligible posts (current behavior)', 'sell-my-images' ); ?></span>
+                </label>
+            </p>
+            <p>
+                <label>
+                    <input type="radio" name="smi_display_mode" value="exclude" <?php checked( $value, 'exclude' ); ?> />
+                    <?php esc_html_e( 'Exclude Selected', 'sell-my-images' ); ?>
+                    <span class="description"><?php esc_html_e( ' - Hide buttons on posts matching the criteria below', 'sell-my-images' ); ?></span>
+                </label>
+            </p>
+            <p>
+                <label>
+                    <input type="radio" name="smi_display_mode" value="include" <?php checked( $value, 'include' ); ?> />
+                    <?php esc_html_e( 'Include Only Selected', 'sell-my-images' ); ?>
+                    <span class="description"><?php esc_html_e( ' - Show buttons only on posts matching the criteria below', 'sell-my-images' ); ?></span>
+                </label>
+            </p>
+        </fieldset>
+        <?php
+    }
+    
+    /**
+     * Filter criteria field callback (table layout)
+     */
+    public function filter_criteria_field_callback() {
+        $display_mode = get_option( 'smi_display_mode', 'all' );
+        $post_types = get_option( 'smi_filter_post_types', array() );
+        $categories = get_option( 'smi_filter_categories', array() );
+        $tags = get_option( 'smi_filter_tags', array() );
+        $post_ids = get_option( 'smi_filter_post_ids', '' );
+        
+        $is_hidden = ( $display_mode === 'all' ) ? 'style="display: none;"' : '';
+        ?>
+        <div id="smi-filter-criteria-table" <?php echo $is_hidden; ?>>
+            <table class="smi-filter-table">
+                <thead>
+                    <tr>
+                        <th><?php esc_html_e( 'Post Types', 'sell-my-images' ); ?></th>
+                        <th><?php esc_html_e( 'Categories', 'sell-my-images' ); ?></th>
+                        <th><?php esc_html_e( 'Tags', 'sell-my-images' ); ?></th>
+                        <th><?php esc_html_e( 'Specific Post IDs', 'sell-my-images' ); ?></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td data-label="<?php esc_attr_e( 'Post Types', 'sell-my-images' ); ?>">
+                            <?php
+                            $available_post_types = FilterManager::get_available_post_types();
+                            foreach ( $available_post_types as $post_type => $post_type_obj ) {
+                                $checked = in_array( $post_type, $post_types, true ) ? 'checked' : '';
+                                printf(
+                                    '<label><input type="checkbox" name="smi_filter_post_types[]" value="%s" %s /> %s</label><br>',
+                                    esc_attr( $post_type ),
+                                    $checked,
+                                    esc_html( $post_type_obj->labels->name )
+                                );
+                            }
+                            ?>
+                        </td>
+                        <td data-label="<?php esc_attr_e( 'Categories', 'sell-my-images' ); ?>">
+                            <div class="smi-filter-scrollable">
+                                <?php
+                                $available_categories = FilterManager::get_available_categories();
+                                foreach ( $available_categories as $category ) {
+                                    $checked = in_array( $category->term_id, array_map( 'intval', $categories ), true ) ? 'checked' : '';
+                                    printf(
+                                        '<label><input type="checkbox" name="smi_filter_categories[]" value="%s" %s /> %s</label><br>',
+                                        esc_attr( $category->term_id ),
+                                        $checked,
+                                        esc_html( $category->name )
+                                    );
+                                }
+                                if ( empty( $available_categories ) ) {
+                                    echo '<em>' . esc_html__( 'No categories found', 'sell-my-images' ) . '</em>';
+                                }
+                                ?>
+                            </div>
+                        </td>
+                        <td data-label="<?php esc_attr_e( 'Tags', 'sell-my-images' ); ?>">
+                            <div class="smi-filter-scrollable">
+                                <?php
+                                $available_tags = FilterManager::get_available_tags();
+                                foreach ( $available_tags as $tag ) {
+                                    $checked = in_array( $tag->term_id, array_map( 'intval', $tags ), true ) ? 'checked' : '';
+                                    printf(
+                                        '<label><input type="checkbox" name="smi_filter_tags[]" value="%s" %s /> %s</label><br>',
+                                        esc_attr( $tag->term_id ),
+                                        $checked,
+                                        esc_html( $tag->name )
+                                    );
+                                }
+                                if ( empty( $available_tags ) ) {
+                                    echo '<em>' . esc_html__( 'No tags found', 'sell-my-images' ) . '</em>';
+                                }
+                                ?>
+                            </div>
+                        </td>
+                        <td data-label="<?php esc_attr_e( 'Specific Post IDs', 'sell-my-images' ); ?>">
+                            <textarea 
+                                name="smi_filter_post_ids" 
+                                id="smi_filter_post_ids" 
+                                rows="6" 
+                                cols="20" 
+                                placeholder="123, 456, 789"
+                            ><?php echo esc_textarea( $post_ids ); ?></textarea>
+                            <p class="description">
+                                <?php esc_html_e( 'Enter post IDs separated by commas. Example: 123, 456, 789', 'sell-my-images' ); ?>
+                            </p>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+            <p class="description">
+                <?php esc_html_e( 'Select any combination of criteria. Posts matching ANY of the selected criteria will be included/excluded based on the display mode above.', 'sell-my-images' ); ?>
+            </p>
+        </div>
+        <?php
+    }
+    
+    /**
+     * Sanitize display mode
+     * 
+     * @param mixed $value
+     * @return string
+     */
+    public function sanitize_display_mode( $value ) {
+        $valid_modes = array( 'all', 'exclude', 'include' );
+        return in_array( $value, $valid_modes, true ) ? $value : 'all';
+    }
+    
+    /**
+     * Sanitize post types
+     * 
+     * @param mixed $value
+     * @return array
+     */
+    public function sanitize_post_types( $value ) {
+        if ( ! is_array( $value ) ) {
+            return array();
+        }
+        
+        $available_post_types = array_keys( FilterManager::get_available_post_types() );
+        $sanitized = array();
+        
+        foreach ( $value as $post_type ) {
+            if ( in_array( $post_type, $available_post_types, true ) ) {
+                $sanitized[] = sanitize_text_field( $post_type );
+            }
+        }
+        
+        return $sanitized;
+    }
+    
+    /**
+     * Sanitize categories
+     * 
+     * @param mixed $value
+     * @return array
+     */
+    public function sanitize_categories( $value ) {
+        if ( ! is_array( $value ) ) {
+            return array();
+        }
+        
+        $sanitized = array();
+        foreach ( $value as $category_id ) {
+            $category_id = intval( $category_id );
+            if ( $category_id > 0 && term_exists( $category_id, 'category' ) ) {
+                $sanitized[] = $category_id;
+            }
+        }
+        
+        return $sanitized;
+    }
+    
+    /**
+     * Sanitize tags
+     * 
+     * @param mixed $value
+     * @return array
+     */
+    public function sanitize_tags( $value ) {
+        if ( ! is_array( $value ) ) {
+            return array();
+        }
+        
+        $sanitized = array();
+        foreach ( $value as $tag_id ) {
+            $tag_id = intval( $tag_id );
+            if ( $tag_id > 0 && term_exists( $tag_id, 'post_tag' ) ) {
+                $sanitized[] = $tag_id;
+            }
+        }
+        
+        return $sanitized;
+    }
+    
+    /**
+     * Sanitize post IDs
+     * 
+     * @param mixed $value
+     * @return string
+     */
+    public function sanitize_post_ids( $value ) {
+        if ( empty( $value ) ) {
+            return '';
+        }
+        
+        $post_ids = array_map( 'trim', explode( ',', $value ) );
+        $valid_post_ids = array();
+        
+        foreach ( $post_ids as $post_id ) {
+            $post_id = intval( $post_id );
+            if ( $post_id > 0 && get_post( $post_id ) ) {
+                $valid_post_ids[] = $post_id;
+            }
+        }
+        
+        return implode( ', ', $valid_post_ids );
     }
 }

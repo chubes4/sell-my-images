@@ -95,7 +95,7 @@ class AnalyticsPage {
         if ( false === $raw_data ) {
             // Single optimized query to get both post and attachment data
             // This eliminates the N+1 query problem
-            $query = $wpdb->prepare( "
+            $raw_data = $wpdb->get_results( $wpdb->prepare( "
                 SELECT 
                     j.post_id,
                     p.post_title,
@@ -114,15 +114,13 @@ class AnalyticsPage {
                     GROUP_CONCAT(DISTINCT j.email) as customer_emails,
                     MAX(j.created_at) as last_sale_date,
                     MIN(j.created_at) as first_sale_date
-                FROM $jobs_table j
+                FROM `" . esc_sql( $jobs_table ) . "` j
                 LEFT JOIN {$wpdb->posts} p ON j.post_id = p.ID
                 WHERE j.payment_status = %s
                 AND j.attachment_id IS NOT NULL
                 GROUP BY j.post_id, j.attachment_id
                 ORDER BY j.post_id, revenue DESC
-            ", 'paid' );
-            
-            $raw_data = $wpdb->get_results( $query );
+            ", 'paid' ) );
             
             // Enhance data with click tracking information
             $raw_data = $this->add_click_data_to_results( $raw_data );
@@ -227,7 +225,7 @@ class AnalyticsPage {
             // Count posts with sales
             $sales_count = $wpdb->get_var( $wpdb->prepare( "
                 SELECT COUNT(DISTINCT post_id) 
-                FROM $jobs_table 
+                FROM `" . esc_sql( $jobs_table ) . "` 
                 WHERE payment_status = %s 
                 AND post_id IS NOT NULL
             ", 'paid' ) );
@@ -347,7 +345,7 @@ class AnalyticsPage {
         $summary_stats = wp_cache_get( $cache_key, 'smi_analytics' );
         
         if ( false === $summary_stats ) {
-            $query = $wpdb->prepare( "
+            $summary_stats = $wpdb->get_row( $wpdb->prepare( "
                 SELECT 
                     COUNT(*) as total_paid_jobs,
                     SUM(amount_charged) as total_revenue,
@@ -358,11 +356,9 @@ class AnalyticsPage {
                     COUNT(DISTINCT post_id) as posts_with_sales,
                     COUNT(DISTINCT attachment_id) as unique_images_sold,
                     COUNT(DISTINCT email) as unique_customers
-                FROM $jobs_table
+                FROM `" . esc_sql( $jobs_table ) . "`
                 WHERE payment_status = %s
-            ", 'paid' );
-            
-            $summary_stats = $wpdb->get_row( $query );
+            ", 'paid' ) );
             
             // Cache for 5 minutes
             wp_cache_set( $cache_key, $summary_stats, 'smi_analytics', 5 * MINUTE_IN_SECONDS );
