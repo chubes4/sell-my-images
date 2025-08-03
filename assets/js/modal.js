@@ -795,7 +795,7 @@
             successHtml += '<p>Your image is being processed. This may take a few minutes.</p>';
             successHtml += '<p><small>Job ID: ' + jobId + '</small></p>';
             successHtml += '<div class="smi-processing-status smi-button-container">';
-            successHtml += '<div class="smi-loading-spinner"></div>';
+            successHtml += '<div class="smi-spinner"></div>';
             successHtml += '<p>Processing your image...</p>';
             successHtml += '</div>';
             successHtml += '</div>';
