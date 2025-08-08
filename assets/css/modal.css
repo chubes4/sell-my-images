@@ -250,15 +250,9 @@ figure.wp-block-image:hover .smi-get-button {
 
 /* Main Content Layout */
 .smi-modal-main {
-    display: grid;
-    grid-template-columns: 1fr;
+    display: flex;
+    flex-direction: column;
     gap: 24px;
-}
-
-@media (min-width: 768px) {
-    .smi-modal-main {
-        grid-template-columns: 200px 1fr;
-    }
 }
 
 /* ==========================================================================

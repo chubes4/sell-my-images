@@ -44,8 +44,8 @@ if ( ! defined( 'ABSPATH' ) ) {
                     
                     <div class="smi-process-overview">
                         <div class="smi-process-intro">
-                            <h4>AI-Powered Image Enhancement</h4>
-                            <p>Our advanced AI technology analyzes and enhances the image, restoring fine details and improving clarity - completely automated in 2-5 minutes.</p>
+                            <h4>AI-Powered Image Upscaling</h4>
+                            <p>Our system upscales & enchances the image using Upsampler and sends them directly to your email address. Choose 4x resolution or 8x resolution below.</p>
                         </div>
                     </div>
                     
@@ -57,7 +57,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                                 <input type="radio" id="smi-resolution-4x" name="resolution" value="4x" />
                                 <div class="smi-option-label">
                                     <strong>Standard Quality (4x)</strong>
-                                    <div class="smi-option-details">AI-enhanced 4x resolution with vivid details and sharpness</div>
+                                    <div class="smi-option-details">Vivid details and sharpness</div>
                                 </div>
                                 <div class="smi-option-price">Calculating...</div>
                             </label>
@@ -66,7 +66,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                                 <input type="radio" id="smi-resolution-8x" name="resolution" value="8x" />
                                 <div class="smi-option-label">
                                     <strong>Premium Quality (8x)</strong>
-                                    <div class="smi-option-details">AI-enhanced 8x resolution with professional-grade detail enhancement</div>
+                                    <div class="smi-option-details">Professional-grade detail enhancement</div>
                                 </div>
                                 <div class="smi-option-price">Calculating...</div>
                             </label>
@@ -77,7 +77,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                     <div class="smi-email-field">
                         <label for="smi-email">Email Address:</label>
                         <input type="email" id="smi-email" name="email" placeholder="Enter your email address" required />
-                        <p class="description">Your AI-enhanced image will be automatically delivered to your email in 2-5 minutes</p>
+                        <p class="description">Your high resolution image will be automatically delivered to your email</p>
                     </div>
                 </div>
             </div>

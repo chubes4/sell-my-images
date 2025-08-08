@@ -485,7 +485,8 @@ class JobsPage {
                         <?php echo esc_html( gmdate( 'M j, Y g:i A', strtotime( $job->created_at ) ) ); ?>
                     </td>
                     <td>
-                        <?php if ( $job->status === 'pending' || $job->status === 'failed' ) : ?>
+                        <?php if ( $job->status === 'pending' || $job->status === 'failed' || 
+                                  ($job->status === 'awaiting_payment' && $job->payment_status === 'paid') ) : ?>
                             <button type="button" 
                                     class="smi-retry-btn" 
                                     data-job-id="<?php echo esc_attr( $job->job_id ); ?>">
