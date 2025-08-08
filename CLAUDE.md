@@ -63,7 +63,7 @@ All classes follow PSR-4 autoloading under the `SellMyImages\` namespace:
 **API Layer:**
 - `SellMyImages\Api\RestApi` - WordPress REST API endpoints under `/wp-json/smi/v1/` namespace, delegates to Services for business logic
 - `SellMyImages\Api\StripeApi` - Pure Stripe HTTP client without business logic
-- `SellMyImages\Api\CostCalculator` - Hardcoded Upsampler pricing ($0.04/credit, 1 credit per 4 megapixels output) with configurable markup and shared upscale factor utilities
+- `SellMyImages\Api\CostCalculator` - Dynamic pricing calculations using Constants for Upsampler rates with configurable markup
 - `SellMyImages\Api\Upsampler` - Pure Upsampler.com HTTP client without business logic
 
 **Admin Layer:**
@@ -241,11 +241,11 @@ Complete job tracking with payment, processing status, and **analytics support**
 - **Admin Assets**: Enhanced admin.css with tabbed interface design and admin.js for tab navigation and dynamic filtering
 
 ### Pricing Configuration
-- **Upsampler Costs**: Hardcoded at $0.04/credit (updated in `CostCalculator::UPSAMPLER_COST_PER_CREDIT`)
-- **Markup Control**: Configurable via `smi_markup_percentage` setting (default 200%)
+- **Upsampler Costs**: Hardcoded at $0.04/credit (defined in `Constants::UPSAMPLER_COST_PER_CREDIT`)
+- **Markup Control**: Configurable via `smi_markup_percentage` setting (default 500%)
 - **Credit Formula**: 1 credit per 4 megapixels of output for Precise Upscale
-- **Shared Utilities**: `CostCalculator::get_upscale_factor()` public method used by both CostCalculator and Upscaler
-- **Price Updates**: When Upsampler changes pricing, update the constant in CostCalculator class
+- **Shared Utilities**: `Constants::get_upscale_factor()` method used by CostCalculator and Upsampler classes
+- **Price Updates**: When Upsampler changes pricing, update the constant in Constants class
 
 ## Version 1.2.0 Major Updates
 
@@ -419,19 +419,18 @@ Post IDs: "123, 456, 789, 1011"
 ## Conversion Optimization & User Experience
 
 ### Modal System Enhancements (January 2025)
-- **Critical Mobile Fix**: Maximum z-index (2147483647) prevents third-party ads from covering modal on mobile devices - this was a major conversion blocker
-- **AI Messaging Strategy**: Enhanced modal content focuses on AI enhancement benefits rather than technical specifications for better user appeal
-- **Transparency Improvements**: Specific delivery timeframes ("automatically delivered in 2-5 minutes") replace vague messaging to build user trust
-- **Process Overview Section**: Dedicated AI explanation section manages user expectations about timing and quality enhancement
-- **Code Quality**: Unified `.smi-spinner` class across all templates, JavaScript, and CSS for maintainable architecture
-- **User Psychology**: Modal title changed to "AI-Enhanced High-Resolution Image" for premium positioning and clarity
+- **Critical Mobile Fix**: Maximum z-index (2147483647) on `.smi-modal` prevents third-party ads from covering modal on mobile devices
+- **AI Messaging Strategy**: Modal title "AI-Enhanced High-Resolution Image" and process overview section focus on quality benefits
+- **Email Delivery**: "Automatically delivered to your email" messaging provides clear delivery expectations
+- **Process Overview**: Dedicated "AI-Powered Image Upscaling" section explains upscaling workflow
+- **Unified Spinner Class**: Consistent `.smi-spinner` implementation across templates, JavaScript, and CSS
+- **Enhanced Options**: Quality-focused descriptions ("Vivid details and sharpness", "Professional-grade detail enhancement") improve user understanding
 
 ### Technical Fixes for Conversion
-- **CSS Syntax Error**: Removed extra closing brace that could cause modal styling issues
-- **Spinner Class Consistency**: All loading states now use standardized `.smi-spinner` class
-- **Mobile Ad Prevention**: Z-index fix specifically targets Journey by Mediavine ads that were blocking purchases
-- **Enhanced Option Descriptions**: Focus on quality benefits ("AI-enhanced 4x resolution with vivid details and sharpness") over print dimensions
-- **Professional Styling**: Blue-tinted process overview box with clear typography improves perceived value
+- **Mobile Ad Prevention**: Maximum z-index on `.smi-modal` prevents Journey by Mediavine ads from blocking purchases
+- **Spinner Class Consistency**: Unified `.smi-spinner` class across all components
+- **Quality-Focused Descriptions**: Options emphasize benefits ("Vivid details and sharpness", "Professional-grade detail enhancement")
+- **Process Overview Styling**: Clear "AI-Powered Image Upscaling" section with professional typography
 
 ### Conversion Psychology Implementation
 - **Trust Building**: Transparent communication about AI process, timing, and delivery method reduces purchase anxiety
@@ -473,13 +472,12 @@ Post IDs: "123, 456, 789, 1011"
 - **Security**: Nonce verification, capability checks, input sanitization throughout
 
 ### Clean Architecture Principles
-- **Database Layer Separation**: DatabaseManager handles all database operations with type-safe auto-formatting
-- **Business Logic Isolation**: Services layer coordinates workflows, Managers handle data operations
-- **API Layer Separation**: API classes are pure HTTP clients without business logic (StripeApi, Upsampler)
-- **Service Coordination**: PaymentService and UpscalingService handle business workflows and use API classes for external calls
-- **Direct Data Access**: Buttons use `data-attachment-id` directly (no complex extraction)
-- **WordPress Standards**: All external operations use WordPress functions
-- **Pay-First Security**: All processing occurs only after payment confirmation
+- **Database Layer**: DatabaseManager provides type-safe CRUD operations with automatic format detection
+- **Business Logic**: Services coordinate workflows, Managers handle specialized data operations
+- **API Layer**: Pure HTTP clients (StripeApi, Upsampler) without embedded business logic
+- **Data Access**: Direct button attribute access via `data-attachment-id`
+- **WordPress Integration**: WordPress native functions for all external operations
+- **Security Model**: Payment confirmation required before processing
 
 ### Data Flow Architecture
 - **Button → JavaScript**: Direct `$button.data('attachment-id')` access
@@ -493,17 +491,14 @@ Post IDs: "123, 456, 789, 1011"
 ## Critical Architecture Notes
 
 ### Services Layer Pattern
-The Services layer is **essential for separation of concerns** and should never be removed:
+The Services layer coordinates complex workflows between API integrations and data management:
 
-- **PaymentService**: Coordinates payment workflow, uses StripeApi for HTTP calls, handles Stripe webhooks
-- **UpscalingService**: Coordinates upscaling workflow, uses Upsampler for HTTP calls, handles Upsampler webhooks  
-- **API Classes**: Pure HTTP clients (StripeApi, Upsampler) with no business logic
-- **RestApi**: Routes requests to appropriate Services, does not contain business logic
+- **PaymentService**: Orchestrates payment workflow using StripeApi for HTTP operations
+- **UpscalingService**: Orchestrates upscaling workflow using Upsampler for HTTP operations
+- **RestApi**: Routes requests to Services for business logic execution
 
-### Architectural Boundaries
-- **RestApi** → **Services** → **API Classes/Managers** (correct flow)
-- **Never**: RestApi directly calling API classes or containing business logic
-- **Never**: Removing Services layer - it provides essential workflow coordination
+### Architectural Flow
+**RestApi** → **Services** → **API Classes/Managers** maintains strict separation of concerns with Services providing essential workflow coordination.
 
 ### Payment Data Structure
 PaymentService expects specific CostCalculator output format:
@@ -514,7 +509,7 @@ PaymentService expects specific CostCalculator output format:
 ## Troubleshooting Common Issues
 
 ### Modal System Issues
-- **Mobile Ad Overlay**: If modal is hidden by ads on mobile, verify z-index is set to maximum value (2147483647) in modal.css line 144
+- **Mobile Ad Overlay**: If modal is hidden by ads on mobile, verify `.smi-modal` z-index is set to maximum value (2147483647) in modal.css
 - **Spinner Display**: All loading states should use `.smi-spinner` class - check templates/modal.php, assets/js/modal.js, and assets/css/modal.css for consistency
 - **CSS Syntax Errors**: Verify no extra closing braces in modal.css that could break modal styling
 - **Process Overview**: Blue-tinted info box should display properly with AI enhancement messaging
@@ -647,18 +642,16 @@ PaymentService expects specific CostCalculator output format:
 
 ### Core Files Modified for Conversion Optimization
 - **`templates/modal.php`**: Enhanced modal content with AI messaging, process overview section, and transparent delivery expectations
-- **`assets/css/modal.css`**: Critical z-index fix (line 144), process overview styling, and spinner class consistency
+- **`assets/css/modal.css`**: Critical z-index fix for `.smi-modal` selector, process overview styling, and spinner class consistency
 - **`assets/js/modal.js`**: Unified spinner class usage and enhanced user experience handling
 
-### Key Changes Summary
-1. **Critical Z-Index Fix**: Modal z-index set to 2147483647 to ensure coverage of Journey by Mediavine ads on mobile
-2. **CSS Syntax Fix**: Removed extra closing brace on line 100 that could cause styling issues
-3. **Spinner Class Consistency**: All templates, JS, and CSS now use `.smi-spinner` class uniformly
-4. **AI Process Overview**: Added dedicated section explaining AI enhancement with timing expectations
-5. **Modal Title Enhancement**: Changed to "AI-Enhanced High-Resolution Image" for better positioning
-6. **Option Descriptions**: Enhanced to focus on AI benefits rather than technical specifications
-7. **Email Transparency**: Specific "automatically delivered in 2-5 minutes" messaging
-8. **Process Overview Styling**: Professional blue-tinted info box for clear communication
+### Key Implementation Details
+1. **Critical Z-Index Fix**: `.smi-modal` uses maximum z-index (2147483647) for Journey by Mediavine ad coverage
+2. **Unified Spinner Class**: All loading states use `.smi-spinner` class across templates, JS, and CSS
+3. **AI Process Overview**: Dedicated "AI-Powered Image Upscaling" section with workflow explanation
+4. **Modal Title**: "AI-Enhanced High-Resolution Image" for premium positioning
+5. **Quality-Focused Options**: Emphasis on enhancement benefits over technical specifications
+6. **Email Integration**: "Automatically delivered to your email" for clear delivery expectations
 
 ### Technical Architecture Notes
 - **Maximum Z-Index Strategy**: Using maximum possible z-index value ensures modal displays above all third-party content
