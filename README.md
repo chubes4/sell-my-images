@@ -132,8 +132,17 @@ sell-my-images/
 ## 🚀 Quick Start
 
 ### Installation
-1. **Upload & Activate**: Install plugin in `/wp-content/plugins/` and activate
-2. **Install Dependencies**: Run `composer install` in plugin directory
+
+**For Development (GitHub Clone):**
+1. **Clone Repository**: `git clone https://github.com/chubes4/sell-my-images.git`
+2. **Install Dependencies**: Run `composer install` in plugin directory (required for Stripe SDK)
+3. **Upload & Activate**: Install plugin in `/wp-content/plugins/` and activate
+
+**For Production Use:**
+1. **Download Release**: Download from plugin marketplace (includes dependencies)
+2. **Upload & Activate**: Install in `/wp-content/plugins/` and activate
+
+**Configuration:**
 3. **Configure APIs**: Use the new tabbed interface - API Configuration tab for Stripe and Upsampler setup
 4. **Control Button Display**: Use the Display Control tab to choose where download buttons appear
 5. **Configure Downloads**: Use the Download Settings tab for expiry and pricing settings
@@ -286,8 +295,17 @@ Combine any of these filtering options:
 == Installation ==
 
 === Basic Setup ===
-1. **Upload & Activate**: Install plugin in WordPress admin or upload to `/wp-content/plugins/`
-2. **Install Dependencies**: Run `composer install` in plugin directory
+
+**For Development (GitHub Clone):**
+1. **Clone Repository**: `git clone https://github.com/chubes4/sell-my-images.git`
+2. **Install Dependencies**: Run `composer install` in plugin directory (required for Stripe SDK)
+3. **Upload & Activate**: Install plugin in WordPress admin or upload to `/wp-content/plugins/`
+
+**For Production Use:**
+1. **Download Release**: Download from plugin marketplace (includes dependencies)
+2. **Upload & Activate**: Install plugin in WordPress admin
+
+**Configuration:**
 3. **Review Service Terms**: Read and agree to Stripe and Upsampler.com terms of service
 4. **Configure Button Display**: Set up where download buttons should appear on your site
 5. **Update Privacy Policy**: Add disclosure of external service usage to your site's privacy policy
