@@ -38,14 +38,7 @@ class AdminInit {
         // Add admin menu
         add_action( 'admin_menu', array( $this, 'add_admin_menu' ) );
         
-        // Initialize settings page immediately
         $this->init_settings_page();
-        
-        // Initialize analytics page
-        $this->init_analytics_page();
-        
-        // Initialize jobs page
-        $this->init_jobs_page();
         
         // Register AJAX handlers for jobs page
         add_action( 'wp_ajax_smi_retry_upscale', array( $this, 'handle_ajax_retry_upscale' ) );
@@ -96,42 +89,12 @@ class AdminInit {
         );
     }
     
-    /**
-     * Initialize settings page
-     */
-    public function init_settings_page() {
-        if ( ! class_exists( 'SellMyImages\Admin\SettingsPage' ) ) {
-            return;
+    private function init_settings_page() {
+        if ( class_exists( 'SellMyImages\Admin\SettingsPage' ) ) {
+            new SettingsPage();
         }
-        
-        new SettingsPage();
     }
     
-    /**
-     * Initialize analytics page
-     */
-    public function init_analytics_page() {
-        // Analytics page is initialized on demand when accessed
-    }
-    
-    /**
-     * Initialize jobs page
-     */
-    public function init_jobs_page() {
-        // Jobs page is initialized on demand when accessed
-    }
-    
-    /**
-     * Render settings page with tabbed interface
-     * 
-     * Version 1.2.0 introduces professional tabbed interface replacing traditional
-     * WordPress Settings API for enhanced UX and logical organization.
-     * 
-     * Maintains single form submission while providing three organized tabs:
-     * - API Configuration: Stripe & Upsampler setup
-     * - Display Control: Button filtering system
-     * - Download Settings: Expiry, pricing, terms
-     */
     public function render_settings_page() {
         if ( ! current_user_can( 'manage_options' ) ) {
             wp_die( esc_html__( 'You do not have sufficient permissions to access this page.', 'sell-my-images' ) );

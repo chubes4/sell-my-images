@@ -91,25 +91,14 @@ class SellMyImages {
         }
     }
     
-    /**
-     * Initialize admin functionality
-     */
     private function init_admin() {
         new \SellMyImages\Admin\AdminInit();
     }
     
-    /**
-     * Initialize frontend functionality
-     */
     private function init_frontend() {
-        // Initialize webhook manager first
         \SellMyImages\Managers\WebhookManager::init();
-        
-        // Initialize components
         new \SellMyImages\Content\BlockProcessor();
         new \SellMyImages\Api\RestApi();
-        
-        // Initialize services (business logic) - this registers the webhook handlers
         new \SellMyImages\Services\PaymentService();
         new \SellMyImages\Services\UpscalingService();
     }
@@ -122,36 +111,13 @@ class SellMyImages {
         require_once SMI_PLUGIN_DIR . 'vendor/autoload.php';
     }
     
-    /**
-     * Enqueue frontend assets
-     */
     public function enqueue_frontend_assets() {
-        // Only load on single posts/pages with content
-        if ( ! is_singular() ) {
+        if ( ! is_singular() || ! \SellMyImages\Content\FilterManager::should_show_buttons() ) {
             return;
         }
         
-        // Check if buttons should appear on this post before loading assets
-        if ( ! \SellMyImages\Content\FilterManager::should_show_buttons() ) {
-            return;
-        }
-        
-        // Load assets only when buttons will actually appear
-        
-        wp_enqueue_script(
-            'smi-modal',
-            SMI_PLUGIN_URL . 'assets/js/modal.js',
-            array( 'jquery' ),
-            SMI_VERSION,
-            true
-        );
-        
-        wp_enqueue_style(
-            'smi-modal',
-            SMI_PLUGIN_URL . 'assets/css/modal.css',
-            array(),
-            SMI_VERSION
-        );
+        wp_enqueue_script( 'smi-modal', SMI_PLUGIN_URL . 'assets/js/modal.js', array( 'jquery' ), SMI_VERSION, true );
+        wp_enqueue_style( 'smi-modal', SMI_PLUGIN_URL . 'assets/css/modal.css', array(), SMI_VERSION );
         
         // Localize script for AJAX
         wp_localize_script( 'smi-modal', 'smi_ajax', array(
@@ -176,9 +142,6 @@ class SellMyImages {
         add_action( 'wp_footer', array( $this, 'output_modal_html' ) );
     }
     
-    /**
-     * Output modal HTML to footer
-     */
     public function output_modal_html() {
         $template_path = SMI_PLUGIN_DIR . 'templates/modal.php';
         if ( file_exists( $template_path ) ) {
@@ -186,35 +149,15 @@ class SellMyImages {
         }
     }
     
-    /**
-     * Enqueue admin assets
-     */
     public function enqueue_admin_assets( $hook ) {
-        // Only load on our admin pages - updated for top-level menu and analytics submenu
-        $allowed_hooks = array(
-            'toplevel_page_sell-my-images',
-            'sell-my-images_page_sell-my-images-analytics'
-        );
+        $allowed_hooks = array( 'toplevel_page_sell-my-images', 'sell-my-images_page_sell-my-images-analytics' );
         
         if ( ! in_array( $hook, $allowed_hooks, true ) ) {
             return;
         }
         
-        wp_enqueue_style(
-            'smi-admin',
-            SMI_PLUGIN_URL . 'assets/css/admin.css',
-            array(),
-            SMI_VERSION
-        );
-        
-        wp_enqueue_script(
-            'smi-admin',
-            SMI_PLUGIN_URL . 'assets/js/admin.js',
-            array( 'jquery' ),
-            SMI_VERSION,
-            true
-        );
-        
+        wp_enqueue_style( 'smi-admin', SMI_PLUGIN_URL . 'assets/css/admin.css', array(), SMI_VERSION );
+        wp_enqueue_script( 'smi-admin', SMI_PLUGIN_URL . 'assets/js/admin.js', array( 'jquery' ), SMI_VERSION, true );
     }
     
     /**

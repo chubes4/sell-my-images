@@ -406,213 +406,6 @@ class AnalyticsPage {
             </div>
         </div>
         
-        <style>
-        .smi-sorting-controls {
-            background: #fff;
-            padding: 15px 20px;
-            border: 1px solid #ccd0d4;
-            border-radius: 4px;
-            margin: 20px 0;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 15px;
-        }
-        
-        .smi-sort-options,
-        .smi-per-page-options {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        .smi-sorting-controls select {
-            min-width: 120px;
-        }
-        
-        .smi-pagination-info {
-            background: #f6f7f7;
-            padding: 10px 20px;
-            border: 1px solid #ccd0d4;
-            border-radius: 4px;
-            margin: 10px 0;
-        }
-        
-        .smi-pagination-info p {
-            margin: 0;
-            color: #646970;
-            font-size: 14px;
-        }
-        
-        .smi-pagination {
-            margin: 20px 0;
-            text-align: center;
-        }
-        
-        .smi-pagination .page-numbers {
-            display: inline-block;
-            padding: 8px 12px;
-            margin: 0 2px;
-            border: 1px solid #ddd;
-            background: #f7f7f7;
-            color: #555;
-            text-decoration: none;
-            border-radius: 3px;
-            transition: all 0.2s;
-        }
-        
-        .smi-pagination .page-numbers:hover {
-            background: #e0e0e0;
-            border-color: #999;
-        }
-        
-        .smi-pagination .page-numbers.current {
-            background: #2271b1;
-            color: #fff;
-            border-color: #2271b1;
-        }
-        
-        .smi-pagination .page-numbers.prev,
-        .smi-pagination .page-numbers.next {
-            font-weight: 600;
-        }
-        
-        @media (max-width: 768px) {
-            .smi-sorting-controls {
-                flex-direction: column;
-                align-items: stretch;
-            }
-            
-            .smi-sort-options,
-            .smi-per-page-options {
-                justify-content: center;
-            }
-        }
-        
-        .smi-summary-stats {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
-            margin: 20px 0;
-        }
-        
-        .smi-stat-card {
-            background: #fff;
-            padding: 20px;
-            border: 1px solid #ccd0d4;
-            border-radius: 4px;
-            text-align: center;
-        }
-        
-        .smi-stat-value {
-            font-size: 2em;
-            font-weight: bold;
-            color: #2271b1;
-            display: block;
-        }
-        
-        .smi-stat-label {
-            color: #646970;
-            font-size: 0.9em;
-            margin-top: 5px;
-        }
-        
-        .smi-analytics-table {
-            margin-top: 20px;
-        }
-        
-        .smi-post-row {
-            background: #fff;
-            border: 1px solid #ccd0d4;
-            margin-bottom: 15px;
-            border-radius: 4px;
-        }
-        
-        .smi-post-header {
-            padding: 15px 20px;
-            background: #f6f7f7;
-            border-bottom: 1px solid #ccd0d4;
-            cursor: pointer;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .smi-post-title {
-            font-weight: bold;
-            font-size: 1.1em;
-        }
-        
-        .smi-post-stats {
-            display: flex;
-            gap: 20px;
-            font-size: 0.9em;
-            color: #646970;
-        }
-        
-        .smi-attachments {
-            padding: 0;
-            display: none;
-        }
-        
-        .smi-attachments.expanded {
-            display: block;
-        }
-        
-        .smi-attachment-row {
-            padding: 15px 20px;
-            border-bottom: 1px solid #f0f0f1;
-            display: grid;
-            grid-template-columns: 60px 1fr auto;
-            gap: 15px;
-            align-items: center;
-        }
-        
-        .smi-attachment-row:last-child {
-            border-bottom: none;
-        }
-        
-        .smi-attachment-thumbnail {
-            width: 50px;
-            height: 50px;
-            object-fit: cover;
-            border-radius: 4px;
-            border: 1px solid #ddd;
-        }
-        
-        .smi-attachment-details h4 {
-            margin: 0 0 5px 0;
-            font-size: 0.95em;
-        }
-        
-        .smi-attachment-meta {
-            font-size: 0.85em;
-            color: #646970;
-        }
-        
-        .smi-attachment-stats {
-            text-align: right;
-            font-size: 0.9em;
-        }
-        
-        .smi-revenue {
-            font-weight: bold;
-            color: #00a32a;
-        }
-        
-        .smi-stat-value.profit {
-            color: #00a32a;
-        }
-        
-        .smi-toggle-icon {
-            transition: transform 0.2s;
-        }
-        
-        .smi-toggle-icon.expanded {
-            transform: rotate(90deg);
-        }
-        </style>
         
         <script>
         jQuery(document).ready(function($) {
@@ -846,7 +639,7 @@ class AnalyticsPage {
                                 <small><?php esc_html_e( 'Revenue', 'sell-my-images' ); ?></small>
                             </div>
                             <div>
-                                <strong style="color: #00a32a;">$<?php echo esc_html( number_format( $post_data->total_profit ?: 0, 2 ) ); ?></strong><br>
+                                <strong class="smi-success-text">$<?php echo esc_html( number_format( $post_data->total_profit ?: 0, 2 ) ); ?></strong><br>
                                 <small><?php esc_html_e( 'Profit', 'sell-my-images' ); ?></small>
                             </div>
                             <div>
@@ -881,7 +674,7 @@ class AnalyticsPage {
                     <div class="smi-attachments">
                         <?php if ( empty( $post_data->attachments ) ) : ?>
                             <div class="smi-attachment-row">
-                                <div colspan="3" style="text-align: center; color: #646970; font-style: italic;">
+                                <div colspan="3" class="smi-muted-text" style="text-align: center; font-style: italic;">
                                     <?php esc_html_e( 'No individual image data available', 'sell-my-images' ); ?>
                                 </div>
                             </div>
@@ -904,7 +697,7 @@ class AnalyticsPage {
                                                  alt="<?php esc_attr_e( 'Attachment thumbnail', 'sell-my-images' ); ?>" 
                                                  class="smi-attachment-thumbnail">
                                         <?php else : ?>
-                                            <div class="smi-attachment-thumbnail" style="background: #f0f0f1; display: flex; align-items: center; justify-content: center;">
+                                            <div class="smi-attachment-thumbnail">
                                                 <span style="font-size: 20px;">📷</span>
                                             </div>
                                         <?php endif; ?>
@@ -933,7 +726,7 @@ class AnalyticsPage {
                                     
                                     <div class="smi-attachment-stats">
                                         <div class="smi-revenue">$<?php echo esc_html( number_format( $attachment->revenue, 2 ) ); ?></div>
-                                        <div style="color: #00a32a;">$<?php echo esc_html( number_format( $attachment->profit ?: 0, 2 ) ); ?> profit</div>
+                                        <div class="smi-success-text">$<?php echo esc_html( number_format( $attachment->profit ?: 0, 2 ) ); ?> profit</div>
                                         <div><?php 
                                         /* translators: %d: number of sales */
                                         printf( esc_html__( '%d sales', 'sell-my-images' ), esc_html( $attachment->sales_count ) ); ?></div>

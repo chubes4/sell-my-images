@@ -6,13 +6,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Sell My Images** is a WordPress plugin that monetizes website images by adding "Download Hi-Res" buttons to content images. When clicked, users can purchase upscaled versions (4x, 8x) of images via AI upscaling and secure payment processing. Features comprehensive button display control system with tabbed admin interface for precise targeting of monetizable content.
 
-## KNOWN ISSUES
+## CURRENT STATUS
 
-- All recent modal system conversion optimization improvements have been successfully implemented
-- Critical mobile z-index fix prevents Journey by Mediavine ads from covering modal on mobile devices
-- Modal system now uses consistent `.smi-spinner` class across all templates, JavaScript, and CSS
-- AI-enhanced messaging strategy improves user understanding and conversion rates
-- Email delivery transparency messaging implemented for better user expectations
+The plugin is fully operational with all major features implemented and tested. Recent improvements include mobile conversion optimization, HTML email templates, and enhanced job status tracking with the `awaiting_payment` workflow.
 
 ## FUTURE PLANS
 
@@ -28,7 +24,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Post ID Tracking**: The system now tracks both `attachment_id` and `post_id` for comprehensive analytics
 - **Analytics Philosophy**: The system prioritizes engagement metrics (clicks) over financial metrics (revenue) by default to promote user-focused optimization
 - **Tabbed Interface**: Professional WordPress admin design replaces traditional Settings API for improved organization
-- **Modal System Optimization**: Recent improvements focus on conversion optimization through AI messaging and mobile compatibility fixes
+- **Modal System**: Optimized for conversion through AI messaging and mobile compatibility
 
 ## Architecture
 
@@ -90,8 +86,8 @@ All classes follow PSR-4 autoloading under the `SellMyImages\` namespace:
 1. Frontend captures attachment_id and post_id directly from button data attributes
 2. **Click Tracking**: Fire-and-forget AJAX call to track button interaction
 3. **Price Calculation**: `/calculate-all-prices` with both attachment_id and post_id
-4. **Checkout Creation**: `/create-checkout` → RestApi → PaymentService → StripeApi → creates job with post_id tracking
-5. **Payment Verification**: Stripe webhook → PaymentService → job status 'paid' → triggers `smi_payment_completed` action
+4. **Checkout Creation**: `/create-checkout` → RestApi → PaymentService → StripeApi → creates job with 'awaiting_payment' status and post_id tracking
+5. **Payment Verification**: Stripe webhook → PaymentService → job status moves from 'awaiting_payment' to 'pending' → triggers `smi_payment_completed` action
 6. **Upscaling Processing**: UpscalingService handles `smi_payment_completed` → Upsampler API → external job_id linking
 7. **Fulfillment**: DownloadManager → secure download tokens via `wp_generate_password()`
 
@@ -140,14 +136,14 @@ Complete job tracking with payment, processing status, and **analytics support**
 - **Filter Testing**: Test button display control by configuring different display modes and criteria combinations
 - **Modal CSS Validation**: Verify modal.css syntax and z-index effectiveness on mobile devices with ads present
 - **Spinner Class Testing**: Confirm all loading states use consistent `.smi-spinner` class across templates and JavaScript
-- **Mobile Conversion Testing**: Test complete purchase flow on mobile devices to verify ad overlay fix effectiveness
+- **Mobile Conversion Testing**: Test complete purchase flow on mobile devices to verify ad overlay prevention
 
 ### Local Development Setup
 - **WordPress Environment**: Requires WordPress 5.0+ with Gutenberg support
 - **PHP Requirements**: PHP 7.4+ with curl and json extensions
 - **SSL Certificate**: Required for Stripe integration (use local SSL or ngrok for testing)
 - **Database**: MySQL/MariaDB with InnoDB support for proper indexing
-- **Modal Testing**: Test modal display on mobile devices with ad blockers disabled to verify z-index fix effectiveness
+- **Modal Testing**: Test modal display on mobile devices with ad blockers disabled to verify z-index effectiveness
 - **Conversion Testing**: Verify modal displays above third-party ads (especially Journey by Mediavine) on mobile devices
 
 ### Database Operations for Analytics
@@ -179,8 +175,8 @@ Complete job tracking with payment, processing status, and **analytics support**
 - **Button Display Control**: Professional admin interface for managing where download buttons appear
 - **Responsive Design**: Filter table adapts to mobile devices with stacked layout and data labels
 - **Real-time Filtering**: JavaScript-powered dynamic interface with smooth transitions
-- **Retry System**: Administrators can retry any job regardless of payment status mismatches via admin override context
-- **Email Transparency**: Admin receives identical HTML emails as customers (not plaintext) with "Copy:" subject prefix
+- **Retry System**: Administrators can retry any job, including `awaiting_payment` jobs with `paid` status, via admin override context with comprehensive logging
+- **HTML Email System**: Professional HTML email templates with inline CSS for customer notifications and admin copies with "Copy:" subject prefix
 - **Comprehensive Logging**: All admin overrides logged with job details and payment status for audit trail
 - **Jobs Management**: Full pagination, filtering, and bulk operations interface at Admin → Jobs
 
@@ -204,6 +200,13 @@ Complete job tracking with payment, processing status, and **analytics support**
 - **Automatic Initialization**: First click on post creates analytics baseline
 - **Conversion Metrics**: Calculates click-to-purchase ratios for optimization insights with safe division handling
 - **Performance**: No database schema changes, uses WordPress native post meta system with optimized bulk retrieval
+
+### Email Notification System
+- **HTML Template Architecture**: Professional HTML email template at `templates/email-notification.php` with inline CSS styling
+- **Template Variables**: Job object, download URL, expiry date, terms URL, and site name for dynamic content
+- **Responsive Design**: Mobile-friendly HTML email layout with table-based structure for maximum compatibility
+- **Customer & Admin Notifications**: Identical HTML emails sent to customers and administrators with "Copy:" prefix for admin versions
+- **Content & Security**: Proper escaping, internationalization support, and professional styling with branded appearance
 
 ### Payment & Webhook Testing
 - **Stripe CLI**: `stripe listen --forward-to=https://yoursite.com/smi-webhook/stripe/`
@@ -231,6 +234,11 @@ Complete job tracking with payment, processing status, and **analytics support**
 
 ### Core Constants (defined in `sell-my-images.php`)
 - `SMI_VERSION` (1.2.0), `SMI_PLUGIN_DIR`, `SMI_PLUGIN_URL`, `SMI_PLUGIN_BASENAME`
+
+### Constants Class (src/Config/Constants.php)
+- `VALID_JOB_STATUSES = array( 'awaiting_payment', 'pending', 'processing', 'completed', 'failed' )`
+- `UPSAMPLER_COST_PER_CREDIT` - Hardcoded at $0.04/credit for pricing calculations
+- `get_upscale_factor()` - Shared utility method for upscaling factor calculations
 
 ### Asset Management
 - **Performance Strategy**: Smart asset loading - CSS/JS only loads when buttons will appear on current post
@@ -418,19 +426,17 @@ Post IDs: "123, 456, 789, 1011"
 
 ## Conversion Optimization & User Experience
 
-### Modal System Enhancements (January 2025)
+### Modal System Features
 - **Critical Mobile Fix**: Maximum z-index (2147483647) on `.smi-modal` prevents third-party ads from covering modal on mobile devices
-- **AI Messaging Strategy**: Modal title "AI-Enhanced High-Resolution Image" and process overview section focus on quality benefits
-- **Email Delivery**: "Automatically delivered to your email" messaging provides clear delivery expectations
-- **Process Overview**: Dedicated "AI-Powered Image Upscaling" section explains upscaling workflow
+- **AI Messaging Strategy**: Modal title "AI-Enhanced High-Resolution Image" focuses on quality benefits
+- **Email Delivery**: "Your high resolution image will be automatically delivered to your email" messaging provides clear delivery expectations
 - **Unified Spinner Class**: Consistent `.smi-spinner` implementation across templates, JavaScript, and CSS
-- **Enhanced Options**: Quality-focused descriptions ("Vivid details and sharpness", "Professional-grade detail enhancement") improve user understanding
+- **Quality-Focused Options**: Descriptions ("Vivid details and sharpness", "Professional-grade detail enhancement") improve user understanding
 
-### Technical Fixes for Conversion
+### Technical Implementation for Conversion
 - **Mobile Ad Prevention**: Maximum z-index on `.smi-modal` prevents Journey by Mediavine ads from blocking purchases
 - **Spinner Class Consistency**: Unified `.smi-spinner` class across all components
 - **Quality-Focused Descriptions**: Options emphasize benefits ("Vivid details and sharpness", "Professional-grade detail enhancement")
-- **Process Overview Styling**: Clear "AI-Powered Image Upscaling" section with professional typography
 
 ### Conversion Psychology Implementation
 - **Trust Building**: Transparent communication about AI process, timing, and delivery method reduces purchase anxiety
@@ -439,26 +445,26 @@ Post IDs: "123, 456, 789, 1011"
 - **Mobile Optimization**: Critical for conversion as mobile users were unable to complete purchases due to ad overlays
 - **Professional Design**: Clean, informative interface builds confidence in service quality
 
-## Recent Major Enhancements
+## Major Features
 
-### Version 1.2.0 - Tabbed Admin Interface (December 2024)
-- **Complete Admin Restructure**: Professional tabbed interface replacing WordPress Settings API
-- **Enhanced Organization**: Three logical tabs for API Configuration, Display Control, and Download Settings
-- **Improved UX**: Professional WordPress admin styling with responsive design and accessibility features
-- **Filter Table Enhancement**: Always-visible filter table with contextual disabled state for better user understanding
-- **Performance Maintained**: Zero-overhead filtering logic and smart asset loading preserved
+### Version 1.2.0 - Tabbed Admin Interface
+- **Professional Admin Structure**: Three-tab interface replacing WordPress Settings API
+- **Organized Configuration**: API Configuration, Display Control, and Download Settings tabs
+- **Enhanced UX**: Professional WordPress admin styling with responsive design and accessibility features
+- **Filter Table**: Always-visible filter table with contextual disabled state for better user understanding
+- **Performance Optimized**: Zero-overhead filtering logic and smart asset loading
 - **Mobile Responsive**: Seamless experience across all device sizes with progressive enhancement
 
-### AnalyticsPage Class Improvements
-- **New Methods**:
+### AnalyticsPage Class Features
+- **Batch Processing Methods**:
   - `add_click_data_to_results()` - Efficiently merges click data with sales results using batch processing
   - `get_click_data_for_posts()` - Fetches click data for multiple posts in single database query using IN clause
   - Enhanced `get_sort_value()` with proper null checking for `total_clicks` property
-- **UX Improvements**:
-  - Default sorting changed from 'revenue' to 'clicks' for engagement-first analytics approach
-  - Post titles are now clickable links using `get_permalink()` that open in new tabs
+- **User Experience**:
+  - Default sorting by 'clicks' for engagement-first analytics approach
+  - Clickable post titles using `get_permalink()` that open in new tabs
   - Robust error handling prevents undefined property warnings
-- **Performance Optimizations**:
+- **Performance Features**:
   - Batch click data processing reduces N+1 query problems
   - Single query retrieval for multiple posts' click analytics
   - Proper `isset()` checks throughout to prevent PHP notices
@@ -512,7 +518,6 @@ PaymentService expects specific CostCalculator output format:
 - **Mobile Ad Overlay**: If modal is hidden by ads on mobile, verify `.smi-modal` z-index is set to maximum value (2147483647) in modal.css
 - **Spinner Display**: All loading states should use `.smi-spinner` class - check templates/modal.php, assets/js/modal.js, and assets/css/modal.css for consistency
 - **CSS Syntax Errors**: Verify no extra closing braces in modal.css that could break modal styling
-- **Process Overview**: Blue-tinted info box should display properly with AI enhancement messaging
 - **Mobile Compatibility**: Test modal display and interaction on various mobile devices, especially with Journey by Mediavine ads present
 - **Conversion Blocking**: If users can't complete purchases on mobile, check for ad overlays covering modal elements
 
@@ -526,11 +531,11 @@ PaymentService expects specific CostCalculator output format:
 
 ### Analytics & Job Tracking
 - **Default Sorting**: Analytics page defaults to 'clicks' (engagement-first) instead of 'revenue' for better user experience
-- **Enhanced Click Processing**: New batch processing methods improve performance and prevent undefined property errors
+- **Enhanced Click Processing**: Batch processing methods improve performance and prevent undefined property errors
 - **Navigation Integration**: Post titles are clickable with `get_permalink()` integration for seamless content access
 - **Required Fields**: Both post_id and attachment_id are required (NOT NULL)
 - **Index Usage**: Use composite indexes for cross-reference queries
-- **Job Lifecycle**: `pending` → `paid` → `processing` → `completed`/`failed`
+- **Job Lifecycle**: `awaiting_payment` → `pending` → `processing` → `completed`/`failed`
 - **Error Prevention**: Proper null checking prevents warnings when accessing click data properties
 
 ### Button Display Control
@@ -571,14 +576,14 @@ PaymentService expects specific CostCalculator output format:
 
 ### Error Handling Philosophy
 **Simplified Error Management**: The system uses streamlined error handling without overengineering:
-- **Job Status**: Simple status tracking ('pending', 'processing', 'completed', 'failed') without detailed failure reasons
+- **Job Status**: Simple status tracking ('awaiting_payment', 'pending', 'processing', 'completed', 'failed') without detailed failure reasons
 - **Error Logging**: Detailed errors logged via `error_log()` for debugging purposes
 - **Database**: No `failure_reason` column - status tracking is sufficient for user-facing functionality
 - **User Experience**: Failed jobs show generic failure message; detailed errors are server-side only
 - **Analytics Error Prevention**: Proper `isset()` checks prevent undefined property warnings when accessing click data
 - **Null Safety**: All analytics methods include robust null checking for undefined or missing data properties
 - **Button Display Filtering**: Clean error handling in FilterManager with graceful fallback to showing buttons
-- **Modal System Reliability**: Recent fixes ensure modal displays correctly and loading states work consistently across all devices
+- **Modal System Reliability**: Modal displays correctly and loading states work consistently across all devices
 - **Conversion Protection**: Error handling designed to never block user purchase flow, with graceful fallbacks for pricing and checkout
 
 ### Architecture Enforcement
@@ -596,7 +601,7 @@ PaymentService expects specific CostCalculator output format:
 - **Error Handling**: User-friendly error messages with detailed server-side logging
 - **Status Updates**: Real-time job status polling with exponential backoff and timeout handling
 - **Spinner Class Consistency**: All loading states use unified `.smi-spinner` class across templates, JavaScript, and CSS for maintainable code architecture
-- **Conversion Optimization**: Enhanced user experience through AI messaging and transparent delivery expectations
+- **Conversion Optimization**: User experience optimized through AI messaging and transparent delivery expectations
 
 ### CSS Structure  
 - **Modal Styling**: Responsive design with mobile-friendly breakpoints
@@ -604,7 +609,6 @@ PaymentService expects specific CostCalculator output format:
 - **Button Design**: Clean, professional appearance without promotional symbols for better user experience
 - **Button Integration**: Seamless integration with theme styles via CSS custom properties
 - **Loading States**: Visual feedback for processing, payment, and download states with consistent `.smi-spinner` implementation
-- **Process Overview Styling**: Professional blue-tinted info box with clear typography for AI enhancement explanation
 - **Mobile Optimization**: Enhanced mobile experience with proper ad overlay prevention and responsive design
 - **Admin Interface**: Comprehensive admin styles with tabbed interface design and WordPress admin color scheme compliance
 - **Tabbed Navigation**: Professional tab interface with active states, transitions, and responsive behavior
@@ -612,11 +616,11 @@ PaymentService expects specific CostCalculator output format:
 - **Progressive Enhancement**: CSS handles graceful degradation when JavaScript is disabled
 
 ### Modal Template Architecture
-- **AI-Enhanced Messaging**: Modal title changed to "AI-Enhanced High-Resolution Image" for better user understanding
-- **Process Overview Section**: Dedicated section explaining "AI-Powered Image Enhancement" with timing expectations (2-5 minutes)
-- **Enhanced Option Descriptions**: Focus on AI enhancement benefits rather than print-size specifications
-- **Email Delivery Transparency**: Specific "automatically delivered in 2-5 minutes" messaging replaces vague "via email" description
-- **User Experience Psychology**: Content improvements designed to increase trust and conversion rates through transparency
+- **AI-Enhanced Messaging**: Modal title "AI-Enhanced High-Resolution Image" for premium positioning
+- **Simplified Option Descriptions**: Standard Quality (4x) with "Vivid details and sharpness", Premium Quality (8x) with "Professional-grade detail enhancement"
+- **Email Delivery Transparency**: "Your high resolution image will be automatically delivered to your email" messaging provides clear delivery expectations
+- **Unified Spinner Class**: Consistent `.smi-spinner` class used across all loading states
+- **User Experience Focus**: Content designed to increase trust and conversion rates through clarity
 
 ### Mobile Conversion Optimization
 - **Ad Overlay Prevention**: The z-index fix is critical for mobile conversions - third-party ads (especially Journey by Mediavine) were covering the modal and blocking purchases
@@ -641,17 +645,16 @@ PaymentService expects specific CostCalculator output format:
 ## Modal System Implementation Files
 
 ### Core Files Modified for Conversion Optimization
-- **`templates/modal.php`**: Enhanced modal content with AI messaging, process overview section, and transparent delivery expectations
-- **`assets/css/modal.css`**: Critical z-index fix for `.smi-modal` selector, process overview styling, and spinner class consistency
+- **`templates/modal.php`**: Simplified modal content with AI messaging and transparent delivery expectations
+- **`assets/css/modal.css`**: Critical z-index fix for `.smi-modal` selector and spinner class consistency
 - **`assets/js/modal.js`**: Unified spinner class usage and enhanced user experience handling
 
 ### Key Implementation Details
 1. **Critical Z-Index Fix**: `.smi-modal` uses maximum z-index (2147483647) for Journey by Mediavine ad coverage
 2. **Unified Spinner Class**: All loading states use `.smi-spinner` class across templates, JS, and CSS
-3. **AI Process Overview**: Dedicated "AI-Powered Image Upscaling" section with workflow explanation
-4. **Modal Title**: "AI-Enhanced High-Resolution Image" for premium positioning
-5. **Quality-Focused Options**: Emphasis on enhancement benefits over technical specifications
-6. **Email Integration**: "Automatically delivered to your email" for clear delivery expectations
+3. **Modal Title**: "AI-Enhanced High-Resolution Image" for premium positioning
+4. **Simplified Quality Options**: "Vivid details and sharpness" (4x) and "Professional-grade detail enhancement" (8x)
+5. **Email Integration**: "Your high resolution image will be automatically delivered to your email" for clear delivery expectations
 
 ### Technical Architecture Notes
 - **Maximum Z-Index Strategy**: Using maximum possible z-index value ensures modal displays above all third-party content

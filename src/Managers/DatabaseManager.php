@@ -103,21 +103,11 @@ class DatabaseManager {
         return true;
     }
     
-    /**
-     * Insert a new record
-     * 
-     * @param array $data Data to insert
-     * @return array|WP_Error Insert result with ID or error
-     */
     public static function insert( $data ) {
         global $wpdb;
         
         if ( empty( $data ) ) {
-            return new \WP_Error(
-                'empty_data',
-                __( 'No data provided for insert', 'sell-my-images' ),
-                array( 'status' => 400 )
-            );
+            return false;
         }
         
         $table = self::get_jobs_table();
@@ -125,44 +115,14 @@ class DatabaseManager {
         
         $result = $wpdb->insert( $table, $data, $formats );
         
-        if ( $result === false ) {
-            return new \WP_Error(
-                'insert_failed',
-                __( 'Failed to insert record', 'sell-my-images' ),
-                array( 'status' => 500 )
-            );
-        }
-        
-        return array(
-            'id' => $wpdb->insert_id,
-            'rows_affected' => $result
-        );
+        return $result ? array( 'id' => $wpdb->insert_id, 'rows_affected' => $result ) : false;
     }
     
-    /**
-     * Update records
-     * 
-     * @param array $data Data to update
-     * @param array $where WHERE conditions
-     * @return bool|WP_Error True on success, error on failure
-     */
     public static function update( $data, $where ) {
         global $wpdb;
         
-        if ( empty( $data ) ) {
-            return new \WP_Error(
-                'empty_data',
-                __( 'No data provided for update', 'sell-my-images' ),
-                array( 'status' => 400 )
-            );
-        }
-        
-        if ( empty( $where ) ) {
-            return new \WP_Error(
-                'empty_where',
-                __( 'WHERE conditions required for update', 'sell-my-images' ),
-                array( 'status' => 400 )
-            );
+        if ( empty( $data ) || empty( $where ) ) {
+            return false;
         }
         
         $table = self::get_jobs_table();
@@ -171,35 +131,18 @@ class DatabaseManager {
         
         $result = $wpdb->update( $table, $data, $where, $data_formats, $where_formats );
         
-        if ( $result === false ) {
-            if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-                error_log( 'SMI DatabaseManager: Update failed - ' . $wpdb->last_error  );
-            }
-            return new \WP_Error(
-                'update_failed',
-                __( 'Failed to update record', 'sell-my-images' ),
-                array( 'status' => 500 )
-            );
+        if ( $result === false && defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+            error_log( 'SMI DatabaseManager: Update failed - ' . $wpdb->last_error );
         }
         
-        return true;
+        return $result !== false;
     }
     
-    /**
-     * Delete records
-     * 
-     * @param array $where WHERE conditions
-     * @return int|WP_Error Number of rows deleted or error
-     */
     public static function delete( $where ) {
         global $wpdb;
         
         if ( empty( $where ) ) {
-            return new \WP_Error(
-                'empty_where',
-                __( 'WHERE conditions required for delete', 'sell-my-images' ),
-                array( 'status' => 400 )
-            );
+            return false;
         }
         
         $table = self::get_jobs_table();
@@ -207,35 +150,18 @@ class DatabaseManager {
         
         $result = $wpdb->delete( $table, $where, $where_formats );
         
-        if ( $result === false ) {
-            if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-                error_log( 'SMI DatabaseManager: Delete failed - ' . $wpdb->last_error  );
-            }
-            return new \WP_Error(
-                'delete_failed',
-                __( 'Failed to delete record', 'sell-my-images' ),
-                array( 'status' => 500 )
-            );
+        if ( $result === false && defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+            error_log( 'SMI DatabaseManager: Delete failed - ' . $wpdb->last_error );
         }
         
-        return $result;
+        return $result ?: 0;
     }
     
-    /**
-     * Get a single record
-     * 
-     * @param array $where WHERE conditions  
-     * @return object|WP_Error Record object or error
-     */
     public static function get_row( $where ) {
         global $wpdb;
         
         if ( empty( $where ) ) {
-            return new \WP_Error(
-                'empty_where',
-                __( 'WHERE conditions required', 'sell-my-images' ),
-                array( 'status' => 400 )
-            );
+            return null;
         }
         
         $table = self::get_jobs_table();
@@ -245,59 +171,31 @@ class DatabaseManager {
         $query = "SELECT * FROM $table WHERE $where_clause";
         $row = $wpdb->get_row( $wpdb->prepare( $query, $values ) );
         
-        if ( $wpdb->last_error ) {
-            return new \WP_Error(
-                'query_failed',
-                __( 'Database query failed', 'sell-my-images' ),
-                array( 'status' => 500 )
-            );
-        }
-        
-        if ( ! $row ) {
-            return new \WP_Error(
-                'record_not_found',
-                __( 'Record not found', 'sell-my-images' ),
-                array( 'status' => 404 )
-            );
+        if ( $wpdb->last_error && defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+            error_log( 'SMI DatabaseManager: Query failed - ' . $wpdb->last_error );
         }
         
         return $row;
     }
     
-    /**
-     * Get multiple records
-     * 
-     * @param array $args Query arguments
-     * @return array|WP_Error Array of records or error
-     */
     public static function get_results( $args = array() ) {
         global $wpdb;
         
-        $defaults = array(
-            'where' => array(),
-            'order_by' => 'created_at',
-            'order' => 'DESC',
-            'limit' => null,
-            'offset' => null,
-        );
-        
+        $defaults = array( 'where' => array(), 'order_by' => 'created_at', 'order' => 'DESC', 'limit' => null, 'offset' => null );
         $args = wp_parse_args( $args, $defaults );
         $table = self::get_jobs_table();
         
         $query = "SELECT * FROM $table";
         $values = array();
         
-        // Add WHERE clause
         if ( ! empty( $args['where'] ) ) {
             $where_clause = self::build_where_clause( $args['where'] );
             $query .= " WHERE $where_clause";
             $values = array_merge( $values, array_values( $args['where'] ) );
         }
         
-        // Add ORDER BY
         $query .= " ORDER BY " . sanitize_sql_orderby( $args['order_by'] . ' ' . $args['order'] );
         
-        // Add LIMIT
         if ( $args['limit'] ) {
             $query .= " LIMIT %d";
             $values[] = intval( $args['limit'] );
@@ -310,12 +208,8 @@ class DatabaseManager {
         
         $results = empty( $values ) ? $wpdb->get_results( $query ) : $wpdb->get_results( $wpdb->prepare( $query, $values ) );
         
-        if ( $wpdb->last_error ) {
-            return new \WP_Error(
-                'query_failed',
-                __( 'Database query failed', 'sell-my-images' ),
-                array( 'status' => 500 )
-            );
+        if ( $wpdb->last_error && defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+            error_log( 'SMI DatabaseManager: Query failed - ' . $wpdb->last_error );
         }
         
         return $results ?: array();

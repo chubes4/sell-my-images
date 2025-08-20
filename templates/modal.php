@@ -42,13 +42,6 @@ if ( ! defined( 'ABSPATH' ) ) {
                         <img class="smi-preview-image" src="" alt="" />
                     </div>
                     
-                    <div class="smi-process-overview">
-                        <div class="smi-process-intro">
-                            <h4>AI-Powered Image Upscaling</h4>
-                            <p>Our system upscales & enchances the image using Upsampler and sends them directly to your email address. Choose 4x resolution or 8x resolution below.</p>
-                        </div>
-                    </div>
-                    
                     <div class="smi-upscale-options">
                         <h4>Choose Quality & Pricing</h4>
                         <div class="smi-resolution-options">

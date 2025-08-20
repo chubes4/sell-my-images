@@ -66,170 +66,6 @@ class JobsPage {
             </div>
         </div>
         
-        <style>
-        .smi-jobs-controls {
-            background: #fff;
-            padding: 15px 20px;
-            border: 1px solid #ccd0d4;
-            border-radius: 4px;
-            margin: 20px 0;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 15px;
-        }
-        
-        .smi-jobs-table-container {
-            background: #fff;
-            border: 1px solid #ccd0d4;
-            border-radius: 4px;
-        }
-        
-        .smi-jobs-table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        
-        .smi-jobs-table th,
-        .smi-jobs-table td {
-            padding: 12px 15px;
-            text-align: left;
-            border-bottom: 1px solid #f0f0f1;
-        }
-        
-        .smi-jobs-table th {
-            background: #f6f7f7;
-            font-weight: 600;
-            color: #1d2327;
-        }
-        
-        .smi-jobs-table tr:hover {
-            background: #f6f7f7;
-        }
-        
-        .smi-status {
-            padding: 4px 8px;
-            border-radius: 3px;
-            font-size: 12px;
-            font-weight: 500;
-            text-transform: uppercase;
-        }
-        
-        .smi-status.pending { background: #fef7e0; color: #8a6914; }
-        .smi-status.processing { background: #e0f2ff; color: #0066cc; }
-        .smi-status.completed { background: #d4edda; color: #155724; }
-        .smi-status.failed { background: #f8d7da; color: #721c24; }
-        .smi-status.awaiting_payment { background: #f0f0f1; color: #646970; }
-        
-        .smi-payment-status {
-            padding: 4px 8px;
-            border-radius: 3px;
-            font-size: 12px;
-            font-weight: 500;
-        }
-        
-        .smi-payment-status.paid { background: #d4edda; color: #155724; }
-        .smi-payment-status.pending { background: #fef7e0; color: #8a6914; }
-        .smi-payment-status.refunded { background: #f8d7da; color: #721c24; }
-        
-        .smi-retry-btn {
-            background: #2271b1;
-            color: white;
-            border: none;
-            padding: 6px 12px;
-            border-radius: 3px;
-            cursor: pointer;
-            font-size: 12px;
-        }
-        
-        .smi-retry-btn:hover {
-            background: #135e96;
-        }
-        
-        .smi-retry-btn:disabled {
-            background: #c3c4c7;
-            cursor: not-allowed;
-        }
-        
-        .smi-job-id {
-            font-family: monospace;
-            font-size: 11px;
-            color: #646970;
-        }
-        
-        .smi-image-preview {
-            width: 50px;
-            height: 50px;
-            object-fit: cover;
-            border-radius: 4px;
-            border: 1px solid #ddd;
-        }
-        
-        .smi-email {
-            max-width: 200px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-        
-        .smi-pagination-container {
-            background: #fff;
-            border: 1px solid #ccd0d4;
-            border-top: none;
-            border-radius: 0 0 4px 4px;
-            padding: 15px 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 15px;
-        }
-        
-        .smi-pagination-nav {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        .smi-pagination-nav a,
-        .smi-pagination-nav span {
-            padding: 8px 12px;
-            text-decoration: none;
-            border: 1px solid #ddd;
-            border-radius: 3px;
-            background: #f6f7f7;
-            color: #2271b1;
-        }
-        
-        .smi-pagination-nav a:hover {
-            background: #2271b1;
-            color: white;
-        }
-        
-        .smi-pagination-nav .current {
-            background: #2271b1;
-            color: white;
-            border-color: #2271b1;
-        }
-        
-        .smi-pagination-nav .disabled {
-            color: #999;
-            cursor: not-allowed;
-            pointer-events: none;
-        }
-        
-        .smi-per-page-controls {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        .smi-pagination-info {
-            color: #646970;
-            font-size: 13px;
-        }
-        </style>
         
         <script>
         jQuery(document).ready(function($) {
@@ -419,7 +255,7 @@ class JobsPage {
         $jobs = $jobs_data['jobs'] ?? array();
         
         if ( empty( $jobs ) ) {
-            echo '<div style="padding: 40px; text-align: center; color: #646970;">';
+            echo '<div class="smi-empty-state">';
             esc_html_e( 'No jobs found.', 'sell-my-images' );
             echo '</div>';
             return;
@@ -453,7 +289,7 @@ class JobsPage {
                                  alt="<?php esc_attr_e( 'Image preview', 'sell-my-images' ); ?>"
                                  class="smi-image-preview">
                         <?php else : ?>
-                            <div class="smi-image-preview" style="background: #f0f0f1; display: flex; align-items: center; justify-content: center; color: #646970; font-size: 10px;">
+                            <div class="smi-image-preview">
                                 <?php esc_html_e( 'No image', 'sell-my-images' ); ?>
                             </div>
                         <?php endif; ?>
@@ -478,7 +314,7 @@ class JobsPage {
                         <?php if ( $job->amount_charged ) : ?>
                             $<?php echo esc_html( number_format( $job->amount_charged, 2 ) ); ?>
                         <?php else : ?>
-                            <span style="color: #646970;">—</span>
+                            <span class="smi-muted-text">—</span>
                         <?php endif; ?>
                     </td>
                     <td>
@@ -493,13 +329,13 @@ class JobsPage {
                                 <?php esc_html_e( 'Retry Upscale', 'sell-my-images' ); ?>
                             </button>
                         <?php elseif ( $job->status === 'completed' && $job->download_token ) : ?>
-                            <span style="color: #46b450; font-size: 12px;">✓ <?php esc_html_e( 'Complete', 'sell-my-images' ); ?></span>
+                            <span class="smi-status-complete">✓ <?php esc_html_e( 'Complete', 'sell-my-images' ); ?></span>
                         <?php elseif ( $job->status === 'processing' ) : ?>
-                            <span style="color: #0066cc; font-size: 12px;">⏳ <?php esc_html_e( 'Processing...', 'sell-my-images' ); ?></span>
+                            <span class="smi-status-processing">⏳ <?php esc_html_e( 'Processing...', 'sell-my-images' ); ?></span>
                         <?php elseif ( $job->status === 'awaiting_payment' ) : ?>
-                            <span style="color: #646970; font-size: 12px;">💳 <?php esc_html_e( 'Awaiting Payment', 'sell-my-images' ); ?></span>
+                            <span class="smi-status-awaiting">💳 <?php esc_html_e( 'Awaiting Payment', 'sell-my-images' ); ?></span>
                         <?php else : ?>
-                            <span style="color: #646970; font-size: 12px;">—</span>
+                            <span class="smi-muted-text">—</span>
                         <?php endif; ?>
                     </td>
                 </tr>
