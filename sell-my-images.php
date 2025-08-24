@@ -61,8 +61,7 @@ class SellMyImages {
     private function init_hooks() {
         add_action( 'plugins_loaded', array( $this, 'load_textdomain' ) );
         add_action( 'init', array( $this, 'init' ) );
-        add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_frontend_assets' ) );
-        add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_assets' ) );
+    add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_frontend_assets' ) );
         
         // Plugin activation/deactivation hooks
         register_activation_hook( SMI_PLUGIN_FILE, array( $this, 'activate' ) );
@@ -159,18 +158,9 @@ class SellMyImages {
         }
     }
     
-    public function enqueue_admin_assets( $hook ) {
-        $allowed_hooks = array( 'toplevel_page_sell-my-images', 'sell-my-images_page_sell-my-images-analytics' );
-        
-        if ( ! in_array( $hook, $allowed_hooks, true ) ) {
-            return;
-        }
-        
-        wp_enqueue_style( 'smi-admin', SMI_PLUGIN_URL . 'assets/css/admin.css', array(), SMI_VERSION );
-        wp_enqueue_script( 'smi-admin', SMI_PLUGIN_URL . 'assets/js/admin.js', array( 'jquery' ), SMI_VERSION, true );
-    }
+    // Admin assets are enqueued by AdminInit on specific SMI pages.
     
-    /**
+    /*
      * Plugin activation
      */
     public function activate() {

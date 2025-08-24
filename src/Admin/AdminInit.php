@@ -57,8 +57,12 @@ class AdminInit {
     /**
      * Add admin menu
      */
+    private $hooks = array();
+
     public function add_admin_menu() {
-        add_menu_page(
+        $this->hooks = array();
+
+    $settings_hook = add_menu_page(
             __( 'Sell My Images Settings', 'sell-my-images' ),
             __( 'Sell My Images', 'sell-my-images' ),
             'manage_options',
@@ -67,9 +71,10 @@ class AdminInit {
             'dashicons-images-alt2',
             30
         );
+    if ( $settings_hook ) { $this->hooks[] = $settings_hook; }
         
         // Add analytics submenu
-        add_submenu_page(
+    $analytics_hook = add_submenu_page(
             'sell-my-images',
             __( 'Analytics', 'sell-my-images' ),
             __( 'Analytics', 'sell-my-images' ),
@@ -77,9 +82,10 @@ class AdminInit {
             'sell-my-images-analytics',
             array( $this, 'render_analytics_page' )
         );
+    if ( $analytics_hook ) { $this->hooks[] = $analytics_hook; }
         
         // Add jobs submenu
-        add_submenu_page(
+    $jobs_hook = add_submenu_page(
             'sell-my-images',
             __( 'Jobs', 'sell-my-images' ),
             __( 'Jobs', 'sell-my-images' ),
@@ -87,6 +93,24 @@ class AdminInit {
             'sell-my-images-jobs',
             array( $this, 'render_jobs_page' )
         );
+    if ( $jobs_hook ) { $this->hooks[] = $jobs_hook; }
+
+        // Enqueue admin assets only on our pages
+        add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_assets' ) );
+    }
+
+    /** Enqueue SMI admin assets on our registered screens only */
+    public function enqueue_admin_assets( $hook ) {
+    if ( empty( $this->hooks ) || ! in_array( $hook, $this->hooks, true ) ) {
+            return;
+        }
+    $css_path = SMI_PLUGIN_DIR . 'assets/css/admin.css';
+    $js_path  = SMI_PLUGIN_DIR . 'assets/js/admin.js';
+    $css_ver  = file_exists( $css_path ) ? filemtime( $css_path ) : SMI_VERSION;
+    $js_ver   = file_exists( $js_path ) ? filemtime( $js_path ) : SMI_VERSION;
+
+    wp_enqueue_style( 'smi-admin', SMI_PLUGIN_URL . 'assets/css/admin.css', array(), $css_ver );
+    wp_enqueue_script( 'smi-admin', SMI_PLUGIN_URL . 'assets/js/admin.js', array( 'jquery' ), $js_ver, true );
     }
     
     private function init_settings_page() {

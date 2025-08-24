@@ -670,6 +670,29 @@
     gap: 15px;
 }
 
+/* Jobs filter controls (inner section) */
+.smi-filter-controls {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+.smi-filter-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.smi-filter-group label {
+    font-weight: 600;
+    color: #1d2327;
+}
+
+.smi-filter-group select {
+    min-width: 140px;
+}
+
 /* Jobs table container */
 .smi-jobs-table-container {
     background: #fff;
