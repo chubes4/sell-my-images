@@ -77,15 +77,16 @@ This plugin relies on external services to provide its core functionality. By us
 - Upsampler: Temporary processing only, automatic deletion after completion
 - Your site: Stores job records and analytics locally (can be deleted via admin interface)
 
-**Service Availability:** Plugin functionality depends on third-party service availability. Automatic refunds are processed if services are unavailable during processing.
+**Service Availability:** Plugin functionality depends on third-party service availability. When upscaling fails, automatic Stripe refunds are processed with customer notification via email.
 
 **User Control:** Customers provide explicit consent during checkout. No data is transmitted without user-initiated purchase action.
 
 ## 📋 Current Status: **PRODUCTION READY** (Version 1.2.0)
 
 ### ✅ Core Features Completed
-- **Payment Processing**: Full Stripe integration with webhook automation
-- **AI Upscaling**: Upsampler.com API integration with quality enhancement
+- **Payment Processing**: Full Stripe integration with webhook automation and automatic refunds
+- **AI Upscaling**: Upsampler.com API integration with quality enhancement and failure handling
+- **Dual Email System**: HTML download notifications and plain text refund notifications
 - **Analytics System**: Click tracking, conversion rates, and revenue analytics
 - **Professional Admin Interface**: Modern tabbed design with enhanced UX
 - **Button Display Control**: Comprehensive filtering system with visual feedback
@@ -124,10 +125,11 @@ sell-my-images/
 ```
 
 ### Key Design Patterns
-- **Services Layer**: PaymentService & UpscalingService coordinate workflows
-- **Manager Pattern**: Centralized data operations (JobManager, AnalyticsTracker)
-- **API Abstraction**: Pure HTTP clients without business logic
-- **Webhook Architecture**: Custom rewrite rules bypass WordPress routing
+- **Services Layer**: PaymentService & UpscalingService coordinate workflows with error handling
+- **Manager Pattern**: Centralized data operations (JobManager, AnalyticsTracker, DownloadManager)
+- **API Abstraction**: Pure HTTP clients without business logic (StripeApi for refunds, Upsampler for processing)
+- **Webhook Architecture**: Custom rewrite rules bypass WordPress routing for payment and processing notifications
+- **Email Architecture**: Template-based HTML notifications for success, inline plain text for refunds
 
 ## 🚀 Quick Start
 
@@ -184,20 +186,24 @@ stripe listen --forward-to=https://yoursite.local/smi-webhook/stripe/
 1. **Create Test Job**: Click "Download Hi-Res" on any image
 2. **Complete Payment**: Use Stripe test cards (4242 4242 4242 4242)
 3. **Verify Processing**: Check logs for webhook events and upscaling
-4. **Download Test**: Verify secure download delivery
+4. **Test Success Path**: Verify HTML email delivery and secure download
+5. **Test Failure Path**: Simulate upscaling failure to verify automatic refund and plain text notification
+6. **Monitor Email System**: Check both customer and admin email delivery
 
 ### Database Schema
-- **wp_smi_jobs**: Complete job tracking with analytics support
+- **wp_smi_jobs**: Complete job tracking with analytics support and refund audit trail
 - **Post Meta**: Click analytics stored in `_smi_click_analytics`
 - **Indexes**: Optimized for post/attachment cross-reference queries
+- **Refund Fields**: `refunded_at`, `refund_reason`, `refund_amount` for complete transaction history
 
 ## 📊 Analytics Dashboard
 
-Track your image monetization performance:
-- **Revenue by Post**: Identify top-performing content
-- **Conversion Rates**: Click-to-purchase optimization
-- **Image Performance**: Most profitable individual images
-- **Profit Margins**: Real-time cost analysis with Upsampler pricing
+Track your image monetization performance with comprehensive analytics:
+- **Revenue by Post**: Identify top-performing content with refund impact analysis
+- **Conversion Rates**: Click-to-purchase optimization accounting for refunded transactions
+- **Image Performance**: Most profitable individual images with failure rate tracking
+- **Profit Margins**: Real-time cost analysis with Upsampler pricing and refund adjustments
+- **Customer Satisfaction**: Email delivery tracking and refund rate monitoring
 
 ## 🎨 Professional Admin Interface (New in v1.2.0)
 

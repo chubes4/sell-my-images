@@ -8,7 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## CURRENT STATUS
 
-The plugin is fully operational with all major features implemented and tested. Recent improvements include mobile conversion optimization, HTML email templates, and enhanced job status tracking with the `awaiting_payment` workflow.
+The plugin is fully operational with all major features implemented and tested. Recent improvements include mobile conversion optimization, dual email notification system (HTML download notifications and text refund notifications), and enhanced job status tracking with the `awaiting_payment` and `refunded` workflow.
 
 ## FUTURE PLANS
 
@@ -95,6 +95,7 @@ All classes follow PSR-4 autoloading under the `SellMyImages\` namespace:
 - Custom rewrite rules bypass WordPress routing: `/smi-webhook/stripe/` and `/smi-webhook/upsampler/`
 - Dual job ID system: internal UUIDs + external Upsampler job IDs
 - Token-based security model with admin override capabilities for operational flexibility
+- **Refund Processing**: Automatic refunds via Stripe API when upscaling fails, includes customer notification
 
 ## Database Architecture
 
@@ -114,6 +115,10 @@ Complete job tracking with payment, processing status, and **analytics support**
 - `attachment_id` - Links to WordPress media
 - `status`, `payment_status` - Job lifecycle tracking
 - `amount_charged`, `amount_cost` - Revenue and cost tracking for profit analysis
+
+**Refund Fields:**
+- `refunded_at`, `refund_reason`, `refund_amount` - Complete refund tracking
+- `email_sent` - Email notification status tracking
 
 **Analytics Indexes:**
 - `KEY post_id (post_id)` - Most profitable posts queries
@@ -176,7 +181,7 @@ Complete job tracking with payment, processing status, and **analytics support**
 - **Responsive Design**: Filter table adapts to mobile devices with stacked layout and data labels
 - **Real-time Filtering**: JavaScript-powered dynamic interface with smooth transitions
 - **Retry System**: Administrators can retry any job, including `awaiting_payment` jobs with `paid` status, via admin override context with comprehensive logging
-- **HTML Email System**: Professional HTML email templates with inline CSS for customer notifications and admin copies with "Copy:" subject prefix
+- **Dual Email System**: HTML download notifications via template file, plain text refund notifications via inline generation
 - **Comprehensive Logging**: All admin overrides logged with job details and payment status for audit trail
 - **Jobs Management**: Full pagination, filtering, and bulk operations interface at Admin → Jobs
 
@@ -202,11 +207,26 @@ Complete job tracking with payment, processing status, and **analytics support**
 - **Performance**: No database schema changes, uses WordPress native post meta system with optimized bulk retrieval
 
 ### Email Notification System
-- **HTML Template Architecture**: Professional HTML email template at `templates/email-notification.php` with inline CSS styling
+
+**Dual Notification Architecture:**
+- **Download Notifications**: Professional HTML template at `templates/email-notification.php` with inline CSS styling for successful deliveries
+- **Refund Notifications**: Plain text emails generated inline in `UpscalingService::send_refund_notification()` for failed processing
+
+**Download Email Features:**
 - **Template Variables**: Job object, download URL, expiry date, terms URL, and site name for dynamic content
-- **Responsive Design**: Mobile-friendly HTML email layout with table-based structure for maximum compatibility
-- **Customer & Admin Notifications**: Identical HTML emails sent to customers and administrators with "Copy:" prefix for admin versions
-- **Content & Security**: Proper escaping, internationalization support, and professional styling with branded appearance
+- **Responsive Design**: Mobile-friendly HTML email layout with table-based structure for maximum Gmail compatibility
+- **Gmail Fix**: Translation wrapper removed from HTML structure to prevent rendering issues
+- **Template Processing**: Uses PHP include with variable scope for dynamic content generation
+
+**Refund Email Features:**
+- **Automatic Processing**: Triggered when upscaling fails, includes error details and refund confirmation
+- **Customer Communication**: Clear refund timeline (3-5 business days) and support contact information
+- **Plain Text Format**: Simple, direct communication for service failure scenarios
+
+**Shared Email Infrastructure:**
+- **Branded Sender**: Both types use "Sarai Chinwag" sender identity with admin email address
+- **Admin Copies**: Identical emails sent to administrators with "Copy:" subject prefix
+- **Content Security**: Proper escaping, internationalization support, and professional styling
 
 ### Payment & Webhook Testing
 - **Stripe CLI**: `stripe listen --forward-to=https://yoursite.com/smi-webhook/stripe/`
@@ -237,8 +257,10 @@ Complete job tracking with payment, processing status, and **analytics support**
 
 ### Constants Class (src/Config/Constants.php)
 - `VALID_JOB_STATUSES = array( 'awaiting_payment', 'pending', 'processing', 'completed', 'failed' )`
+- `VALID_PAYMENT_STATUSES = array( 'pending', 'paid', 'failed' )`
 - `UPSAMPLER_COST_PER_CREDIT` - Hardcoded at $0.04/credit for pricing calculations
 - `get_upscale_factor()` - Shared utility method for upscaling factor calculations
+- `DOWNLOAD_TOKEN_LENGTH = 64` - Secure token length for downloads
 
 ### Asset Management
 - **Performance Strategy**: Smart asset loading - CSS/JS only loads when buttons will appear on current post
@@ -535,7 +557,8 @@ PaymentService expects specific CostCalculator output format:
 - **Navigation Integration**: Post titles are clickable with `get_permalink()` integration for seamless content access
 - **Required Fields**: Both post_id and attachment_id are required (NOT NULL)
 - **Index Usage**: Use composite indexes for cross-reference queries
-- **Job Lifecycle**: `awaiting_payment` → `pending` → `processing` → `completed`/`failed`
+- **Job Lifecycle**: `awaiting_payment` → `pending` → `processing` → `completed`/`failed`/`refunded`
+- **Payment Status Lifecycle**: `pending` → `paid` → potential `refunded` (via Stripe webhook)
 - **Error Prevention**: Proper null checking prevents warnings when accessing click data properties
 
 ### Button Display Control
@@ -575,16 +598,18 @@ PaymentService expects specific CostCalculator output format:
 - PaymentService must use correct field names when building update arrays
 
 ### Error Handling Philosophy
-**Simplified Error Management**: The system uses streamlined error handling without overengineering:
-- **Job Status**: Simple status tracking ('awaiting_payment', 'pending', 'processing', 'completed', 'failed') without detailed failure reasons
+**Streamlined Error Management with Customer-First Approach**: The system uses clean error handling focused on user experience:
+- **Job Status**: Simple status tracking ('awaiting_payment', 'pending', 'processing', 'completed', 'failed', 'refunded') without detailed failure reasons
+- **Automatic Refund System**: Failed upscaling jobs trigger automatic Stripe refunds with customer notification
+- **Database Refund Tracking**: Complete refund audit trail with `refunded_at`, `refund_reason`, and `refund_amount` fields
 - **Error Logging**: Detailed errors logged via `error_log()` for debugging purposes
-- **Database**: No `failure_reason` column - status tracking is sufficient for user-facing functionality
-- **User Experience**: Failed jobs show generic failure message; detailed errors are server-side only
+- **User Experience**: Failed jobs result in automatic refunds rather than generic failure messages
+- **Email Notification**: Separate notification pathways for successful downloads (HTML) and refund processing (plain text)
 - **Analytics Error Prevention**: Proper `isset()` checks prevent undefined property warnings when accessing click data
 - **Null Safety**: All analytics methods include robust null checking for undefined or missing data properties
 - **Button Display Filtering**: Clean error handling in FilterManager with graceful fallback to showing buttons
 - **Modal System Reliability**: Modal displays correctly and loading states work consistently across all devices
-- **Conversion Protection**: Error handling designed to never block user purchase flow, with graceful fallbacks for pricing and checkout
+- **Conversion Protection**: Error handling designed to never block user purchase flow, with graceful fallbacks and automatic refunds for service failures
 
 ### Architecture Enforcement
 **RestApi Boundaries**: Maintain strict separation of concerns:

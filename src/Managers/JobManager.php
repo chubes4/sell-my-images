@@ -88,6 +88,8 @@ class JobManager {
             'db_id'  => $result['id'],
         );
         
+        // Essential user flow log - job created
+        error_log( 'SMI: Job created - ' . $job_id . ' (customer: ' . $sanitized_data['email'] . ')' );
         
         return $job_data;
     }

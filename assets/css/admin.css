@@ -239,7 +239,6 @@
 /* Tab navigation */
 .smi-tab-nav {
     border-bottom: 1px solid #ccd0d4;
-    margin-bottom: 20px;
     display: flex;
     gap: 0;
 }

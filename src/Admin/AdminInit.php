@@ -185,10 +185,6 @@ class AdminInit {
         // Admin can retry ANY job - no restrictions
         // This provides maximum safety net for delivery issues
         
-        // Log the retry attempt
-        if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-            error_log( 'SMI AdminInit: Admin retry upscale for job: ' . $job_id );
-        }
         
         // Trigger the payment completed action to start upscaling with admin override context
         do_action( 'smi_payment_completed', $job_id, array( 'admin_override' => true ) );

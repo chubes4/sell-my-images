@@ -112,7 +112,17 @@ class SellMyImages {
     }
     
     public function enqueue_frontend_assets() {
-        if ( ! is_singular() || ! \SellMyImages\Content\FilterManager::should_show_buttons() ) {
+        $should_load = false;
+        
+        // Load on singular posts where buttons should show
+        if ( is_singular() && \SellMyImages\Content\FilterManager::should_show_buttons() ) {
+            $should_load = true;
+        }
+        
+        // Allow external themes/plugins to trigger asset loading
+        $should_load = apply_filters( 'smi_load_assets', $should_load );
+        
+        if ( ! $should_load ) {
             return;
         }
         

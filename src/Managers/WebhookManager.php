@@ -86,9 +86,6 @@ class WebhookManager {
         if ( is_callable( $handler ) ) {
             call_user_func( $handler );
         } else {
-            if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-                error_log( "SMI WebhookManager: Invalid handler for service: {$webhook_service}"  );
-            }
             status_header( 500 );
             exit;
         }
@@ -134,9 +131,6 @@ class WebhookManager {
         $payload = file_get_contents( 'php://input', false, null, 0, $max_size );
         
         if ( $payload === false ) {
-            if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-                error_log( 'SMI WebhookManager: Failed to read webhook payload or payload too large'  );
-            }
             status_header( 400 );
             exit;
         }
@@ -168,11 +162,6 @@ class WebhookManager {
      * @param int $status_code HTTP status code (default: 400)
      */
     public static function send_webhook_error( $message = '', $status_code = 400 ) {
-        if ( ! empty( $message ) ) {
-            if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-                error_log( "SMI WebhookManager Error: {$message}"  );
-            }
-        }
         
         status_header( $status_code );
         exit;

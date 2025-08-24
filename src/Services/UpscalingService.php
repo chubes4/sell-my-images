@@ -60,10 +60,6 @@ class UpscalingService {
      * @param array $context Context data (e.g., admin_override)
      */
     public function handle_payment_completed( $job_id, $context = array() ) {
-        if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-            error_log( 'SMI UpscalingService: Starting upscaling workflow for job: ' . $job_id  );
-        }
-        
         $this->start_upscaling_process( $job_id, $context );
     }
     
@@ -78,26 +74,13 @@ class UpscalingService {
         $job = JobManager::get_job( $job_id );
         
         if ( is_wp_error( $job ) ) {
-            if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-                error_log( 'SMI UpscalingService: Job not found for upscaling: ' . $job_id . ' - Error: ' . $job->get_error_message()  );
-            }
             return;
         }
         
         // Verify job is paid before proceeding (allow admin override)
         $is_admin_override = ! empty( $context['admin_override'] );
         if ( $job->payment_status !== 'paid' && ! $is_admin_override ) {
-            if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-                error_log( 'SMI UpscalingService: Attempted to start upscaling for unpaid job: ' . $job_id  );
-            }
             return;
-        }
-        
-        // Log admin override for audit trail
-        if ( $is_admin_override ) {
-            if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-                error_log( 'SMI UpscalingService: Admin override - processing job with payment_status: ' . $job->payment_status . ' for job: ' . $job_id );
-            }
         }
         
         // Get complete image data from attachment metadata
@@ -110,9 +93,6 @@ class UpscalingService {
         $result = $this->upsampler->upscale_image( $image_data, $job->resolution, $webhook_url );
         
         if ( is_wp_error( $result ) ) {
-            if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-                error_log( 'SMI UpscalingService: Failed to start upscaling: ' . $result->get_error_message()  );
-            }
             JobManager::update_job_status( $job_id, 'failed' );
             return;
         }
@@ -126,14 +106,9 @@ class UpscalingService {
             'processing_started_at' => current_time( 'mysql' )
         ) );
         
-        if ( is_wp_error( $update_result ) ) {
-            if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-                error_log( 'SMI UpscalingService: Failed to update job status to processing: ' . $update_result->get_error_message()  );
-            }
-        } else {
-            if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-                error_log( 'SMI UpscalingService: Successfully started upscaling for job: ' . $job_id . ' (Upsampler ID: ' . $upsampler_job_id . ')'  );
-            }
+        if ( ! is_wp_error( $update_result ) ) {
+            // Essential user flow log - upscaling started
+            error_log( 'SMI: Upscaling started for job ' . $job_id . ' (customer: ' . $job->email . ')' );
         }
     }
     
@@ -147,16 +122,9 @@ class UpscalingService {
         // Get webhook payload using shared method
         $input = WebhookManager::read_webhook_payload();
         
-        if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-            error_log( 'SMI UpscalingService: Raw webhook payload: ' . $input );
-        }
-        
         $data = json_decode( $input, true );
         
         if ( ! $data || json_last_error() !== JSON_ERROR_NONE ) {
-            if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-                error_log( 'SMI UpscalingService: JSON decode error: ' . json_last_error_msg() );
-            }
             WebhookManager::send_webhook_error( 'Invalid JSON payload', 400 );
         }
         
@@ -184,9 +152,6 @@ class UpscalingService {
         // Get our internal job using Upsampler's job ID
         $job = JobManager::get_job_by_upsampler_id( $upsampler_job_id );
         if ( is_wp_error( $job ) ) {
-            if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-                error_log( 'SMI UpscalingService: Job not found for Upsampler ID: ' . $upsampler_job_id . ' - ' . $job->get_error_message()  );
-            }
             return;
         }
         
@@ -201,9 +166,7 @@ class UpscalingService {
                 break;
                 
             default:
-                if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-                    error_log( 'SMI UpscalingService: Unknown status from Upsampler webhook: ' . $status  );
-                }
+                // Unknown status - no action needed
         }
     }
     
@@ -218,9 +181,6 @@ class UpscalingService {
         $upscaled_url = $webhook_data['imageUrl'] ?? null;
         
         if ( ! $upscaled_url ) {
-            if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-                error_log( 'SMI UpscalingService: No imageUrl in completed webhook for job: ' . $job->job_id  );
-            }
             JobManager::update_job_status( $job->job_id, 'failed' );
             return;
         }
@@ -240,30 +200,14 @@ class UpscalingService {
         $update_result = JobManager::update_job_status( $job->job_id, 'completed', $update_data );
         
         if ( is_wp_error( $update_result ) ) {
-            if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-                error_log( 'SMI UpscalingService: Failed to update job to completed: ' . $update_result->get_error_message()  );
-            }
             return;
         }
         
         // Download and store the upscaled file locally
         $local_path = \SellMyImages\Managers\DownloadManager::store_processed_file( $upscaled_url, $job->job_id );
         
-        if ( $local_path ) {
-            if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-                error_log( 'SMI UpscalingService: File stored successfully for job: ' . $job->job_id . ' at: ' . $local_path  );
-            }
-        } else {
-            if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-                error_log( 'SMI UpscalingService: Failed to store file for job: ' . $job->job_id  );
-            }
-            // Don't fail the job completely, but log the issue
-            // The user can still download from the original URL if needed
-        }
-        
-        if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-                error_log( 'SMI UpscalingService: Job completed successfully: ' . $job->job_id  );
-        }
+        // Essential user flow log - upscaling completed
+        error_log( 'SMI: Upscaling completed for job ' . $job->job_id . ' (customer: ' . $job->email . ')' );
     }
     
     /**
@@ -282,11 +226,7 @@ class UpscalingService {
         
         // Process automatic refund for failed upscaling
         $this->process_automatic_refund( $job, $error_message );
-        
-        if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-            error_log( 'SMI UpscalingService: Job failed: ' . $job->job_id . ' - ' . $error_message  );
-        }
-        }
+    }
     
     /**
      * Process automatic refund for failed jobs
@@ -297,17 +237,11 @@ class UpscalingService {
     private function process_automatic_refund( $job, $error_message ) {
         // Only refund if payment was successful
         if ( $job->payment_status !== 'paid' ) {
-            if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-                error_log( 'SMI UpscalingService: Skipping refund for unpaid job: ' . $job->job_id );
-            }
             return;
         }
         
         // Only refund if we have a Stripe payment intent
         if ( empty( $job->stripe_payment_intent_id ) ) {
-            if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-                error_log( 'SMI UpscalingService: No payment intent found for refund: ' . $job->job_id );
-            }
             return;
         }
         
@@ -316,11 +250,7 @@ class UpscalingService {
             $stripe_api = new \SellMyImages\Api\StripeApi();
             $refund_result = $stripe_api->create_refund( $job->stripe_payment_intent_id, $error_message );
             
-            if ( is_wp_error( $refund_result ) ) {
-                if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-                    error_log( 'SMI UpscalingService: Refund failed: ' . $refund_result->get_error_message() );
-                }
-            } else {
+            if ( ! is_wp_error( $refund_result ) ) {
                 // Update job with refund information
                 JobManager::update_job_status( $job->job_id, 'refunded', array(
                     'refunded_at' => current_time( 'mysql' ),
@@ -330,20 +260,17 @@ class UpscalingService {
                 
                 // Send refund notification email
                 $this->send_refund_notification( $job, $error_message );
-                
-                if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-                    error_log( 'SMI UpscalingService: Automatic refund processed for job: ' . $job->job_id );
-                }
             }
         } catch ( Exception $e ) {
-            if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-                error_log( 'SMI UpscalingService: Exception during refund: ' . $e->getMessage() );
-            }
+            // Refund failed - no action needed
         }
     }
     
     /**
      * Send refund notification email
+     * 
+     * Sends plain text refund notification for failed upscaling jobs.
+     * Part of dual email system: HTML for downloads, plain text for refunds.
      * 
      * @param object $job Job object
      * @param string $error_message Error message
@@ -398,13 +325,6 @@ Sarai Chinwag
             wp_mail( $admin_email, $admin_subject, $admin_message, $headers );
         }
         
-        if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-            if ( $email_sent ) {
-                error_log( 'SMI UpscalingService: Refund notification email sent for job: ' . $job->job_id );
-            } else {
-                error_log( 'SMI UpscalingService: Failed to send refund notification email for job: ' . $job->job_id );
-            }
-        }
         
         return $email_sent;
     }

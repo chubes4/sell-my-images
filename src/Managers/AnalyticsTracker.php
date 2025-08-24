@@ -37,47 +37,27 @@ class AnalyticsTracker {
         $post_id = intval( $post_id );
         $attachment_id = intval( $attachment_id );
         
-        if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-            error_log( 'SMI AnalyticsTracker: Tracking click - Post ID: ' . $post_id . ', Attachment ID: ' . $attachment_id );
-        }
-        
         // Validate inputs
         if ( $post_id <= 0 || $attachment_id <= 0 ) {
-            if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-                error_log( 'SMI AnalyticsTracker: Invalid input - Post ID: ' . $post_id . ', Attachment ID: ' . $attachment_id );
-            }
             return false;
         }
         
         // Verify post exists
         if ( ! get_post( $post_id ) ) {
-            if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-                error_log( 'SMI AnalyticsTracker: Post not found - Post ID: ' . $post_id );
-            }
             return false;
         }
         
         // Verify attachment exists
         if ( ! wp_attachment_is_image( $attachment_id ) ) {
-            if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-                error_log( 'SMI AnalyticsTracker: Attachment not found or not image - Attachment ID: ' . $attachment_id );
-            }
             return false;
         }
         
         // Get current analytics data
         $analytics_data = self::get_analytics_data( $post_id );
         
-        if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-            error_log( 'SMI AnalyticsTracker: Current analytics data: ' . print_r( $analytics_data, true ) );
-        }
-        
         // Initialize if this is the first click for this post
         if ( empty( $analytics_data ) ) {
             $analytics_data = self::initialize_analytics_data();
-            if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-                error_log( 'SMI AnalyticsTracker: Initialized new analytics data: ' . print_r( $analytics_data, true ) );
-            }
         }
         
         // Increment click count for this attachment
@@ -91,27 +71,15 @@ class AnalyticsTracker {
         $analytics_data['total_clicks']++;
         $analytics_data['last_click_date'] = current_time( 'mysql' );
         
-        if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-            error_log( 'SMI AnalyticsTracker: Updated analytics data: ' . print_r( $analytics_data, true ) );
-        }
-        
         // Update post meta
         $result = update_post_meta( $post_id, self::META_KEY, $analytics_data );
         
-        if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-            error_log( 'SMI AnalyticsTracker: update_post_meta result: ' . print_r( $result, true ) );
-        }
-        
         // For update_post_meta, false means failure, anything else (true or meta_id) means success
         if ( $result !== false ) {
-            if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-                error_log( 'SMI AnalyticsTracker: Click tracked successfully for Post ID: ' . $post_id . ', Attachment ID: ' . $attachment_id );
-            }
+            // Essential user flow log - button click tracked
+            error_log( 'SMI: Button clicked - Post ' . $post_id . ', Attachment ' . $attachment_id );
             return true;
         } else {
-            if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-                error_log( 'SMI AnalyticsTracker: Failed to update post meta for Post ID: ' . $post_id );
-            }
             return false;
         }
     }

@@ -230,6 +230,9 @@ class DownloadManager {
     /**
      * Send download notification email
      * 
+     * Sends HTML download notification for completed jobs.
+     * Part of dual email system: HTML for downloads, plain text for refunds.
+     * 
      * @param string $job_id Job ID
      * @return bool Success status
      */
@@ -261,6 +264,11 @@ class DownloadManager {
             $admin_subject = 'Copy: ' . $email_data['subject'];
             $admin_message = $email_data['message'];
             wp_mail( $admin_email, $admin_subject, $admin_message, $headers );
+        }
+        
+        // Essential user flow log - download email sent
+        if ( $email_sent ) {
+            error_log( 'SMI: Download email sent for job ' . $job_id . ' (customer: ' . $job->email . ')' );
         }
         
         // Update email status

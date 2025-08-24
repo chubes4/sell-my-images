@@ -123,25 +123,16 @@ class FileManager {
         ) );
         
         if ( is_wp_error( $response ) ) {
-            if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-                error_log( 'SMI FileManager: Failed to download from Upsampler: ' . $response->get_error_message()  );
-            }
             return false;
         }
         
         $status_code = wp_remote_retrieve_response_code( $response );
         if ( $status_code !== self::HTTP_OK ) {
-            if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-                error_log( 'SMI FileManager: Upsampler download failed with status: ' . $status_code  );
-            }
             return false;
         }
         
         // Verify file was created and has content
         if ( ! file_exists( $temp_path ) || filesize( $temp_path ) === 0 ) {
-            if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-                error_log( 'SMI FileManager: Downloaded file is empty or missing'  );
-            }
             return false;
         }
         
@@ -149,9 +140,6 @@ class FileManager {
         $image_info = getimagesize( $temp_path );
         if ( ! $image_info ) {
             unlink( $temp_path );
-            if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-                error_log( 'SMI FileManager: Downloaded file is not a valid image'  );
-            }
             return false;
         }
         
@@ -159,9 +147,6 @@ class FileManager {
         $mime_type = $image_info['mime'];
         if ( ! in_array( $mime_type, self::ALLOWED_IMAGE_TYPES, true ) ) {
             unlink( $temp_path );
-            if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-                error_log( 'SMI FileManager: Downloaded file has disallowed MIME type: ' . $mime_type  );
-            }
             return false;
         }
         
@@ -182,9 +167,6 @@ class FileManager {
         // Rename temporary file to final location
         if ( ! rename( $temp_path, $final_path ) ) {
             unlink( $temp_path );
-            if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-                error_log( 'SMI FileManager: Failed to rename temporary file to final location'  );
-            }
             return false;
         }
         

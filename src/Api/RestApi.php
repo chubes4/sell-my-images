@@ -229,9 +229,6 @@ class RestApi {
         $payment_service = new \SellMyImages\Services\PaymentService();
         $stripe_config = $payment_service->validate_configuration();
         if ( is_wp_error( $stripe_config ) ) {
-            if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-                error_log( 'SMI RestApi: Stripe configuration invalid - ' . $stripe_config->get_error_message()  );
-            }
             return new \WP_Error(
                 'payment_not_configured',
                 __( 'Payment system not configured: ', 'sell-my-images' ) . $stripe_config->get_error_message(),
@@ -296,18 +293,9 @@ class RestApi {
         );
         
         if ( is_wp_error( $checkout_result ) ) {
-            if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-                error_log( 'SMI RestApi: Checkout creation failed - ' . $checkout_result->get_error_message()  );
-            }
             // Clean up job record on failure
             JobManager::delete_job( $job_data['job_id'] );
             return $checkout_result;
-        }
-        
-        if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-        
-            error_log( 'SMI RestApi: Checkout created successfully - Job: ' . $job_data['job_id'] . ', Session: ' . ( $checkout_result['session_id'] ?? 'N/A' )  );
-        
         }
         
         // Update job with checkout session ID

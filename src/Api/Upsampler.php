@@ -91,11 +91,6 @@ class Upsampler {
         $api_key = self::get_api_key();
         $url = Constants::UPSAMPLER_API_BASE_URL . $endpoint;
         
-        if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-            error_log( 'SMI Upsampler: Making API request to: ' . $url );
-            error_log( 'SMI Upsampler: Request data: ' . wp_json_encode( $data ) );
-        }
-        
         $response = wp_remote_post( $url, array(
             'headers' => array(
                 'Authorization' => 'Bearer ' . $api_key,
@@ -111,11 +106,6 @@ class Upsampler {
         
         $status_code = wp_remote_retrieve_response_code( $response );
         $body = wp_remote_retrieve_body( $response );
-        
-        if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-            error_log( 'SMI Upsampler: Response status: ' . $status_code );
-            error_log( 'SMI Upsampler: Response body: ' . $body );
-        }
         
         $data = json_decode( $body, true );
         

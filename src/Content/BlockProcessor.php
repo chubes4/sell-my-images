@@ -154,26 +154,60 @@ class BlockProcessor {
      * @return string Button HTML
      */
     private function generate_button_html( $image_data ) {
+        return self::generate_external_button_html( $image_data['attachment_id'], get_the_ID() );
+    }
+    
+    /**
+     * Generate button HTML for external integrations
+     * 
+     * This method can be called by themes or other plugins to generate
+     * SMI download buttons for custom contexts (galleries, sliders, etc.)
+     * 
+     * @param int $attachment_id Attachment ID
+     * @param int $post_id Source post ID  
+     * @return string Button HTML or empty string if not valid
+     */
+    public static function generate_external_button_html( $attachment_id, $post_id ) {
+        // Validate inputs
+        $attachment_id = intval( $attachment_id );
+        $post_id = intval( $post_id );
+        
+        if ( ! $attachment_id || ! $post_id ) {
+            return '';
+        }
+        
+        // Check if buttons should show for this post
+        if ( ! FilterManager::should_show_buttons( $post_id ) ) {
+            return '';
+        }
+        
+        // Verify attachment exists and is an image
+        if ( ! wp_attachment_is_image( $attachment_id ) ) {
+            return '';
+        }
+        
+        // Get image data
+        $image_url = wp_get_attachment_url( $attachment_id );
+        $image_meta = wp_get_attachment_metadata( $attachment_id );
+        
+        if ( ! $image_url || ! $image_meta ) {
+            return '';
+        }
+        
         $button_text = apply_filters( 'smi_button_text', __( 'Download Hi-Res', 'sell-my-images' ) );
-        $post_id = get_the_ID();
         
         $button_html = sprintf(
             '<button class="smi-get-button" data-post-id="%d" data-attachment-id="%d" data-src="%s" data-width="%d" data-height="%d">
                 <span class="smi-button-text">%s</span>
             </button>',
-            intval( $post_id ),
-            intval( $image_data['attachment_id'] ),
-            esc_url( $image_data['src'] ),
-            intval( $image_data['width'] ),
-            intval( $image_data['height'] ),
+            $post_id,
+            $attachment_id,
+            esc_url( $image_url ),
+            intval( $image_meta['width'] ?? 0 ),
+            intval( $image_meta['height'] ?? 0 ),
             esc_html( $button_text )
         );
         
-        if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-        
-            error_log( 'SMI: Generated button HTML for post ' . $post_id . ', attachment ' . $image_data['attachment_id']  );
-        
-        }
         return $button_html;
     }
     

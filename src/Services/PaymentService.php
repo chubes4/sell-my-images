@@ -206,6 +206,9 @@ class PaymentService {
             'paid_at' => current_time( 'mysql' )
         ) );
         
+        // Essential user flow log - payment completed
+        error_log( 'SMI: Payment completed for job ' . $job_id );
+        
         // Trigger upscaling via action (separation of concerns)
         do_action( 'smi_payment_completed', $job_id );
         

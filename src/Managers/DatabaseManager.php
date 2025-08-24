@@ -131,10 +131,6 @@ class DatabaseManager {
         
         $result = $wpdb->update( $table, $data, $where, $data_formats, $where_formats );
         
-        if ( $result === false && defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-            error_log( 'SMI DatabaseManager: Update failed - ' . $wpdb->last_error );
-        }
-        
         return $result !== false;
     }
     
@@ -149,10 +145,6 @@ class DatabaseManager {
         $where_formats = self::detect_formats( $where );
         
         $result = $wpdb->delete( $table, $where, $where_formats );
-        
-        if ( $result === false && defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-            error_log( 'SMI DatabaseManager: Delete failed - ' . $wpdb->last_error );
-        }
         
         return $result ?: 0;
     }
@@ -170,10 +162,6 @@ class DatabaseManager {
         
         $query = "SELECT * FROM $table WHERE $where_clause";
         $row = $wpdb->get_row( $wpdb->prepare( $query, $values ) );
-        
-        if ( $wpdb->last_error && defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-            error_log( 'SMI DatabaseManager: Query failed - ' . $wpdb->last_error );
-        }
         
         return $row;
     }
@@ -207,10 +195,6 @@ class DatabaseManager {
         }
         
         $results = empty( $values ) ? $wpdb->get_results( $query ) : $wpdb->get_results( $wpdb->prepare( $query, $values ) );
-        
-        if ( $wpdb->last_error && defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-            error_log( 'SMI DatabaseManager: Query failed - ' . $wpdb->last_error );
-        }
         
         return $results ?: array();
     }

@@ -1,8 +1,9 @@
 <?php
 /**
- * Email Notification Template
+ * Download Notification Email Template
  * 
- * Template for download notification emails sent to customers
+ * Professional HTML email template for successful download notifications.
+ * Part of dual email system: HTML for downloads, plain text for refunds.
  * 
  * @package SellMyImages
  * @since 1.0.0
@@ -13,6 +14,8 @@
  * @var string $expiry_date Formatted expiry date and time
  * @var string $terms_conditions_url Terms & conditions URL (if configured)
  * @var string $site_name Site name from get_bloginfo('name')
+ * 
+ * Note: Gmail rendering fix applied - translation wrappers removed from HTML structure
  */
 
 // Prevent direct access

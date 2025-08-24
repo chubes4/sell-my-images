@@ -56,9 +56,6 @@ class StripeApi {
             \Stripe\Stripe::setApiKey( $api_key );
             return true;
         } catch ( \Exception $e ) {
-            if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-                error_log( 'SMI StripeApi Init Error: ' . $e->getMessage()  );
-            }
             return false;
         }
     }
@@ -121,9 +118,6 @@ class StripeApi {
             $event = \Stripe\Webhook::constructEvent( $payload, $signature, $endpoint_secret );
             return $event;
         } catch ( \UnexpectedValueException $e ) {
-            if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-                error_log( 'SMI StripeApi: UnexpectedValueException - ' . $e->getMessage()  );
-            }
             return new \WP_Error( 'invalid_payload', 'Invalid webhook payload: ' . $e->getMessage() );
         } catch ( \Stripe\Exception\SignatureVerificationException $e ) {
             return new \WP_Error( 'invalid_signature', 'Invalid webhook signature: ' . $e->getMessage() );
