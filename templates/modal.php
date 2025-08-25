@@ -66,12 +66,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                             
                         </div>
                     </div>
-                    
-                    <div class="smi-email-field">
-                        <label for="smi-email">Email Address:</label>
-                        <input type="email" id="smi-email" name="email" placeholder="Enter your email address" required />
-                        <p class="description">Your high resolution image will be automatically delivered to your email</p>
-                    </div>
+                    <p class="smi-helper-text">Processing takes ~1–3 minutes. You can download here after payment. We’ll also email you a copy.</p>
                 </div>
             </div>
             

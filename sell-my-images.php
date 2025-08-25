@@ -139,6 +139,7 @@ class SellMyImages {
                 'download'   => __( 'Download', 'sell-my-images' ),
             ),
             'terms_conditions_url' => get_option( 'smi_terms_conditions_url', '' ),
+            'contact_url' => get_option( 'smi_contact_url', home_url( '/contact' ) ),
         ) );
         
         // Add REST API settings for modal JavaScript

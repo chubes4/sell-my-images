@@ -24,6 +24,7 @@
             this.bindEvents();
             this.setupModal();
             this.injectButtons();
+            this.setupDynamicReinit();
             this.checkPaymentStatus();
         },
         
@@ -61,10 +62,7 @@
                 self.updateProcessButton();
             });
             
-            // Email input changes
-            $(document).on('input', '#smi-email', function() {
-                self.updateProcessButton();
-            });
+            // Email input removed; process button depends only on resolution now
             
             // Process button click
             $(document).on('click', '.smi-process-btn', function(e) {
@@ -205,7 +203,7 @@
             this.showError(false);
             this.toggleProcessButton(false);
             $('input[name="resolution"]').prop('checked', false);
-            $('#smi-email').val('');
+            // email field removed
             
             // Remove any retry buttons
             $('.smi-retry-container').remove();
@@ -443,9 +441,7 @@
          */
         updateProcessButton: function() {
             var hasResolution = $('input[name="resolution"]:checked').length > 0;
-            var hasEmail = $('#smi-email').val().trim().length > 0;
-            
-            this.toggleProcessButton(hasResolution && hasEmail);
+            this.toggleProcessButton(hasResolution);
         },
         
         /**
@@ -457,15 +453,9 @@
             }
             
             var $selected = $('input[name="resolution"]:checked');
-            var email = $('#smi-email').val().trim();
             
             if ($selected.length === 0) {
                 this.showError('Please select a resolution option.');
-                return;
-            }
-            
-            if (!email) {
-                this.showError('Please enter your email address.');
                 return;
             }
             
@@ -505,8 +495,7 @@
                 data: {
                     attachment_id: attachmentId,
                     post_id: this.currentImageData.image_data.post_id,
-                    resolution: $selected.val(),
-                    email: email
+                    resolution: $selected.val()
                 },
                 success: function(response) {
                     if (response.success && response.checkout_url) {
@@ -617,12 +606,21 @@
         /**
          * Inject download buttons into WordPress image blocks
          */
-        injectButtons: function() {
+        // Inject download buttons into WordPress image blocks
+        // Optional root can be provided (selector/Element/jQuery) to limit scope
+        injectButtons: function(root) {
             var self = this;
             console.log('SMI: Injecting buttons into image blocks');
             
-            // Find all WordPress image blocks
-            $('.wp-block-image').each(function() {
+            var $figures;
+            if (root) {
+                $figures = $(root).find('.wp-block-image');
+            } else {
+                $figures = $('.wp-block-image');
+            }
+
+            // Find all WordPress image blocks in scope
+            $figures.each(function() {
                 var $figure = $(this);
                 var $img = $figure.find('img');
                 
@@ -711,6 +709,50 @@
                 }
             });
         },
+
+        // Set up listeners to reinject buttons when new content is added
+        setupDynamicReinit: function() {
+            var self = this;
+
+            // JQuery custom event: $(document).trigger('smi:refreshButtons', { root: '#post-grid' });
+            $(document).on('smi:refreshButtons', function(e, data) {
+                try {
+                    var root = data && data.root ? data.root : null;
+                    self.injectButtons(root);
+                } catch (err) {
+                    console.warn('SMI: refreshButtons handler error', err);
+                }
+            });
+
+            // Native CustomEvent: document.dispatchEvent(new CustomEvent('smi:refreshButtons', { detail: { root: '#post-grid' } }))
+            document.addEventListener('smi:refreshButtons', function(e) {
+                try {
+                    var detail = e && e.detail ? e.detail : {};
+                    self.injectButtons(detail.root || null);
+                } catch (err) {
+                    console.warn('SMI: native refreshButtons handler error', err);
+                }
+            });
+
+            // Observe dynamic gallery containers for child mutations (e.g., Load More)
+            var tryObserve = function(selector) {
+                var container = document.querySelector(selector);
+                if (!container || typeof MutationObserver === 'undefined') return;
+                var debounceId = null;
+                var observer = new MutationObserver(function(mutations) {
+                    // Debounce bursts of mutations
+                    if (debounceId) clearTimeout(debounceId);
+                    debounceId = setTimeout(function() {
+                        self.injectButtons(container);
+                    }, 120);
+                });
+                observer.observe(container, { childList: true, subtree: true });
+            };
+
+            // Common selectors used by themes for image grids
+            tryObserve('#post-grid');
+            tryObserve('.image-gallery');
+        },
         
         /**
          * Create button HTML
@@ -793,6 +835,9 @@
             successHtml += '<div class="smi-status-icon success">✓</div>';
             successHtml += '<h3 class="smi-status-title success">Payment Successful!</h3>';
             successHtml += '<p>Your image is being processed. This may take a few minutes.</p>';
+            if (typeof smi_ajax !== 'undefined' && smi_ajax.contact_url) {
+                successHtml += '<p><small>Problems? <a href="' + smi_ajax.contact_url + '" target="_blank" rel="noopener">Contact us</a> and we\'ll make sure you get your image.</small></p>';
+            }
             successHtml += '<p><small>Job ID: ' + jobId + '</small></p>';
             successHtml += '<div class="smi-processing-status smi-button-container">';
             successHtml += '<div class="smi-spinner"></div>';
@@ -903,12 +948,15 @@
             var completedHtml = '<div class="smi-job-completed smi-status-container">';
             completedHtml += '<div class="smi-status-icon success">🎉</div>';
             completedHtml += '<h3 class="smi-status-title success">Your Image is Ready!</h3>';
-            completedHtml += '<p>Your high-resolution image has been processed and sent to your email.</p>';
+            completedHtml += '<p>Your high-resolution image is ready. You can download it now. We\'ll also email you a copy.</p>';
             
             if (jobData.download_url) {
                 completedHtml += '<div class="smi-download-container">';
                 completedHtml += '<a href="' + jobData.download_url + '" class="smi-btn smi-btn-primary" target="_blank">Download Now</a>';
                 completedHtml += '</div>';
+            }
+            if (typeof smi_ajax !== 'undefined' && smi_ajax.contact_url) {
+                completedHtml += '<p><small>Problems? <a href="' + smi_ajax.contact_url + '" target="_blank" rel="noopener">Contact us</a> and we\'ll make sure you get your image.</small></p>';
             }
             
             completedHtml += '<p><small>Job ID: ' + jobData.job_id + '</small></p>';
@@ -925,7 +973,9 @@
             failedHtml += '<div class="smi-status-icon error">❌</div>';
             failedHtml += '<h3 class="smi-status-title error">Processing Failed</h3>';
             failedHtml += '<p>Sorry, there was an error processing your image.</p>';
-            failedHtml += '<p>Please contact support for assistance.</p>';
+            if (typeof smi_ajax !== 'undefined' && smi_ajax.contact_url) {
+                failedHtml += '<p><small>If you have any problems, please <a href="' + smi_ajax.contact_url + '" target="_blank" rel="noopener">contact us</a>.</small></p>';
+            }
             failedHtml += '<p><small>Job ID: ' + jobData.job_id + '</small></p>';
             failedHtml += '</div>';
             

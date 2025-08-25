@@ -26,6 +26,8 @@ A professional WordPress plugin that monetizes website images by adding "Downloa
 - **Protected Downloads**: Secure, token-based download system with expiration
 - **Mobile-Responsive Design**: Clean, professional buttons and admin interface optimized for all devices
 - **Performance-Optimized**: Smart asset loading - CSS/JS only loads when buttons will appear
+- **Theme Compatibility**: Advanced button detection works with diverse WordPress themes
+- **Timeout Handling**: Graceful management of long-running AI processing jobs
 - **Developer-Friendly**: Clean PSR-4 architecture with comprehensive documentation
 
 == Third Party Services ==
@@ -83,53 +85,11 @@ This plugin relies on external services to provide its core functionality. By us
 
 ## 📋 Current Status: **PRODUCTION READY** (Version 1.2.0)
 
-### ✅ Core Features Completed
-- **Payment Processing**: Full Stripe integration with webhook automation and automatic refunds
-- **AI Upscaling**: Upsampler.com API integration with quality enhancement and failure handling
-- **Dual Email System**: HTML download notifications and plain text refund notifications
-- **Analytics System**: Click tracking, conversion rates, and revenue analytics
-- **Professional Admin Interface**: Modern tabbed design with enhanced UX
-- **Button Display Control**: Comprehensive filtering system with visual feedback
-- **Security**: Payment verification, secure downloads, input validation
-- **Mobile Support**: Responsive design with touch-friendly interactions
-
-### 🔄 Workflow Status
-1. **Image Detection & Button Injection** ✅ Working
-2. **Payment Processing** ✅ Working 
-3. **Webhook Automation** ✅ Working
-4. **AI Upscaling** ✅ Working
-5. **Download Delivery** ✅ Working
-6. **Analytics Tracking** ✅ Working
+Complete feature-ready WordPress plugin with full payment processing, AI upscaling, and analytics. All core workflows operational.
 
 ## 🏗️ Architecture Overview
 
-### Clean Layered Architecture
-```
-sell-my-images/
-├── sell-my-images.php          # Main plugin file (singleton pattern)
-├── composer.json               # PSR-4 autoloading + Stripe SDK
-├── CLAUDE.md                   # Comprehensive developer documentation
-├── src/                        # PSR-4 namespace: SellMyImages\
-│   ├── Admin/                  # WordPress admin interface
-│   ├── Api/                    # External API clients (Stripe, Upsampler)
-│   ├── Content/                # Gutenberg block processing
-│   ├── Managers/               # Data management & business logic
-│   ├── Services/               # Workflow coordination layer
-│   └── Config/                 # Configuration and constants
-├── assets/                     # Frontend resources
-│   ├── js/modal.js            # Modal interactions & AJAX
-│   ├── css/modal.css          # Pinterest-style button design
-│   └── css/admin.css          # Admin dashboard styling
-├── templates/modal.php         # Modal HTML structure
-└── vendor/                     # Composer dependencies
-```
-
-### Key Design Patterns
-- **Services Layer**: PaymentService & UpscalingService coordinate workflows with error handling
-- **Manager Pattern**: Centralized data operations (JobManager, AnalyticsTracker, DownloadManager)
-- **API Abstraction**: Pure HTTP clients without business logic (StripeApi for refunds, Upsampler for processing)
-- **Webhook Architecture**: Custom rewrite rules bypass WordPress routing for payment and processing notifications
-- **Email Architecture**: Template-based HTML notifications for success, inline plain text for refunds
+Professional WordPress plugin with clean PSR-4 architecture. Technical details in `CLAUDE.md`.
 
 ## 🚀 Quick Start
 
@@ -185,25 +145,22 @@ stripe listen --forward-to=https://yoursite.local/smi-webhook/stripe/
 ### Testing Workflow
 1. **Create Test Job**: Click "Download Hi-Res" on any image
 2. **Complete Payment**: Use Stripe test cards (4242 4242 4242 4242)
-3. **Verify Processing**: Check logs for webhook events and upscaling
-4. **Test Success Path**: Verify HTML email delivery and secure download
-5. **Test Failure Path**: Simulate upscaling failure to verify automatic refund and plain text notification
-6. **Monitor Email System**: Check both customer and admin email delivery
+3. **Monitor Job Status**: Test real-time polling system
+4. **Verify Processing**: Check logs for webhook events and upscaling
+5. **Test Success Path**: Verify email delivery and secure download
+6. **Test Failure Path**: Simulate upscaling failure to verify automatic refund
 
-### Database Schema
-- **wp_smi_jobs**: Complete job tracking with analytics support and refund audit trail
-- **Post Meta**: Click analytics stored in `_smi_click_analytics`
-- **Indexes**: Optimized for post/attachment cross-reference queries
-- **Refund Fields**: `refunded_at`, `refund_reason`, `refund_amount` for complete transaction history
+### Code Examples
+
+See `CLAUDE.md` for comprehensive technical documentation.
 
 ## 📊 Analytics Dashboard
 
-Track your image monetization performance with comprehensive analytics:
-- **Revenue by Post**: Identify top-performing content with refund impact analysis
-- **Conversion Rates**: Click-to-purchase optimization accounting for refunded transactions
-- **Image Performance**: Most profitable individual images with failure rate tracking
-- **Profit Margins**: Real-time cost analysis with Upsampler pricing and refund adjustments
-- **Customer Satisfaction**: Email delivery tracking and refund rate monitoring
+Track your image monetization performance:
+- **Revenue by Post**: Identify top-performing content
+- **Conversion Rates**: Click-to-purchase optimization
+- **Image Performance**: Most profitable individual images
+- **Profit Margins**: Real-time cost analysis with Upsampler pricing
 
 ## 🎨 Professional Admin Interface (New in v1.2.0)
 

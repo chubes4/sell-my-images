@@ -255,12 +255,15 @@ class DownloadManager {
             'Content-Type: text/html; charset=UTF-8'
         );
         
-        // Send to customer
-        $email_sent = wp_mail( $job->email, $email_data['subject'], $email_data['message'], $headers );
+        // Send to customer only if email present
+        $email_sent = false;
+        if ( ! empty( $job->email ) && is_email( $job->email ) ) {
+            $email_sent = wp_mail( $job->email, $email_data['subject'], $email_data['message'], $headers );
+        }
         
         // Send copy to admin
         $admin_email = get_option( 'admin_email' );
-        if ( $admin_email && $admin_email !== $job->email ) {
+        if ( $admin_email && ( empty( $job->email ) || $admin_email !== $job->email ) ) {
             $admin_subject = 'Copy: ' . $email_data['subject'];
             $admin_message = $email_data['message'];
             wp_mail( $admin_email, $admin_subject, $admin_message, $headers );

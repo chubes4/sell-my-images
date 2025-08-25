@@ -68,7 +68,7 @@ class RestApi {
         ) );
         
         // Create checkout session (replaces old direct upscaling)
-        register_rest_route( self::NAMESPACE, '/create-checkout', array(
+    register_rest_route( self::NAMESPACE, '/create-checkout', array(
             'methods'             => 'POST',
             'callback'            => array( $this, 'create_checkout' ),
             'permission_callback' => '__return_true', // Public endpoint
@@ -90,10 +90,10 @@ class RestApi {
                     'description' => 'Resolution multiplier',
                 ),
                 'email'      => array(
-                    'required'    => true,
+                    'required'    => false,
                     'type'        => 'string',
                     'format'      => 'email',
-                    'description' => 'Email address for notification',
+                    'description' => 'Email address for notification (optional; collected by Stripe if omitted)',
                 ),
             ),
         ) );
@@ -240,6 +240,11 @@ class RestApi {
         $post_id = $request->get_param( 'post_id' );
         $resolution = $request->get_param( 'resolution' );
         $email = $request->get_param( 'email' );
+        if ( $email ) {
+            $email = sanitize_email( $email );
+        } else {
+            $email = null; // optional, will be backfilled from Stripe
+        }
         
         // Require attachment ID (Gutenberg blocks only)
         if ( ! $attachment_id ) {

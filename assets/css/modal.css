@@ -717,6 +717,10 @@ figure.wp-block-image:hover .smi-get-button {
     margin: 20px 0;
 }
 
+.smi-helper-text{
+    font-size:.9rem;
+}
+
 /* ==========================================================================
    Theme Integration Helpers
    ========================================================================== */

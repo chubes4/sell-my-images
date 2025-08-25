@@ -478,7 +478,7 @@ class JobManager {
      */
     private static function validate_job_data( $job_data ) {
         // Check required fields
-        $required_fields = array( 'image_url', 'resolution', 'email', 'post_id' );
+    $required_fields = array( 'image_url', 'resolution', 'post_id' );
         
         foreach ( $required_fields as $field ) {
             if ( empty( $job_data[ $field ] ) ) {
@@ -491,8 +491,8 @@ class JobManager {
             }
         }
         
-        // Validate email
-        if ( ! is_email( $job_data['email'] ) ) {
+        // Email is optional at creation; if provided, validate it
+        if ( isset( $job_data['email'] ) && $job_data['email'] !== '' && ! is_email( $job_data['email'] ) ) {
             return new \WP_Error(
                 'invalid_email',
                 __( 'Invalid email address', 'sell-my-images' ),
@@ -540,7 +540,7 @@ class JobManager {
         $sanitized = array(
             'image_url'  => esc_url_raw( $job_data['image_url'] ),
             'resolution' => sanitize_text_field( $job_data['resolution'] ),
-            'email'      => sanitize_email( $job_data['email'] ),
+            'email'      => isset( $job_data['email'] ) ? sanitize_email( $job_data['email'] ) : '',
             'post_id'    => intval( $job_data['post_id'] ),
         );
         

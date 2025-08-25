@@ -68,7 +68,7 @@ class PaymentService {
         }
         
         // Prepare Stripe session data
-        $session_data = array(
+    $session_data = array(
             'payment_method_types' => ['card'],
             'line_items' => array(
                 array(
@@ -95,7 +95,7 @@ class PaymentService {
                 ),
             ),
             'mode' => 'payment',
-            'customer_email' => $email,
+            // Let Stripe collect the email; do not force customer_email here
             'success_url' => $this->get_current_page_url() . '?smi_payment=success&session_id={CHECKOUT_SESSION_ID}&job_id=' . $job_id,
             'cancel_url' => $this->get_current_page_url() . '?smi_payment=cancelled&job_id=' . $job_id,
             'metadata' => array(
@@ -201,6 +201,21 @@ class PaymentService {
             return;
         }
         
+        // Backfill customer email from Stripe if available and job missing email
+        $stripe_email = null;
+        if ( isset( $session['customer_details']['email'] ) && ! empty( $session['customer_details']['email'] ) ) {
+            $stripe_email = sanitize_email( $session['customer_details']['email'] );
+        } elseif ( isset( $session['customer_email'] ) && ! empty( $session['customer_email'] ) ) {
+            $stripe_email = sanitize_email( $session['customer_email'] );
+        }
+
+        if ( $stripe_email ) {
+            $job = JobManager::get_job( $job_id );
+            if ( ! is_wp_error( $job ) && ( empty( $job->email ) || ! is_email( $job->email ) ) ) {
+                JobManager::update_job_status( $job_id, $job->status, array( 'email' => $stripe_email ) );
+            }
+        }
+
         // Move job from 'awaiting_payment' to 'pending' now that payment is complete
         JobManager::update_job_status( $job_id, 'pending', array(
             'paid_at' => current_time( 'mysql' )

@@ -732,7 +732,7 @@ class AnalyticsPage {
                                         printf( esc_html__( '%d sales', 'sell-my-images' ), esc_html( $attachment->sales_count ) ); ?></div>
                                         <div><?php 
                                         /* translators: %d: number of clicks */
-                                        printf( esc_html__( '%d clicks', 'sell-my-images' ), esc_html( $attachment->attachment_clicks ?: 0 ) ); ?></div>
+                                        printf( esc_html__( '%d clicks', 'sell-my-images' ), esc_html( $attachment->click_count ?: 0 ) ); ?></div>
                                         <div><?php 
                                         /* translators: %.1f: conversion rate percentage */
                                         printf( esc_html__( '%.1f%% conversion', 'sell-my-images' ), esc_html( $attachment->conversion_rate ?: 0 ) ); ?></div>
