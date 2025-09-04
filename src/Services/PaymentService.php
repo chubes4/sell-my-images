@@ -171,6 +171,10 @@ class PaymentService {
                 $this->handle_charge_refunded( $event['data']['object'] );
                 break;
                 
+            case 'checkout.session.expired':
+                $this->handle_checkout_expired( $event['data']['object'] );
+                break;
+                
             default:
                 // Unhandled event type
         }
@@ -275,6 +279,23 @@ class PaymentService {
             
             // Also update job status to refunded
             JobManager::update_job_status( $job_id, 'refunded' );
+        }
+    }
+    
+    /**
+     * Handle checkout session expired event
+     * 
+     * @param array $session Stripe session data
+     */
+    private function handle_checkout_expired( $session ) {
+        $job_id = $session['metadata']['job_id'] ?? null;
+        
+        if ( $job_id ) {
+            // Update job status to abandoned
+            JobManager::update_job_status( $job_id, 'abandoned' );
+            
+            // Essential user flow log - checkout abandoned
+            error_log( 'SMI: Checkout session expired for job ' . $job_id );
         }
     }
     

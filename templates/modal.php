@@ -19,7 +19,7 @@ if ( ! defined( 'ABSPATH' ) ) {
     <div class="smi-modal-container">
         <div class="smi-modal-content">
             <div class="smi-modal-header">
-                <h2 class="smi-modal-title">AI-Enhanced High-Resolution Image</h2>
+                <h2 class="smi-modal-title">Download High-Resolution Image</h2>
                 <button type="button" class="smi-modal-close">&times;</button>
             </div>
             
@@ -43,14 +43,14 @@ if ( ! defined( 'ABSPATH' ) ) {
                     </div>
                     
                     <div class="smi-upscale-options">
-                        <h4>Choose Quality & Pricing</h4>
+                        <h4>Choose Your Resolution</h4>
                         <div class="smi-resolution-options">
                             
                             <label class="smi-option" for="smi-resolution-4x">
                                 <input type="radio" id="smi-resolution-4x" name="resolution" value="4x" />
                                 <div class="smi-option-label">
                                     <strong>Standard Quality (4x)</strong>
-                                    <div class="smi-option-details">Vivid details and sharpness</div>
+                                    <div class="smi-option-details">Perfect for prints and web</div>
                                 </div>
                                 <div class="smi-option-price">Calculating...</div>
                             </label>
@@ -59,14 +59,21 @@ if ( ! defined( 'ABSPATH' ) ) {
                                 <input type="radio" id="smi-resolution-8x" name="resolution" value="8x" />
                                 <div class="smi-option-label">
                                     <strong>Premium Quality (8x)</strong>
-                                    <div class="smi-option-details">Professional-grade detail enhancement</div>
+                                    <div class="smi-option-details">Professional print quality</div>
                                 </div>
                                 <div class="smi-option-price">Calculating...</div>
                             </label>
                             
                         </div>
                     </div>
-                    <p class="smi-helper-text">Processing takes ~1–3 minutes. You can download here after payment. We’ll also email you a copy.</p>
+                    
+                    <div class="smi-email-field">
+                        <label for="smi-email">Email for download link:</label>
+                        <input type="email" id="smi-email" name="email" placeholder="your@email.com" required />
+                        <p class="description">We'll email you a download link within 15 minutes</p>
+                        <p class="description">Secure payment • Money-back guarantee</p>
+                    </div>
+                    
                 </div>
             </div>
             
@@ -76,7 +83,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                 </div>
                 <div class="smi-footer-buttons">
                     <button type="button" class="smi-btn smi-btn-secondary smi-cancel-btn">Cancel</button>
-                    <button type="button" class="smi-btn smi-btn-primary smi-process-btn" disabled>Pay & Process</button>
+                    <button type="button" class="smi-btn smi-btn-primary smi-process-btn" disabled>Checkout with Stripe</button>
                 </div>
             </div>
         </div>

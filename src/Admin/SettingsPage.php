@@ -133,6 +133,12 @@ class SettingsPage {
             'default' => '',
             'sanitize_callback' => array( $this, 'sanitize_post_ids' )
         ) );
+        
+        register_setting( 'smi_settings', 'smi_button_text', array(
+            'type' => 'string',
+            'default' => __( 'Download Hi-Res', 'sell-my-images' ),
+            'sanitize_callback' => array( $this, 'sanitize_button_text' )
+        ) );
     }
     
     /**
@@ -319,6 +325,26 @@ class SettingsPage {
         
         $is_disabled = ( $display_mode === 'all' ) ? 'smi-disabled' : '';
         ?>
+        <div class="smi-tab-section">
+            <h3><?php esc_html_e( 'Button Text Configuration', 'sell-my-images' ); ?></h3>
+            <p><?php esc_html_e( 'Customize the text displayed on download buttons.', 'sell-my-images' ); ?></p>
+            
+            <table class="form-table">
+                <tr>
+                    <th scope="row">
+                        <label for="smi_button_text"><?php esc_html_e( 'Button Text', 'sell-my-images' ); ?></label>
+                    </th>
+                    <td>
+                        <?php $button_text = get_option( 'smi_button_text', __( 'Download Hi-Res', 'sell-my-images' ) ); ?>
+                        <input type="text" id="smi_button_text" name="smi_button_text" value="<?php echo esc_attr( $button_text ); ?>" class="regular-text" />
+                        <p class="description">
+                            <?php esc_html_e( 'The text displayed on download buttons. Keep it short and descriptive.', 'sell-my-images' ); ?>
+                        </p>
+                    </td>
+                </tr>
+            </table>
+        </div>
+        
         <div class="smi-tab-section">
             <h3><?php esc_html_e( 'Button Display Control', 'sell-my-images' ); ?></h3>
             <p><?php esc_html_e( 'Control where download buttons appear on your site. Choose to show buttons on all posts, or selectively include/exclude specific content.', 'sell-my-images' ); ?></p>
@@ -627,5 +653,27 @@ class SettingsPage {
         }
         
         return implode( ', ', $valid_post_ids );
+    }
+    
+    /**
+     * Sanitize button text
+     * 
+     * @param mixed $value
+     * @return string
+     */
+    public function sanitize_button_text( $value ) {
+        $sanitized = sanitize_text_field( $value );
+        
+        // Limit to 50 characters for reasonable display
+        if ( strlen( $sanitized ) > 50 ) {
+            $sanitized = substr( $sanitized, 0, 50 );
+        }
+        
+        // Return default if empty
+        if ( empty( $sanitized ) ) {
+            $sanitized = __( 'Download Hi-Res', 'sell-my-images' );
+        }
+        
+        return $sanitized;
     }
 }

@@ -27,11 +27,12 @@ class JobManager {
      * Status transitions matrix
      */
     const STATUS_TRANSITIONS = array(
-        'awaiting_payment' => array( 'pending', 'processing', 'failed' ),
+        'awaiting_payment' => array( 'pending', 'processing', 'failed', 'abandoned' ),
         'pending' => array( 'processing', 'failed' ),
         'processing' => array( 'completed', 'failed' ),
         'completed' => array(), // Terminal state
         'failed' => array(), // Terminal state
+        'abandoned' => array(), // Terminal state
     );
     
     /**

@@ -1,6 +1,9 @@
 # Composer
 /vendor/
 
+# Build output
+/dist/
+
 # WordPress
 .DS_Store
 .htaccess

@@ -55,7 +55,7 @@ class Constants {
     /**
      * Job Management Configuration
      */
-    const VALID_JOB_STATUSES = array( 'awaiting_payment', 'pending', 'processing', 'completed', 'failed' );
+    const VALID_JOB_STATUSES = array( 'awaiting_payment', 'pending', 'processing', 'completed', 'failed', 'abandoned' );
     const VALID_PAYMENT_STATUSES = array( 'pending', 'paid', 'failed' );
     
     /**

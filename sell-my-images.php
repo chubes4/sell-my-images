@@ -125,8 +125,20 @@ class SellMyImages {
             return;
         }
         
-        wp_enqueue_script( 'smi-modal', SMI_PLUGIN_URL . 'assets/js/modal.js', array( 'jquery' ), SMI_VERSION, true );
-        wp_enqueue_style( 'smi-modal', SMI_PLUGIN_URL . 'assets/css/modal.css', array(), SMI_VERSION );
+        // Use file modification time for asset versioning to auto-bust caches when files change
+        $js_file = SMI_PLUGIN_DIR . 'assets/js/modal.js';
+        $css_file = SMI_PLUGIN_DIR . 'assets/css/modal.css';
+        $js_version = SMI_VERSION;
+        $css_version = SMI_VERSION;
+        if ( file_exists( $js_file ) ) {
+            $js_version = filemtime( $js_file );
+        }
+        if ( file_exists( $css_file ) ) {
+            $css_version = filemtime( $css_file );
+        }
+
+        wp_enqueue_script( 'smi-modal', SMI_PLUGIN_URL . 'assets/js/modal.js', array( 'jquery' ), $js_version, true );
+        wp_enqueue_style( 'smi-modal', SMI_PLUGIN_URL . 'assets/css/modal.css', array(), $css_version );
         
         // Localize script for AJAX
         wp_localize_script( 'smi-modal', 'smi_ajax', array(

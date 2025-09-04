@@ -551,7 +551,7 @@ figure.wp-block-image:hover .smi-get-button {
     }
     
     .smi-modal-footer {
-        flex-direction: column-reverse;
+        flex-direction: column;
     }
     
     .smi-btn {

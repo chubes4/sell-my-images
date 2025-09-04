@@ -62,7 +62,10 @@
                 self.updateProcessButton();
             });
             
-            // Email input removed; process button depends only on resolution now
+            // Email input changes
+            $(document).on('input', '#smi-email', function() {
+                self.updateProcessButton();
+            });
             
             // Process button click
             $(document).on('click', '.smi-process-btn', function(e) {
@@ -203,7 +206,7 @@
             this.showError(false);
             this.toggleProcessButton(false);
             $('input[name="resolution"]').prop('checked', false);
-            // email field removed
+            $('#smi-email').val('');
             
             // Remove any retry buttons
             $('.smi-retry-container').remove();
@@ -249,7 +252,7 @@
          */
         populateModalBasic: function() {
             // Update modal title
-            this.modal.find('.smi-modal-title').text('Upscale High-Resolution Image');
+            this.modal.find('.smi-modal-title').text('Download High-Resolution Image');
             
             // Update image preview
             var $preview = this.modal.find('.smi-preview-image');
@@ -382,7 +385,7 @@
             var $details = $label.find('.smi-option-details');
             if ($details.length > 0) {
                 $details.html(
-                    this.formatNumber(imageInfo.width) + '×' + this.formatNumber(imageInfo.height) + ' → ' +
+                    'Your ' + this.formatNumber(imageInfo.width) + '×' + this.formatNumber(imageInfo.height) + ' image becomes ' +
                     this.formatNumber(outputWidth) + '×' + this.formatNumber(outputHeight) + 
                     ' (' + pricing.output_megapixels + 'MP)'
                 );
@@ -441,7 +444,9 @@
          */
         updateProcessButton: function() {
             var hasResolution = $('input[name="resolution"]:checked').length > 0;
-            this.toggleProcessButton(hasResolution);
+            var hasEmail = $('#smi-email').val().trim().length > 0;
+            
+            this.toggleProcessButton(hasResolution && hasEmail);
         },
         
         /**
@@ -453,9 +458,15 @@
             }
             
             var $selected = $('input[name="resolution"]:checked');
+            var email = $('#smi-email').val().trim();
             
             if ($selected.length === 0) {
                 this.showError('Please select a resolution option.');
+                return;
+            }
+            
+            if (!email) {
+                this.showError('Please enter your email address.');
                 return;
             }
             
@@ -495,7 +506,8 @@
                 data: {
                     attachment_id: attachmentId,
                     post_id: this.currentImageData.image_data.post_id,
-                    resolution: $selected.val()
+                    resolution: $selected.val(),
+                    email: email
                 },
                 success: function(response) {
                     if (response.success && response.checkout_url) {
@@ -584,7 +596,7 @@
         resetProcessButton: function() {
             this.modal.find('.smi-process-btn')
                 .prop('disabled', false)
-                .text('Pay & Process');
+                .text('Download Image');
         },
         
         

@@ -194,7 +194,7 @@ class BlockProcessor {
             return '';
         }
         
-        $button_text = apply_filters( 'smi_button_text', __( 'Download Hi-Res', 'sell-my-images' ) );
+        $button_text = apply_filters( 'smi_button_text', get_option( 'smi_button_text', __( 'Download Hi-Res', 'sell-my-images' ) ) );
         
         $button_html = sprintf(
             '<button class="smi-get-button" data-post-id="%d" data-attachment-id="%d" data-src="%s" data-width="%d" data-height="%d">

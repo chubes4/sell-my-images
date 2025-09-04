@@ -163,6 +163,7 @@ class JobsPage {
                     <option value="completed" <?php selected( $current_status, 'completed' ); ?>><?php esc_html_e( 'Completed', 'sell-my-images' ); ?></option>
                     <option value="failed" <?php selected( $current_status, 'failed' ); ?>><?php esc_html_e( 'Failed', 'sell-my-images' ); ?></option>
                     <option value="awaiting_payment" <?php selected( $current_status, 'awaiting_payment' ); ?>><?php esc_html_e( 'Awaiting Payment', 'sell-my-images' ); ?></option>
+                    <option value="abandoned" <?php selected( $current_status, 'abandoned' ); ?>><?php esc_html_e( 'Abandoned', 'sell-my-images' ); ?></option>
                 </select>
             </div>
             
@@ -334,6 +335,8 @@ class JobsPage {
                             <span class="smi-status-processing">⏳ <?php esc_html_e( 'Processing...', 'sell-my-images' ); ?></span>
                         <?php elseif ( $job->status === 'awaiting_payment' ) : ?>
                             <span class="smi-status-awaiting">💳 <?php esc_html_e( 'Awaiting Payment', 'sell-my-images' ); ?></span>
+                        <?php elseif ( $job->status === 'abandoned' ) : ?>
+                            <span class="smi-status-abandoned">❌ <?php esc_html_e( 'Abandoned', 'sell-my-images' ); ?></span>
                         <?php else : ?>
                             <span class="smi-muted-text">—</span>
                         <?php endif; ?>
