@@ -24,3 +24,6 @@ error_log
 # Backups
 *.bak
 *~.DS_Store
+
+# Documentation sync
+/docs/.docs-sync.json
