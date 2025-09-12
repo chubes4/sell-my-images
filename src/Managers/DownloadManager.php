@@ -266,7 +266,21 @@ class DownloadManager {
         if ( $admin_email && ( empty( $job->email ) || $admin_email !== $job->email ) ) {
             $admin_subject = 'Copy: ' . $email_data['subject'];
             $admin_message = $email_data['message'];
-            wp_mail( $admin_email, $admin_subject, $admin_message, $headers );
+            $admin_sent = wp_mail( $admin_email, $admin_subject, $admin_message, $headers );
+            
+            // Log admin email attempts
+            if ( $admin_sent ) {
+                error_log( 'SMI: Admin copy email sent successfully for job ' . $job_id . ' to ' . $admin_email );
+            } else {
+                error_log( 'SMI: Admin copy email FAILED for job ' . $job_id . ' to ' . $admin_email );
+            }
+        } else {
+            // Log why admin email was skipped
+            if ( ! $admin_email ) {
+                error_log( 'SMI: Admin email skipped - no admin_email configured' );
+            } else {
+                error_log( 'SMI: Admin email skipped - same as customer email: ' . $job->email );
+            }
         }
         
         // Essential user flow log - download email sent
@@ -315,6 +329,7 @@ class DownloadManager {
         $template_path = SMI_PLUGIN_DIR . 'templates/email-notification.php';
         
         if ( ! file_exists( $template_path ) ) {
+            error_log( 'SMI: Email template file not found: ' . $template_path );
             return false;
         }
         
@@ -324,10 +339,60 @@ class DownloadManager {
         $terms_conditions_url = get_option( 'smi_terms_conditions_url', '' );
         $site_name = get_bloginfo( 'name' );
         
-        // Include template with variables in scope
-        $email_data = include $template_path;
+        // Include template with error handling
+        try {
+            $email_data = include $template_path;
+            
+            // Validate email data structure
+            if ( ! is_array( $email_data ) || ! isset( $email_data['subject'] ) || ! isset( $email_data['message'] ) ) {
+                error_log( 'SMI: Email template returned invalid data structure' );
+                return self::get_fallback_email_data( $job, $download_url, $expiry_date );
+            }
+            
+            return $email_data;
+            
+        } catch ( Exception $e ) {
+            error_log( 'SMI: Email template error: ' . $e->getMessage() );
+            return self::get_fallback_email_data( $job, $download_url, $expiry_date );
+        }
+    }
+    
+    /**
+     * Get fallback email data when template fails
+     * 
+     * @param object $job Job object
+     * @param string $download_url Download URL
+     * @param string $expiry_date Formatted expiry date
+     * @return array Email data with fallback content
+     */
+    private static function get_fallback_email_data( $job, $download_url, $expiry_date ) {
+        $site_name = get_bloginfo( 'name' );
         
-        return $email_data;
+        $subject = sprintf( 
+            __( 'Your high-resolution image is ready - %s', 'sell-my-images' ),
+            $site_name
+        );
+        
+        $message = sprintf(
+            __( 'Your %1$s resolution image has been processed and is ready for download.
+
+Download link: %2$s
+
+This link will expire on %3$s
+
+Best regards,
+Sarai Chinwag
+%4$s Team', 'sell-my-images' ),
+            $job->resolution,
+            $download_url,
+            $expiry_date,
+            $site_name
+        );
+        
+        return array(
+            'subject' => $subject,
+            'message' => $message,
+        );
     }
     
     /**

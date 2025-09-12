@@ -40,6 +40,17 @@ if ( ! empty( $terms_conditions_url ) ) {
     );
 }
 
+// Pre-format the resolution text to avoid nested sprintf issues
+$resolution_text = sprintf( 
+    __( 'Your <strong>%s resolution</strong> image has been processed and is ready for download.', 'sell-my-images' ), 
+    $job->resolution 
+);
+
+$expiry_text = sprintf( 
+    __( 'This link will expire on %s', 'sell-my-images' ), 
+    $expiry_date 
+);
+
 // Build email message with proper HTML structure
 $message = sprintf(
     '<!DOCTYPE html>
@@ -61,7 +72,7 @@ $message = sprintf(
                 <p style="margin: 0 0 20px 0; color: #555; font-size: 16px; line-height: 1.5;">' . __( 'Hi there!', 'sell-my-images' ) . '</p>
                 
                 <p style="margin: 0 0 25px 0; color: #555; font-size: 16px; line-height: 1.5;">
-                    ' . sprintf( __( 'Your <strong>%1$s resolution</strong> image has been processed and is ready for download.', 'sell-my-images' ), '%1$s' ) . '
+                    %1$s
                 </p>
                 
                 <div style="text-align: center; margin: 30px 0;">
@@ -71,7 +82,7 @@ $message = sprintf(
                 </div>
                 
                 <p style="margin: 25px 0 20px 0; color: #777; font-size: 14px; text-align: center;">
-                    <strong>' . __( 'Important:', 'sell-my-images' ) . '</strong> ' . sprintf( __( 'This link will expire on %s', 'sell-my-images' ), '%3$s' ) . '
+                    <strong>' . __( 'Important:', 'sell-my-images' ) . '</strong> %3$s
                 </p>
                 
                 <div style="border-top: 1px solid #eee; padding-top: 20px; margin-top: 30px;">
@@ -104,9 +115,9 @@ $message = sprintf(
     </table>
 </body>
 </html>',
-    $job->resolution,
+    $resolution_text,
     $download_url,
-    $expiry_date,
+    $expiry_text,
     $job->image_url,
     $job->resolution,
     $terms_section,
