@@ -44,7 +44,7 @@ $secret_key = $test_mode ?
 - Health check validation
 
 **Cost Management**
-- `smi_markup_percentage` (default: '500') - Profit margin control
+- `smi_markup_percentage` (default: '200') - Profit margin control
 - Pricing calculation multiplier
 - Revenue optimization setting
 - Dynamic pricing support
@@ -66,16 +66,11 @@ $secret_key = $test_mode ?
 ## Display Filtering
 
 **Content Targeting**
-- `smi_excluded_post_types` - Post type exclusions
-- `smi_excluded_categories` - Category filtering
-- `smi_excluded_tags` - Tag-based control
-- `smi_excluded_posts` - Individual post targeting
-
-**Inclusion Rules**
-- `smi_included_post_types` - Whitelist post types
-- `smi_included_categories` - Whitelist categories  
-- `smi_included_tags` - Whitelist tags
-- `smi_included_posts` - Whitelist specific posts
+- `smi_display_mode` - Display mode ('all', 'exclude', 'include')
+- `smi_filter_post_types` - Post type filtering array
+- `smi_filter_categories` - Category filtering array
+- `smi_filter_tags` - Tag filtering array
+- `smi_filter_post_ids` - Specific post IDs (comma-separated)
 
 ## Email Configuration
 
@@ -90,7 +85,7 @@ $secret_key = $test_mode ?
 **System Constants**
 Defined in `Constants.php`:
 - `UPSAMPLER_COST_PER_CREDIT` (0.04) - Base processing cost
-- `DEFAULT_MARKUP_PERCENTAGE` (500) - Default profit margin
+- `DEFAULT_MARKUP_PERCENTAGE` (200) - Default profit margin
 - `STRIPE_MINIMUM_PAYMENT` (0.50) - Payment processor minimum
 - `DOWNLOAD_TOKEN_LENGTH` (64) - Security token size
 
@@ -108,7 +103,7 @@ const DEFAULT_OPTIONS = [
     'smi_enabled' => '1',
     'smi_stripe_test_mode' => '1',
     'smi_download_expiry_hours' => '24',
-    'smi_markup_percentage' => '500',
+    'smi_markup_percentage' => '200',
     'smi_terms_conditions_url' => '',
     // Additional options...
 ];

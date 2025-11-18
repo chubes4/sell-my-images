@@ -72,14 +72,14 @@ class JobsPage {
             $('.smi-retry-btn').on('click', function() {
                 var button = $(this);
                 var jobId = button.data('job-id');
-                
+
                 if (!jobId) {
                     alert('<?php esc_js( esc_html_e( 'Invalid job ID', 'sell-my-images' ) ); ?>');
                     return;
                 }
-                
+
                 button.prop('disabled', true).text('<?php esc_js( esc_html_e( 'Processing...', 'sell-my-images' ) ); ?>');
-                
+
                 $.ajax({
                     url: ajaxurl,
                     type: 'POST',
@@ -105,7 +105,85 @@ class JobsPage {
                     }
                 });
             });
-            
+
+            $('.smi-resend-email-btn').on('click', function() {
+                var button = $(this);
+                var jobId = button.data('job-id');
+
+                if (!jobId) {
+                    alert('<?php esc_js( esc_html_e( 'Invalid job ID', 'sell-my-images' ) ); ?>');
+                    return;
+                }
+
+                button.prop('disabled', true).text('<?php esc_js( esc_html_e( 'Sending...', 'sell-my-images' ) ); ?>');
+
+                $.ajax({
+                    url: ajaxurl,
+                    type: 'POST',
+                    data: {
+                        action: 'smi_resend_email',
+                        job_id: jobId,
+                        nonce: '<?php echo esc_js( wp_create_nonce( 'smi_resend_email' ) ); ?>'
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            button.text('<?php esc_js( esc_html_e( 'Sent!', 'sell-my-images' ) ); ?>');
+                            setTimeout(function() {
+                                location.reload();
+                            }, 2000);
+                        } else {
+                            alert('<?php esc_js( esc_html_e( 'Error: ', 'sell-my-images' ) ); ?>' + (response.data || '<?php esc_js( esc_html_e( 'Unknown error', 'sell-my-images' ) ); ?>'));
+                            button.prop('disabled', false).text('<?php esc_js( esc_html_e( 'Resend Email', 'sell-my-images' ) ); ?>');
+                        }
+                    },
+                    error: function() {
+                        alert('<?php esc_js( esc_html_e( 'Network error occurred', 'sell-my-images' ) ); ?>');
+                        button.prop('disabled', false).text('<?php esc_js( esc_html_e( 'Resend Email', 'sell-my-images' ) ); ?>');
+                    }
+                });
+            });
+
+            $('.smi-fix-job-btn').on('click', function() {
+                var button = $(this);
+                var jobId = button.data('job-id');
+
+                if (!jobId) {
+                    alert('<?php esc_js( esc_html_e( 'Invalid job ID', 'sell-my-images' ) ); ?>');
+                    return;
+                }
+
+                if (!confirm('<?php esc_js( esc_html_e( 'This will generate a new download token and send the email. Continue?', 'sell-my-images' ) ); ?>')) {
+                    return;
+                }
+
+                button.prop('disabled', true).text('<?php esc_js( esc_html_e( 'Fixing...', 'sell-my-images' ) ); ?>');
+
+                $.ajax({
+                    url: ajaxurl,
+                    type: 'POST',
+                    data: {
+                        action: 'smi_fix_broken_job',
+                        job_id: jobId,
+                        nonce: '<?php echo esc_js( wp_create_nonce( 'smi_fix_broken_job' ) ); ?>'
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            button.text('<?php esc_js( esc_html_e( 'Fixed!', 'sell-my-images' ) ); ?>');
+                            setTimeout(function() {
+                                location.reload();
+                            }, 2000);
+                        } else {
+                            alert('<?php esc_js( esc_html_e( 'Error: ', 'sell-my-images' ) ); ?>' + (response.data || '<?php esc_js( esc_html_e( 'Unknown error', 'sell-my-images' ) ); ?>'));
+                            button.prop('disabled', false).text('<?php esc_js( esc_html_e( 'Fix Broken Job', 'sell-my-images' ) ); ?>');
+                        }
+                    },
+                    error: function() {
+                        alert('<?php esc_js( esc_html_e( 'Network error occurred', 'sell-my-images' ) ); ?>');
+                        button.prop('disabled', false).text('<?php esc_js( esc_html_e( 'Fix Broken Job', 'sell-my-images' ) ); ?>');
+                    }
+                });
+            });
+
             // Per-page change handler
             $('.smi-per-page-select').on('change', function() {
                 var perPage = $(this).val();
@@ -322,15 +400,26 @@ class JobsPage {
                         <?php echo esc_html( gmdate( 'M j, Y g:i A', strtotime( $job->created_at ) ) ); ?>
                     </td>
                     <td>
-                        <?php if ( $job->status === 'pending' || $job->status === 'failed' || 
+                        <?php if ( $job->status === 'pending' || $job->status === 'failed' ||
                                   ($job->status === 'awaiting_payment' && $job->payment_status === 'paid') ) : ?>
-                            <button type="button" 
-                                    class="smi-retry-btn" 
+                            <button type="button"
+                                    class="smi-retry-btn"
                                     data-job-id="<?php echo esc_attr( $job->job_id ); ?>">
                                 <?php esc_html_e( 'Retry Upscale', 'sell-my-images' ); ?>
                             </button>
-                        <?php elseif ( $job->status === 'completed' && $job->download_token ) : ?>
-                            <span class="smi-status-complete">✓ <?php esc_html_e( 'Complete', 'sell-my-images' ); ?></span>
+                        <?php elseif ( $job->status === 'completed' && ! empty( $job->download_token ) ) : ?>
+                            <button type="button"
+                                    class="smi-resend-email-btn"
+                                    data-job-id="<?php echo esc_attr( $job->job_id ); ?>">
+                                <?php esc_html_e( 'Resend Email', 'sell-my-images' ); ?>
+                            </button>
+                        <?php elseif ( $job->status === 'completed' && empty( $job->download_token ) ) : ?>
+                            <button type="button"
+                                    class="smi-fix-job-btn"
+                                    data-job-id="<?php echo esc_attr( $job->job_id ); ?>"
+                                    style="background-color: #dc3232;">
+                                <?php esc_html_e( 'Fix Broken Job', 'sell-my-images' ); ?>
+                            </button>
                         <?php elseif ( $job->status === 'processing' ) : ?>
                             <span class="smi-status-processing">⏳ <?php esc_html_e( 'Processing...', 'sell-my-images' ); ?></span>
                         <?php elseif ( $job->status === 'awaiting_payment' ) : ?>

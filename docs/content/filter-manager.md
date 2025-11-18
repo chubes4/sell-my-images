@@ -72,10 +72,10 @@ public static function should_show_buttons( $post_id = null ) {
 
 **Option Structure**
 - `smi_display_mode` - Control mode (all/exclude/include)
-- `smi_excluded_post_types` - Post type exclusions
-- `smi_excluded_categories` - Category filters
-- `smi_excluded_posts` - Individual post IDs
-- `smi_included_*` - Inclusion rule equivalents
+- `smi_filter_post_types` - Post type filtering array
+- `smi_filter_categories` - Category filtering array
+- `smi_filter_tags` - Tag filtering array
+- `smi_filter_post_ids` - Specific post IDs (comma-separated)
 
 ## Integration Points
 

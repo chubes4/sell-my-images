@@ -166,6 +166,7 @@
             
             // Show modal with loading state
             this.modal.removeClass('smi-hidden');
+            this.lockBodyScroll();
             this.showLoading(true);
             this.resetModal();
             
@@ -191,8 +192,9 @@
             if (this.processing) {
                 return;
             }
-            
+
             this.modal.addClass('smi-hidden');
+            this.unlockBodyScroll();
             this.resetModal();
             this.currentImageData = null;
         },
@@ -251,14 +253,15 @@
          * Populate modal with basic image data
          */
         populateModalBasic: function() {
-            // Update modal title
-            this.modal.find('.smi-modal-title').text('Download High-Resolution Image');
-            
             // Update image preview
             var $preview = this.modal.find('.smi-preview-image');
             $preview.attr('src', this.currentImageData.image_data.src);
             $preview.attr('alt', 'Image to upscale');
-            
+
+            // Force immediate load (bypass lazy loading)
+            $preview.removeClass('br-lazy entered loading');
+            $preview.attr('data-ll-status', 'loaded');
+
             // Show main content
             this.showLoading(false);
             this.showMainContent(true);
@@ -386,8 +389,7 @@
             if ($details.length > 0) {
                 $details.html(
                     'Your ' + this.formatNumber(imageInfo.width) + '×' + this.formatNumber(imageInfo.height) + ' image becomes ' +
-                    this.formatNumber(outputWidth) + '×' + this.formatNumber(outputHeight) + 
-                    ' (' + pricing.output_megapixels + 'MP)'
+                    this.formatNumber(outputWidth) + '×' + this.formatNumber(outputHeight)
                 );
             }
             
@@ -614,7 +616,38 @@
         formatNumber: function(num) {
             return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
         },
-        
+
+        /**
+         * Lock body scroll when modal opens (handles iOS scroll-through bug)
+         */
+        lockBodyScroll: function() {
+            // Save current scroll position
+            this.scrollPosition = window.pageYOffset || document.documentElement.scrollTop;
+
+            // Add class to body
+            $('body').addClass('smi-modal-open');
+
+            // For iOS: set top position to maintain scroll position visually
+            $('body').css('top', '-' + this.scrollPosition + 'px');
+        },
+
+        /**
+         * Unlock body scroll and restore position when modal closes
+         */
+        unlockBodyScroll: function() {
+            // Remove class from body
+            $('body').removeClass('smi-modal-open');
+
+            // Remove inline top style
+            $('body').css('top', '');
+
+            // Restore scroll position
+            if (this.scrollPosition !== undefined) {
+                window.scrollTo(0, this.scrollPosition);
+                this.scrollPosition = undefined;
+            }
+        },
+
         /**
          * Inject download buttons into WordPress image blocks
          */
@@ -691,7 +724,11 @@
                 // Log successful detection
                 console.log('SMI: Found attachment ID', attachmentId, 'via', detectionSource);
                 var postId = self.getPostId();
-                var imgSrc = $img.attr('src');
+                // Check for lazy loading attributes first (where the real URL is stored)
+                var imgSrc = $img.attr('data-breeze') ||
+                             $img.attr('data-lazy-src') ||
+                             $img.attr('data-src') ||
+                             $img.attr('src');
                 var imgWidth = $img.attr('width') || $img[0].naturalWidth;
                 var imgHeight = $img.attr('height') || $img[0].naturalHeight;
                 
@@ -820,8 +857,9 @@
         handlePaymentSuccess: function(jobId, sessionId) {
             // Show modal with success message
             this.modal.removeClass('smi-hidden');
+            this.lockBodyScroll();
             this.showPaymentSuccess(jobId);
-            
+
             // Start polling for job completion
             this.startJobStatusPolling(jobId);
         },
@@ -832,6 +870,7 @@
         handlePaymentCancelled: function(jobId) {
             // Show modal with cancellation message
             this.modal.removeClass('smi-hidden');
+            this.lockBodyScroll();
             this.showPaymentCancelled(jobId);
         },
         

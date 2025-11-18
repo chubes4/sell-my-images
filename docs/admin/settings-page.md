@@ -13,13 +13,17 @@ Configure payment processing and image upscaling services.
 - Webhook secret for payment verification
 - SSL requirement for live mode
 
-**Upsampler Configuration**  
+**Upsampler Configuration**
 - API key for AI image upscaling
-- Cost calculation settings
-- Markup percentage configuration (default: 500%)
+- Markup percentage configuration (default: 200%)
 
 ### Display Control
 Control where download buttons appear on your site.
+
+**Featured Image Support**
+- Enable/disable download buttons on featured images
+- Smart conflict detection for block-styled themes
+- Automatic prevention of double buttons
 
 **Button Display Modes**
 - **All Posts** (default): Show buttons on all posts and pages
@@ -28,7 +32,7 @@ Control where download buttons appear on your site.
 
 **Filter Options**
 - Post types selection
-- Category and tag filtering  
+- Category and tag filtering
 - Specific post ID targeting
 - Custom filter criteria
 

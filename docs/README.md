@@ -17,13 +17,16 @@ Sell My Images monetizes website images by adding "Download Hi-Res" buttons to c
 
 ### Content Processing
 - [**Block Processor**](content/block-processor.md) - Gutenberg image block detection and download button injection
+- [**Featured Image Processor**](content/featured-image-processor.md) - Automatic button injection for featured images with conflict detection
 - [**Filter Manager**](content/filter-manager.md) - Display control with flexible inclusion/exclusion rules
 
 ### Data Management
 - [**Database Manager**](managers/database-manager.md) - Centralized CRUD operations with automated schema management
 - [**Job Manager**](managers/job-manager.md) - Complete lifecycle management from creation to completion
 - [**Download Manager**](managers/download-manager.md) - Secure file delivery with token-based authentication
+- [**File Manager**](managers/file-manager.md) - Secure file storage and management for upscaled images
 - [**Analytics Tracker**](managers/analytics-tracker.md) - User engagement tracking via WordPress post meta
+- [**Webhook Manager**](managers/webhook-manager.md) - Shared webhook utilities and handler registration
 
 ### Service Layer
 - [**Payment Service**](services/payment-service.md) - Complete payment workflow coordination with Stripe integration

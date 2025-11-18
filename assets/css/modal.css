@@ -147,7 +147,7 @@ figure.wp-block-image:hover .smi-get-button {
 }
 
 .smi-modal-overlay {
-    position: absolute;
+    position: fixed;
     top: 0;
     left: 0;
     width: 100%;
@@ -471,6 +471,7 @@ figure.wp-block-image:hover .smi-get-button {
     background: var(--wp--preset--color--tertiary, rgba(0, 0, 0, 0.03));
     display: flex;
     justify-content: flex-end;
+    align-items: center;
     gap: 12px;
 }
 
@@ -530,16 +531,28 @@ figure.wp-block-image:hover .smi-get-button {
    ========================================================================== */
 
 @media (max-width: 767px) {
+    .smi-modal {
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
     .smi-modal-content {
         width: 95%;
-        margin: 2vh auto;
-        max-height: 96vh;
+        margin: 2vh auto 2vh auto;
+        max-height: none;
+        overflow-y: visible;
     }
-    
+
     .smi-modal-header,
     .smi-modal-body,
     .smi-modal-footer {
         padding: 16px;
+    }
+
+    .smi-modal-body {
+        flex: none;
+        overflow-y: visible;
+        max-height: none;
     }
     
     .smi-modal-title {
@@ -549,12 +562,13 @@ figure.wp-block-image:hover .smi-get-button {
     .smi-modal-main {
         gap: 16px;
     }
-    
+
     .smi-modal-footer {
         flex-direction: column;
+        align-items: stretch;
     }
-    
-    .smi-btn {
+
+    .smi-process-btn {
         width: 100%;
         justify-content: center;
     }
@@ -663,6 +677,14 @@ figure.wp-block-image:hover .smi-get-button {
 
 .smi-hidden {
     display: none !important;
+}
+
+/* Body scroll lock when modal is open */
+body.smi-modal-open {
+    overflow: hidden !important;
+    position: fixed !important;
+    width: 100% !important;
+    height: 100% !important;
 }
 
 .smi-retry-container {

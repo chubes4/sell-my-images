@@ -7,7 +7,7 @@ The Cost Calculator determines pricing for AI image upscaling based on image dim
 **Base Costs**
 - Upsampler API: $0.04 per credit
 - Credit calculation: 0.25 credits per megapixel
-- Default markup: 500% (6x cost multiplier)
+- Default markup: 200% (3x cost multiplier)
 - Stripe minimum payment: $0.50
 
 **Resolution Multipliers**
@@ -30,7 +30,7 @@ array(
     'output_megapixels' => '64.0MP',
     'credits_required' => 16.0,
     'upsampler_cost' => 0.64,
-    'markup_percentage' => 500,
+    'markup_percentage' => 200,
     'customer_price' => 3.84,
     'profit_margin' => 3.20
 )

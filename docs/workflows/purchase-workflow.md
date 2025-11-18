@@ -7,9 +7,9 @@ The complete customer purchase workflow from button click to download delivery.
 **Complete Process Flow**
 1. Customer clicks download button on image
 2. Modal opens with pricing and resolution options
-3. Customer selects resolution and enters email
+3. Customer selects resolution (email optional)
 4. Stripe checkout session created and customer redirected
-5. Payment processed and webhook triggers upscaling
+5. Payment processed and webhook triggers upscaling (email backfilled from Stripe if not provided)
 6. Image processed by Upsampler AI service
 7. Download token generated and email sent
 8. Customer downloads high-resolution image
@@ -58,7 +58,7 @@ $.ajax({
 Modal presents options:
 - Standard Quality (4x): Web and print ready
 - Premium Quality (8x): Professional print quality
-- Email input for delivery notification
+- Optional email input for delivery notification (obtained from Stripe if not provided)
 - Terms and conditions acknowledgment
 
 ## Phase 3: Payment Processing

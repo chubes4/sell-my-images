@@ -86,7 +86,7 @@ class RestApi {
                 'resolution' => array(
                     'required'    => true,
                     'type'        => 'string',
-                    'enum'        => array( '2x', '4x', '8x' ),
+                    'enum'        => array( '4x', '8x' ),
                     'description' => 'Resolution multiplier',
                 ),
                 'email'      => array(
@@ -191,7 +191,7 @@ class RestApi {
         }
         
         // Calculate pricing for all resolutions
-        $resolutions = array( '2x', '4x', '8x' );
+        $resolutions = array( '4x', '8x' );
         $pricing_data = array();
         
         foreach ( $resolutions as $resolution ) {

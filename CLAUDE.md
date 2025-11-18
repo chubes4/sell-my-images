@@ -8,7 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Current Status
 
-**Version 1.2.0** - Production ready.
+**Version 1.2.0** - Production ready with professional tabbed admin interface and granular button display control.
 
 ## Architecture
 
@@ -26,7 +26,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 All classes follow PSR-4 autoloading under the `SellMyImages\` namespace:
 
 **Content Layer:**
-- `BlockProcessor` - Processes Gutenberg blocks, injects buttons with `data-attachment-id` and `data-post-id`
+- `BlockProcessor` - Gutenberg block processing and JavaScript button injection coordination
+- `FeaturedImageProcessor` - Automatic button injection for featured images with conflict detection
 - `FilterManager` - Button display control (all posts, exclude selected, include only selected)
 
 **Managers Layer:**
@@ -47,8 +48,8 @@ All classes follow PSR-4 autoloading under the `SellMyImages\` namespace:
 
 **Admin Layer:**
 - `AdminInit` - Admin menu and settings initialization
-- `SettingsPage` - Three-tab interface (API Config, Display Control, Downloads)
-- `AnalyticsPage` - Click tracking and revenue analytics
+- `SettingsPage` - Professional three-tab interface (API Config, Display Control, Downloads)
+- `AnalyticsPage` - Click tracking and revenue analytics with engagement-first sorting
 - `JobsPage` - Job management with pagination and filtering
 
 ## System Workflow
@@ -74,11 +75,18 @@ All classes follow PSR-4 autoloading under the `SellMyImages\` namespace:
 
 ### `wp_smi_jobs` Table
 Complete job tracking with analytics support:
-- `job_id` (UUID), `post_id` (required), `attachment_id`, `email`
-- `status` ('awaiting_payment', 'pending', 'processing', 'completed', 'failed')
+- `id` - Auto-increment primary key
+- `job_id` (UUID), `post_id` (required), `attachment_id`, `email` (optional, backfilled from Stripe)
+- `image_url`, `resolution` ('4x', '8x'), `image_width`, `image_height`
+- `status` ('awaiting_payment', 'pending', 'processing', 'completed', 'failed', 'abandoned')
 - `payment_status` ('pending', 'paid', 'failed')
-- `amount_charged`, `amount_cost` - Revenue/cost tracking
+- `stripe_payment_intent_id`, `stripe_checkout_session_id`, `paid_at`
+- `upsampler_job_id`, `upscaled_url`, `upscaled_file_path`
+- `amount_charged`, `amount_cost`, `credits_used` - Revenue/cost tracking
+- `download_token` (64-char), `download_expires_at`, `email_sent`
+- `processing_started_at`, `completed_at`, `failed_at`
 - `refunded_at`, `refund_reason`, `refund_amount` - Refund audit trail
+- `created_at`, `updated_at` - Timestamps
 
 ## Development
 
@@ -109,12 +117,25 @@ stripe listen --forward-to=https://yoursite.local/smi-webhook/stripe/
 - `SMI_VERSION` (1.2.0), `SMI_PLUGIN_DIR`, `SMI_PLUGIN_URL`, `SMI_PLUGIN_BASENAME`
 
 ### Constants Class (`src/Config/Constants.php`)
-- `VALID_JOB_STATUSES` - ('awaiting_payment', 'pending', 'processing', 'completed', 'failed')
-- `VALID_PAYMENT_STATUSES` - ('pending', 'paid', 'failed')
 - `UPSAMPLER_COST_PER_CREDIT` - 0.04 ($0.04/credit)
+- `UPSAMPLER_CREDITS_PER_MEGAPIXEL` - 0.25 (1 credit per 4 megapixels)
+- `UPSAMPLER_API_BASE_URL` - 'https://upsampler.com/api/v1'
+- `UPSAMPLER_PRECISE_UPSCALE_ENDPOINT` - '/precise-upscale'
+- `STRIPE_MINIMUM_PAYMENT` - 0.50 (Stripe minimum)
+- `DEFAULT_MARKUP_PERCENTAGE` - 200 (200% markup = 3x cost)
+- `VALID_RESOLUTIONS` - array('4x', '8x')
+- `RESOLUTION_MULTIPLIERS` - array('4x' => 4, '8x' => 8)
 - `DOWNLOAD_TOKEN_LENGTH` - 64 characters
-- `DEFAULT_MARKUP_PERCENTAGE` - 500 (6x cost markup)
-- `RESOLUTION_MULTIPLIERS` - ('4x' => 4, '8x' => 8)
+- `DOWNLOAD_CHUNK_SIZE` - 8192 (8KB chunks)
+- `DEFAULT_DOWNLOAD_EXPIRY_HOURS` - 24 hours
+- `MIN_IMAGE_SIZE` - 100 pixels (minimum width/height)
+- `EXCLUDED_IMAGE_TYPES` - array('image/svg+xml')
+- `VALID_JOB_STATUSES` - ('awaiting_payment', 'pending', 'processing', 'completed', 'failed', 'abandoned')
+- `VALID_PAYMENT_STATUSES` - ('pending', 'paid', 'failed')
+- `DEFAULT_FAILED_JOB_CLEANUP_DAYS` - 7 days
+- `DEFAULT_ABANDONED_JOB_CLEANUP_HOURS` - 24 hours
+- `MAX_WEBHOOK_PAYLOAD_SIZE` - 1048576 (1MB)
+- `DEFAULT_OPTIONS` - Complete default settings array with all plugin options
 
 ## Frontend Implementation
 
@@ -131,8 +152,9 @@ stripe listen --forward-to=https://yoursite.local/smi-webhook/stripe/
 - Professional responsive modal design
 
 ### Modal Template (`templates/modal.php`)
-- Quality-focused messaging: "Upscale High-Resolution Image"
+- Quality-focused messaging: "Download High-Resolution Image"
 - Two options: Standard (4x) and Premium (8x) with benefit descriptions
+- Optional email field (obtained from Stripe checkout if not provided)
 - Clear delivery expectations via email
 
 ## Key WordPress Integrations

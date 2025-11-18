@@ -31,7 +31,7 @@ class Constants {
     /**
      * Pricing Configuration
      */
-    const DEFAULT_MARKUP_PERCENTAGE = 500; // 500% markup (6x cost)
+    const DEFAULT_MARKUP_PERCENTAGE = 200; // 200% markup (3x cost)
     const STRIPE_MINIMUM_PAYMENT = 0.50; // Stripe minimum payment requirement
     const VALID_RESOLUTIONS = array( '4x', '8x' );
     const RESOLUTION_MULTIPLIERS = array(
@@ -82,8 +82,15 @@ class Constants {
         'smi_stripe_live_secret_key'       => '',
         'smi_stripe_webhook_secret'        => '',
         'smi_download_expiry_hours'        => '24',
-        'smi_markup_percentage'            => '500',
+        'smi_markup_percentage'            => '200',
         'smi_terms_conditions_url'         => '',
+        'smi_display_mode'                 => 'all',
+        'smi_filter_post_types'            => array(),
+        'smi_filter_categories'            => array(),
+        'smi_filter_tags'                  => array(),
+        'smi_filter_post_ids'              => '',
+        'smi_button_text'                  => 'Download Hi-Res',
+        'smi_include_featured_images'      => true,
     );
     
     /**

@@ -197,7 +197,7 @@ class DownloadManager {
     
     /**
      * Store processed file from Upsampler
-     * 
+     *
      * @param string $upscaled_url Temporary URL from Upsampler
      * @param string $job_id Job ID
      * @return string|false Local file path or false on failure
@@ -205,25 +205,37 @@ class DownloadManager {
     public static function store_processed_file( $upscaled_url, $job_id ) {
         // Delegate to FileManager for actual storage
         $local_path = FileManager::download_from_upsampler( $upscaled_url, $job_id );
-        
+
         if ( $local_path ) {
             // Generate download token and update job
             $download_token = self::generate_download_token();
             $expiry_hours = get_option( 'smi_download_expiry_hours', Constants::DEFAULT_DOWNLOAD_EXPIRY_HOURS );
             $expires_at = gmdate( 'Y-m-d H:i:s', time() + ( $expiry_hours * 3600 ) );
-            
+
             // Update job with download info
-            self::update_job_download_data( $job_id, array(
+            $update_result = self::update_job_download_data( $job_id, array(
                 'upscaled_file_path' => $local_path,
                 'download_token' => $download_token,
                 'download_expires_at' => $expires_at,
             ) );
-            
+
+            // Verify download_token was actually saved
+            if ( $update_result ) {
+                $job = JobManager::get_job( $job_id );
+                if ( is_wp_error( $job ) || empty( $job->download_token ) ) {
+                    error_log( 'SMI CRITICAL: Download token NOT saved for job ' . $job_id . ' - email notification SKIPPED' );
+                    return false;
+                }
+            } else {
+                error_log( 'SMI CRITICAL: Failed to update job with download data for job ' . $job_id );
+                return false;
+            }
+
             // Send download notification
             self::send_download_notification( $job_id );
-            
+
         }
-        
+
         return $local_path;
     }
     

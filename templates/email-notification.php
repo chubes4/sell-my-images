@@ -61,7 +61,7 @@ $message = sprintf(
     <title>' . __( 'Your High-Resolution Image is Ready', 'sell-my-images' ) . '</title>
 </head>
 <body style="margin: 0; padding: 20px; font-family: Arial, sans-serif; background-color: #f5f5f5;">
-    <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+    <table width="100%%" cellpadding="0" cellspacing="0" style="max-width: 600px; margin: 0 auto; background-color: #ffffff;">
         <tr>
             <td style="padding: 40px 30px; text-align: center; border-bottom: 1px solid #eee;">
                 <h1 style="margin: 0; color: #333; font-size: 24px;">' . __( 'Your High-Resolution Image is Ready!', 'sell-my-images' ) . '</h1>

@@ -139,6 +139,12 @@ class SettingsPage {
             'default' => __( 'Download Hi-Res', 'sell-my-images' ),
             'sanitize_callback' => array( $this, 'sanitize_button_text' )
         ) );
+
+        register_setting( 'smi_settings', 'smi_include_featured_images', array(
+            'type' => 'boolean',
+            'default' => true,
+            'sanitize_callback' => array( $this, 'sanitize_boolean' )
+        ) );
     }
     
     /**
@@ -344,7 +350,28 @@ class SettingsPage {
                 </tr>
             </table>
         </div>
-        
+
+        <div class="smi-tab-section">
+            <h3><?php esc_html_e( 'Featured Image Support', 'sell-my-images' ); ?></h3>
+            <p><?php esc_html_e( 'Control whether download buttons appear on featured images in addition to content images.', 'sell-my-images' ); ?></p>
+
+            <table class="form-table">
+                <tr>
+                    <th scope="row">
+                        <label for="smi_include_featured_images"><?php esc_html_e( 'Featured Image Buttons', 'sell-my-images' ); ?></label>
+                    </th>
+                    <td>
+                        <?php $include_featured = get_option( 'smi_include_featured_images', true ); ?>
+                        <input type="checkbox" id="smi_include_featured_images" name="smi_include_featured_images" value="1" <?php checked( $include_featured ); ?> />
+                        <label for="smi_include_featured_images"><?php esc_html_e( 'Add download buttons to featured images', 'sell-my-images' ); ?></label>
+                        <p class="description">
+                            <?php esc_html_e( 'When enabled, download buttons will appear on featured images that are not already styled as content blocks. Disable if you experience conflicts with your theme.', 'sell-my-images' ); ?>
+                        </p>
+                    </td>
+                </tr>
+            </table>
+        </div>
+
         <div class="smi-tab-section">
             <h3><?php esc_html_e( 'Button Display Control', 'sell-my-images' ); ?></h3>
             <p><?php esc_html_e( 'Control where download buttons appear on your site. Choose to show buttons on all posts, or selectively include/exclude specific content.', 'sell-my-images' ); ?></p>
@@ -675,5 +702,15 @@ class SettingsPage {
         }
         
         return $sanitized;
+    }
+
+    /**
+     * Sanitize boolean settings
+     *
+     * @param mixed $value Input value
+     * @return bool Sanitized boolean value
+     */
+    public function sanitize_boolean( $value ) {
+        return (bool) $value;
     }
 }

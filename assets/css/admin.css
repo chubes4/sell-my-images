@@ -770,6 +770,28 @@
     cursor: not-allowed;
 }
 
+/* Resend email button */
+.smi-resend-email-btn {
+    background: #00a32a;
+    color: #fff;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 500;
+    transition: background-color 0.2s;
+}
+
+.smi-resend-email-btn:hover {
+    background: #007017;
+}
+
+.smi-resend-email-btn:disabled {
+    background: #ccd0d4;
+    cursor: not-allowed;
+}
+
 /* Job elements */
 .smi-job-id {
     font-family: monospace;

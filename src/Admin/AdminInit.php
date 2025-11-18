@@ -42,7 +42,9 @@ class AdminInit {
         
         // Register AJAX handlers for jobs page
         add_action( 'wp_ajax_smi_retry_upscale', array( $this, 'handle_ajax_retry_upscale' ) );
-        
+        add_action( 'wp_ajax_smi_resend_email', array( $this, 'handle_ajax_resend_email' ) );
+        add_action( 'wp_ajax_smi_fix_broken_job', array( $this, 'handle_ajax_fix_broken_job' ) );
+
         // Add plugin action links
         add_filter( 'plugin_action_links_' . SMI_PLUGIN_BASENAME, array( $this, 'add_action_links' ) );
         
@@ -212,10 +214,131 @@ class AdminInit {
         
         // Trigger the payment completed action to start upscaling with admin override context
         do_action( 'smi_payment_completed', $job_id, array( 'admin_override' => true ) );
-        
+
         wp_send_json_success( __( 'Upscaling process started successfully', 'sell-my-images' ) );
     }
-    
+
+    /**
+     * Handle AJAX resend email request
+     */
+    public function handle_ajax_resend_email() {
+        // Verify nonce
+        if ( ! wp_verify_nonce( $_POST['nonce'] ?? '', 'smi_resend_email' ) ) {
+            wp_die( 'Security check failed' );
+        }
+
+        // Check user capabilities
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_send_json_error( __( 'Insufficient permissions', 'sell-my-images' ) );
+        }
+
+        $job_id = sanitize_text_field( wp_unslash( $_POST['job_id'] ?? '' ) );
+
+        if ( empty( $job_id ) ) {
+            wp_send_json_error( __( 'Invalid job ID', 'sell-my-images' ) );
+        }
+
+        // Get job data to verify it exists and has download_token
+        $job = \SellMyImages\Managers\JobManager::get_job( $job_id );
+
+        if ( is_wp_error( $job ) ) {
+            wp_send_json_error( __( 'Job not found', 'sell-my-images' ) );
+        }
+
+        if ( $job->status !== 'completed' ) {
+            wp_send_json_error( __( 'Job is not completed yet', 'sell-my-images' ) );
+        }
+
+        if ( empty( $job->download_token ) ) {
+            wp_send_json_error( __( 'Job is missing download token. Use "Fix Broken Job" instead.', 'sell-my-images' ) );
+        }
+
+        if ( empty( $job->upscaled_file_path ) || ! file_exists( $job->upscaled_file_path ) ) {
+            wp_send_json_error( __( 'Upscaled file not found on server', 'sell-my-images' ) );
+        }
+
+        // Regenerate expiry if expired
+        $expiry_hours = get_option( 'smi_download_expiry_hours', \SellMyImages\Config\Constants::DEFAULT_DOWNLOAD_EXPIRY_HOURS );
+        $new_expiry = gmdate( 'Y-m-d H:i:s', time() + ( $expiry_hours * 3600 ) );
+
+        \SellMyImages\Managers\DatabaseManager::update(
+            array( 'download_expires_at' => $new_expiry ),
+            array( 'job_id' => $job_id )
+        );
+
+        // Resend email notification
+        $email_result = \SellMyImages\Managers\DownloadManager::send_download_notification( $job_id );
+
+        if ( $email_result ) {
+            wp_send_json_success( __( 'Email resent successfully', 'sell-my-images' ) );
+        } else {
+            wp_send_json_error( __( 'Failed to send email. Check error logs.', 'sell-my-images' ) );
+        }
+    }
+
+    /**
+     * Handle AJAX fix broken job request
+     */
+    public function handle_ajax_fix_broken_job() {
+        // Verify nonce
+        if ( ! wp_verify_nonce( $_POST['nonce'] ?? '', 'smi_fix_broken_job' ) ) {
+            wp_die( 'Security check failed' );
+        }
+
+        // Check user capabilities
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_send_json_error( __( 'Insufficient permissions', 'sell-my-images' ) );
+        }
+
+        $job_id = sanitize_text_field( wp_unslash( $_POST['job_id'] ?? '' ) );
+
+        if ( empty( $job_id ) ) {
+            wp_send_json_error( __( 'Invalid job ID', 'sell-my-images' ) );
+        }
+
+        // Get job data
+        $job = \SellMyImages\Managers\JobManager::get_job( $job_id );
+
+        if ( is_wp_error( $job ) ) {
+            wp_send_json_error( __( 'Job not found', 'sell-my-images' ) );
+        }
+
+        if ( $job->status !== 'completed' ) {
+            wp_send_json_error( __( 'Job must be completed first', 'sell-my-images' ) );
+        }
+
+        if ( empty( $job->upscaled_file_path ) || ! file_exists( $job->upscaled_file_path ) ) {
+            wp_send_json_error( __( 'Upscaled file not found. Cannot fix this job.', 'sell-my-images' ) );
+        }
+
+        // Generate new download token and expiry
+        $download_token = \SellMyImages\Managers\DownloadManager::generate_download_token();
+        $expiry_hours = get_option( 'smi_download_expiry_hours', \SellMyImages\Config\Constants::DEFAULT_DOWNLOAD_EXPIRY_HOURS );
+        $expires_at = gmdate( 'Y-m-d H:i:s', time() + ( $expiry_hours * 3600 ) );
+
+        // Update job with download data
+        $update_result = \SellMyImages\Managers\DatabaseManager::update(
+            array(
+                'download_token' => $download_token,
+                'download_expires_at' => $expires_at,
+            ),
+            array( 'job_id' => $job_id )
+        );
+
+        if ( is_wp_error( $update_result ) ) {
+            wp_send_json_error( __( 'Failed to update job record', 'sell-my-images' ) );
+        }
+
+        // Send email notification
+        $email_result = \SellMyImages\Managers\DownloadManager::send_download_notification( $job_id );
+
+        if ( $email_result ) {
+            wp_send_json_success( __( 'Job fixed and email sent successfully', 'sell-my-images' ) );
+        } else {
+            wp_send_json_error( __( 'Job fixed but email send failed. Check error logs.', 'sell-my-images' ) );
+        }
+    }
+
     /**
      * Show page-specific notices
      */

@@ -48,10 +48,10 @@ $.ajax({
 ## Payment Flow
 
 **Checkout Process**
-1. User selects resolution and enters email
+1. User selects resolution (email optional)
 2. JavaScript creates checkout session via API
 3. Redirect to Stripe-hosted payment page
-4. Return to site with payment status
+4. Return to site with payment status (email backfilled from Stripe if not provided)
 5. Modal displays processing status
 
 **Status Polling**

@@ -19,7 +19,7 @@ if ( ! defined( 'ABSPATH' ) ) {
     <div class="smi-modal-container">
         <div class="smi-modal-content">
             <div class="smi-modal-header">
-                <h2 class="smi-modal-title">Download High-Resolution Image</h2>
+                <h2 class="smi-modal-title">Download High-Resolution</h2>
                 <button type="button" class="smi-modal-close">&times;</button>
             </div>
             
@@ -39,7 +39,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                 <!-- Main content -->
                 <div class="smi-modal-main smi-hidden">
                     <div class="smi-image-preview">
-                        <img class="smi-preview-image" src="" alt="" />
+                        <img class="smi-preview-image no-lazyload" src="" alt="" data-no-lazy="1" />
                     </div>
                     
                     <div class="smi-upscale-options">
@@ -70,8 +70,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                     <div class="smi-email-field">
                         <label for="smi-email">Email for download link:</label>
                         <input type="email" id="smi-email" name="email" placeholder="your@email.com" required />
-                        <p class="description">We'll email you a download link within 15 minutes</p>
-                        <p class="description">Secure payment • Money-back guarantee</p>
+                        <p class="description">We'll email you a download link immediately after checkout</p>
                     </div>
                     
                 </div>
@@ -81,10 +80,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                 <div class="smi-terms-link smi-hidden">
                     <a href="" target="_blank" rel="noopener noreferrer">Terms & Conditions</a>
                 </div>
-                <div class="smi-footer-buttons">
-                    <button type="button" class="smi-btn smi-btn-secondary smi-cancel-btn">Cancel</button>
-                    <button type="button" class="smi-btn smi-btn-primary smi-process-btn" disabled>Checkout with Stripe</button>
-                </div>
+                <button type="button" class="smi-btn smi-btn-primary smi-process-btn" disabled>Checkout with Stripe</button>
             </div>
         </div>
     </div>
