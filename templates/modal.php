@@ -69,8 +69,8 @@ if ( ! defined( 'ABSPATH' ) ) {
                     
                     <div class="smi-email-field">
                         <label for="smi-email">Email for download link:</label>
-                        <input type="email" id="smi-email" name="email" placeholder="your@email.com" required />
-                        <p class="description">We'll email you a download link immediately after checkout</p>
+                        <input type="email" id="smi-email" name="email" placeholder="your@email.com" />
+                        <p class="description">(Optional) Pre-fill your email, or provide it during Stripe checkout</p>
                     </div>
                     
                 </div>

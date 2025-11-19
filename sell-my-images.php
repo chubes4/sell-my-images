@@ -62,7 +62,8 @@ class SellMyImages {
         add_action( 'plugins_loaded', array( $this, 'load_textdomain' ) );
         add_action( 'init', array( $this, 'init' ) );
     add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_frontend_assets' ) );
-        
+        add_action( 'smi_daily_cleanup', array( $this, 'run_daily_cleanup' ) );
+
         // Plugin activation/deactivation hooks
         register_activation_hook( SMI_PLUGIN_FILE, array( $this, 'activate' ) );
         register_deactivation_hook( SMI_PLUGIN_FILE, array( $this, 'deactivate' ) );
@@ -182,10 +183,13 @@ class SellMyImages {
             // Database table creation failed during activation
             wp_die( esc_html__( 'Failed to create database tables during plugin activation.', 'sell-my-images' ) );
         }
-        
+
         // Set default options
         $this->set_default_options();
-        
+
+        // Schedule daily cleanup cron
+        $this->schedule_cleanup_cron();
+
         // Clear rewrite rules
         flush_rewrite_rules();
     }
@@ -194,6 +198,9 @@ class SellMyImages {
      * Plugin deactivation
      */
     public function deactivate() {
+        // Unschedule daily cleanup cron
+        $this->unschedule_cleanup_cron();
+
         // Clear rewrite rules
         flush_rewrite_rules();
     }
@@ -204,12 +211,37 @@ class SellMyImages {
      */
     private function set_default_options() {
         $default_options = \SellMyImages\Config\Constants::DEFAULT_OPTIONS;
-        
+
         foreach ( $default_options as $option_name => $option_value ) {
             if ( ! get_option( $option_name ) ) {
                 add_option( $option_name, $option_value );
             }
         }
+    }
+
+    /**
+     * Schedule daily cleanup cron job
+     */
+    private function schedule_cleanup_cron() {
+        if ( ! wp_next_scheduled( 'smi_daily_cleanup' ) ) {
+            wp_schedule_event( time(), 'daily', 'smi_daily_cleanup' );
+        }
+    }
+
+    /**
+     * Unschedule daily cleanup cron job
+     */
+    private function unschedule_cleanup_cron() {
+        wp_clear_scheduled_hook( 'smi_daily_cleanup' );
+    }
+
+    /**
+     * Run daily cleanup tasks
+     */
+    public function run_daily_cleanup() {
+        \SellMyImages\Managers\DatabaseManager::cleanup_expired_downloads();
+        \SellMyImages\Managers\DatabaseManager::cleanup_failed_jobs();
+        \SellMyImages\Managers\DatabaseManager::cleanup_abandoned_jobs();
     }
 }
 

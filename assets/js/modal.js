@@ -61,12 +61,7 @@
             $(document).on('change', 'input[name="resolution"]', function() {
                 self.updateProcessButton();
             });
-            
-            // Email input changes
-            $(document).on('input', '#smi-email', function() {
-                self.updateProcessButton();
-            });
-            
+
             // Process button click
             $(document).on('click', '.smi-process-btn', function(e) {
                 e.preventDefault();
@@ -446,9 +441,9 @@
          */
         updateProcessButton: function() {
             var hasResolution = $('input[name="resolution"]:checked').length > 0;
-            var hasEmail = $('#smi-email').val().trim().length > 0;
-            
-            this.toggleProcessButton(hasResolution && hasEmail);
+
+            // Email is optional - Stripe checkout will collect it if not provided
+            this.toggleProcessButton(hasResolution);
         },
         
         /**
@@ -461,17 +456,12 @@
             
             var $selected = $('input[name="resolution"]:checked');
             var email = $('#smi-email').val().trim();
-            
+
             if ($selected.length === 0) {
                 this.showError('Please select a resolution option.');
                 return;
             }
-            
-            if (!email) {
-                this.showError('Please enter your email address.');
-                return;
-            }
-            
+
             if (!this.currentImageData) {
                 this.showError('Image data not available.');
                 return;

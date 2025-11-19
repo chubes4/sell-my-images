@@ -309,10 +309,97 @@ class DatabaseManager {
         
         return intval( $cleaned_count );
     }
-    
+
+    /**
+     * Cleanup failed jobs - removes job records and physical files for jobs that failed more than X days ago
+     *
+     * @return int Number of failed jobs cleaned up
+     */
+    public static function cleanup_failed_jobs() {
+        global $wpdb;
+
+        $table = self::get_jobs_table();
+        $cleanup_days = intval( get_option( 'smi_failed_job_cleanup_days', \SellMyImages\Config\Constants::DEFAULT_FAILED_JOB_CLEANUP_DAYS ) );
+        $cutoff_date = gmdate( 'Y-m-d H:i:s', strtotime( "-{$cleanup_days} days" ) );
+        $cleaned_count = 0;
+
+        // Get failed jobs older than cleanup threshold
+        $failed_jobs = $wpdb->get_results( $wpdb->prepare(
+            "SELECT job_id, upscaled_file_path FROM $table
+             WHERE status = %s
+             AND failed_at < %s
+             AND failed_at IS NOT NULL",
+            'failed',
+            $cutoff_date
+        ) );
+
+        foreach ( $failed_jobs as $job ) {
+            // Delete physical file if it exists
+            if ( ! empty( $job->upscaled_file_path ) && file_exists( $job->upscaled_file_path ) ) {
+                wp_delete_file( $job->upscaled_file_path );
+            }
+
+            // Delete entire job record
+            $deleted = $wpdb->delete(
+                $table,
+                array( 'job_id' => $job->job_id ),
+                array( '%s' )
+            );
+
+            if ( $deleted ) {
+                $cleaned_count++;
+            }
+        }
+
+        return intval( $cleaned_count );
+    }
+
+    /**
+     * Cleanup abandoned jobs - removes job records for jobs that were created but never completed payment
+     *
+     * @return int Number of abandoned jobs cleaned up
+     */
+    public static function cleanup_abandoned_jobs() {
+        global $wpdb;
+
+        $table = self::get_jobs_table();
+        $cleanup_hours = intval( get_option( 'smi_abandoned_job_cleanup_hours', \SellMyImages\Config\Constants::DEFAULT_ABANDONED_JOB_CLEANUP_HOURS ) );
+        $cutoff_date = gmdate( 'Y-m-d H:i:s', strtotime( "-{$cleanup_hours} hours" ) );
+        $cleaned_count = 0;
+
+        // Get abandoned jobs older than cleanup threshold
+        $abandoned_jobs = $wpdb->get_results( $wpdb->prepare(
+            "SELECT job_id, upscaled_file_path FROM $table
+             WHERE status = %s
+             AND created_at < %s",
+            'abandoned',
+            $cutoff_date
+        ) );
+
+        foreach ( $abandoned_jobs as $job ) {
+            // Delete physical file if it exists
+            if ( ! empty( $job->upscaled_file_path ) && file_exists( $job->upscaled_file_path ) ) {
+                wp_delete_file( $job->upscaled_file_path );
+            }
+
+            // Delete entire job record
+            $deleted = $wpdb->delete(
+                $table,
+                array( 'job_id' => $job->job_id ),
+                array( '%s' )
+            );
+
+            if ( $deleted ) {
+                $cleaned_count++;
+            }
+        }
+
+        return intval( $cleaned_count );
+    }
+
     /**
      * Detect format array from data types
-     * 
+     *
      * @param array $data Data array
      * @return array Format array
      */

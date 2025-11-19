@@ -82,6 +82,8 @@ class Constants {
         'smi_stripe_live_secret_key'       => '',
         'smi_stripe_webhook_secret'        => '',
         'smi_download_expiry_hours'        => '24',
+        'smi_failed_job_cleanup_days'      => '7',
+        'smi_abandoned_job_cleanup_hours'  => '24',
         'smi_markup_percentage'            => '200',
         'smi_terms_conditions_url'         => '',
         'smi_display_mode'                 => 'all',
