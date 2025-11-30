@@ -4,7 +4,7 @@ Tags: images, monetization, ecommerce, ai, upscaling
 Requires at least: 5.0
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 1.2.0
+Stable tag: 1.2.1
 License: GPL v2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -83,7 +83,7 @@ This plugin relies on external services to provide its core functionality. By us
 
 **User Control:** Customers provide explicit consent during checkout. No data is transmitted without user-initiated purchase action.
 
-## 📋 Current Status: **PRODUCTION READY** (Version 1.2.0)
+## 📋 Current Status: **PRODUCTION READY** (Version 1.2.1)
 
 Complete feature-ready WordPress plugin with full payment processing, AI upscaling, and analytics. All core workflows operational.
 
