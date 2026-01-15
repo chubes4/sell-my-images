@@ -57,6 +57,12 @@ $secret_key = $test_mode ?
 - Configurable per business needs
 - Automatic cleanup trigger
 
+**Cleanup Configuration**
+- `smi_failed_job_cleanup_days` (default: '7') - Failed job retention period
+- `smi_abandoned_job_cleanup_hours` (default: '24') - Abandoned job retention period
+- Daily automated cleanup removes expired resources
+- Configurable retention policies for maintenance
+
 **File Management**
 - Download chunk size: 8192 bytes (constant)
 - Secure token length: 64 characters (constant)

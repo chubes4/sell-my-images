@@ -45,7 +45,7 @@ Create Stripe checkout session for payment processing.
 - `attachment_id` (required) - WordPress attachment ID
 - `post_id` (required) - Source post ID
 - `resolution` (required) - Resolution multiplier (4x, 8x)
-- `email` (optional) - Customer email for notifications (backfilled from Stripe if not provided)
+- `email` (optional) - Customer email for notifications (optional; backfilled from Stripe if not provided)
 
 **Response**
 ```json

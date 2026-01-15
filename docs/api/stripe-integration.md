@@ -14,7 +14,7 @@ The Stripe API client handles payment processing with checkout sessions, webhook
 - Payment method: Card payments only
 - Success/cancel URLs with job tracking
 - Automatic tax calculation disabled
-- Customer email collection required
+- Customer email collection optional (backfilled from Stripe checkout)
 
 ## Webhook Processing
 

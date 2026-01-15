@@ -1,20 +1,24 @@
 # Webhook Endpoints
 
-The plugin provides secure webhook endpoints for external service integration that bypass WordPress routing for reliability.
+The plugin provides secure webhook endpoints for external service integration, implemented via `parse_request` (not rewrite rules) for reliability.
 
 ## Endpoint Structure
 
 **Base Configuration**
-Webhooks accessible directly without WordPress routing:
+Webhooks are handled at:
 - Stripe: `/smi-webhook/stripe/`
 - Upsampler: `/smi-webhook/upsampler/`
 
-**Security Implementation**
-All webhooks require signature validation:
-- Stripe: HMAC SHA256 signature verification
-- Upsampler: API key validation in headers
-- Payload size limits (1MB maximum)
-- Request rate limiting
+## Routing Model
+
+Webhook requests are detected by matching the request URI against `/smi-webhook/{service}/` and then dispatching to a registered handler (see `SellMyImages\Managers\WebhookManager`). Requests for unregistered services return `404`.
+
+## Shared Security Utilities
+
+The `WebhookManager` provides shared helpers used by webhook handlers:
+- Request method enforcement (default `POST`)
+- Optional Content-Type checking
+- Payload size limits (default 1MB via `SellMyImages\Config\Constants::MAX_WEBHOOK_PAYLOAD_SIZE`, filterable with `smi_max_webhook_payload_size`)
 
 ## Stripe Webhooks
 

@@ -90,10 +90,10 @@ class RestApi {
                     'description' => 'Resolution multiplier',
                 ),
                 'email'      => array(
-                    'required'    => true,
+                    'required'    => false,
                     'type'        => 'string',
                     'format'      => 'email',
-                    'description' => 'Email address for notification (required)',
+                    'description' => 'Email address for notification (optional; backfilled from Stripe if not provided)',
                 ),
             ),
         ) );

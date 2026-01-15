@@ -28,6 +28,7 @@ Sell My Images monetizes website images by adding "Download Hi-Res" buttons to c
 - [**Analytics Tracker**](managers/analytics-tracker.md) - User engagement tracking via WordPress post meta
 - [**Webhook Manager**](managers/webhook-manager.md) - Shared webhook utilities and handler registration
 
+
 ### Service Layer
 - [**Payment Service**](services/payment-service.md) - Complete payment workflow coordination with Stripe integration
 - [**Upscaling Service**](services/upscaling-service.md) - AI image processing coordination and file management

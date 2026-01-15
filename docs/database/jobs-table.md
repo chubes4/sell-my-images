@@ -84,7 +84,7 @@ KEY created_at (created_at)                   -- Time-based queries
 
 **Field Specifications**
 - `job_id` - VARCHAR(255) NOT NULL UNIQUE
-- `email` - VARCHAR(255) NOT NULL
+- `email` - VARCHAR(255) DEFAULT NULL
 - `amount_*` - DECIMAL(10,2) for financial precision
 - `*_at` - DATETIME for timestamp storage
 - `download_token` - VARCHAR(64) for secure access

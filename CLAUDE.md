@@ -8,7 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Current Status
 
-**Version 1.2.0** - Production ready with professional tabbed admin interface and granular button display control.
+**Version 1.2.1** - Production ready with automated cleanup system, enhanced modal for better conversions, and improved mobile UX.
 
 ## Architecture
 
@@ -59,7 +59,14 @@ All classes follow PSR-4 autoloading under the `SellMyImages\` namespace:
 2. Stripe webhook → Job status: `awaiting_payment` → `pending`
 3. UpscalingService → Upsampler API → Job status: `processing` → `completed`
 4. DownloadManager → Secure token generation → Email notification
-5. Failed jobs → Automatic Stripe refunds + customer notification
+ 5. Failed jobs → Automatic Stripe refunds + customer notification
+
+### Automated Cleanup System
+
+Daily cron job (`smi_daily_cleanup`) performs automatic maintenance:
+- **Expired Downloads**: Removes download tokens and files after 24 hours
+- **Failed Jobs**: Cleans up failed jobs older than 7 days
+- **Abandoned Jobs**: Removes incomplete jobs older than 24 hours
 
 ### Click Tracking & Analytics
 - Button clicks stored in `_smi_click_analytics` post meta
@@ -114,7 +121,7 @@ stripe listen --forward-to=https://yoursite.local/smi-webhook/stripe/
 ## Configuration Constants
 
 ### Core Constants (`sell-my-images.php`)
-- `SMI_VERSION` (1.2.0), `SMI_PLUGIN_DIR`, `SMI_PLUGIN_URL`, `SMI_PLUGIN_BASENAME`
+- `SMI_VERSION` (1.2.1), `SMI_PLUGIN_DIR`, `SMI_PLUGIN_URL`, `SMI_PLUGIN_BASENAME`
 
 ### Constants Class (`src/Config/Constants.php`)
 - `UPSAMPLER_COST_PER_CREDIT` - 0.04 ($0.04/credit)

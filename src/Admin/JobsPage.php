@@ -413,13 +413,15 @@ class JobsPage {
                                     data-job-id="<?php echo esc_attr( $job->job_id ); ?>">
                                 <?php esc_html_e( 'Resend Email', 'sell-my-images' ); ?>
                             </button>
-                        <?php elseif ( $job->status === 'completed' && empty( $job->download_token ) ) : ?>
+                        <?php elseif ( $job->status === 'completed' && empty( $job->download_token ) && ! $job->email_sent ) : ?>
                             <button type="button"
                                     class="smi-fix-job-btn"
                                     data-job-id="<?php echo esc_attr( $job->job_id ); ?>"
                                     style="background-color: #dc3232;">
                                 <?php esc_html_e( 'Fix Broken Job', 'sell-my-images' ); ?>
                             </button>
+                        <?php elseif ( $job->status === 'completed' && empty( $job->download_token ) && $job->email_sent ) : ?>
+                            <span class="smi-status-expired"><?php esc_html_e( 'Download Expired', 'sell-my-images' ); ?></span>
                         <?php elseif ( $job->status === 'processing' ) : ?>
                             <span class="smi-status-processing">⏳ <?php esc_html_e( 'Processing...', 'sell-my-images' ); ?></span>
                         <?php elseif ( $job->status === 'awaiting_payment' ) : ?>
