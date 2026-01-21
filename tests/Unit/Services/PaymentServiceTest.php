@@ -313,4 +313,77 @@ class PaymentServiceTest extends \SMI_TestCase {
 
         $this->assertInstanceOf( PaymentService::class, $service );
     }
+
+    /**
+     * @test
+     */
+    public function create_checkout_session_works_without_email(): void {
+        $image_data = array(
+            'width'  => 1000,
+            'height' => 800,
+        );
+
+        $this->stripe_api_mock
+            ->shouldReceive( 'create_checkout_session' )
+            ->once()
+            ->withArgs(
+                function ( $session_data ) {
+                    // Verify customer_email is NOT set (Stripe collects it)
+                    return ! isset( $session_data['customer_email'] );
+                }
+            )
+            ->andReturn(
+                array(
+                    'session_id'   => 'cs_test_no_email',
+                    'checkout_url' => 'https://checkout.stripe.com/pay/cs_test_no_email',
+                )
+            );
+
+        $result = $this->payment_service->create_checkout_session(
+            $image_data,
+            '4x',
+            null,
+            'job-uuid-no-email'
+        );
+
+        $this->assertIsArray( $result );
+        $this->assertArrayHasKey( 'checkout_url', $result );
+    }
+
+    /**
+     * @test
+     */
+    public function create_checkout_session_accepts_email_parameter(): void {
+        $image_data = array(
+            'width'  => 1000,
+            'height' => 800,
+        );
+
+        $this->stripe_api_mock
+            ->shouldReceive( 'create_checkout_session' )
+            ->once()
+            ->withArgs(
+                function ( $session_data ) {
+                    // Verify session is created (email not forced to Stripe)
+                    return isset( $session_data['line_items'] )
+                        && isset( $session_data['metadata']['job_id'] );
+                }
+            )
+            ->andReturn(
+                array(
+                    'session_id'   => 'cs_test_with_email',
+                    'checkout_url' => 'https://checkout.stripe.com/pay/cs_test_with_email',
+                )
+            );
+
+        $result = $this->payment_service->create_checkout_session(
+            $image_data,
+            '4x',
+            'test@example.com',
+            'job-uuid-with-email'
+        );
+
+        $this->assertIsArray( $result );
+        $this->assertArrayHasKey( 'checkout_url', $result );
+    }
 }

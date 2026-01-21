@@ -285,4 +285,67 @@ class JobManagerTest extends \SMI_TestCase {
         $this->assertEmpty( $transitions['failed'] );
         $this->assertEmpty( $transitions['abandoned'] );
     }
+
+    /**
+     * @test
+     */
+    public function create_job_accepts_null_email(): void {
+        // Use reflection to test the private validate_job_data method
+        $reflection = new \ReflectionClass( JobManager::class );
+        $method     = $reflection->getMethod( 'validate_job_data' );
+
+        $job_data = array(
+            'image_url'  => 'https://example.com/image.jpg',
+            'resolution' => '4x',
+            'post_id'    => 123,
+            'email'      => null, // Explicitly null
+        );
+
+        $result = $method->invoke( null, $job_data );
+
+        // Validation should pass (return true, not WP_Error)
+        $this->assertTrue( $result );
+    }
+
+    /**
+     * @test
+     */
+    public function create_job_accepts_empty_string_email(): void {
+        // Use reflection to test the private validate_job_data method
+        $reflection = new \ReflectionClass( JobManager::class );
+        $method     = $reflection->getMethod( 'validate_job_data' );
+
+        $job_data = array(
+            'image_url'  => 'https://example.com/image.jpg',
+            'resolution' => '4x',
+            'post_id'    => 123,
+            'email'      => '', // Empty string
+        );
+
+        $result = $method->invoke( null, $job_data );
+
+        // Validation should pass (return true, not WP_Error)
+        $this->assertTrue( $result );
+    }
+
+    /**
+     * @test
+     */
+    public function create_job_accepts_valid_email(): void {
+        // Use reflection to test the private validate_job_data method
+        $reflection = new \ReflectionClass( JobManager::class );
+        $method     = $reflection->getMethod( 'validate_job_data' );
+
+        $job_data = array(
+            'image_url'  => 'https://example.com/image.jpg',
+            'resolution' => '4x',
+            'post_id'    => 123,
+            'email'      => 'valid@example.com',
+        );
+
+        $result = $method->invoke( null, $job_data );
+
+        // Validation should pass (return true, not WP_Error)
+        $this->assertTrue( $result );
+    }
 }
