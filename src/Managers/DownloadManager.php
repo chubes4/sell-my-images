@@ -291,7 +291,7 @@ class DownloadManager {
             if ( ! $admin_email ) {
                 error_log( 'SMI: Admin email skipped - no admin_email configured' );
             } else {
-                error_log( 'SMI: Admin email skipped - same as customer email: ' . $job->email );
+                error_log( 'SMI: Admin email skipped - same as customer email: ' . ( $job->email ?: 'no-email' ) );
             }
         }
         

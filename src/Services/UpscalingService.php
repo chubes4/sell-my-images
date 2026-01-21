@@ -108,7 +108,7 @@ class UpscalingService {
         
         if ( ! is_wp_error( $update_result ) ) {
             // Essential user flow log - upscaling started
-            error_log( 'SMI: Upscaling started for job ' . $job_id . ' (customer: ' . $job->email . ')' );
+            error_log( 'SMI: Upscaling started for job ' . $job_id . ' (customer: ' . ( $job->email ?: 'no-email' ) . ')' );
         }
     }
     
@@ -207,7 +207,7 @@ class UpscalingService {
         $local_path = \SellMyImages\Managers\DownloadManager::store_processed_file( $upscaled_url, $job->job_id );
         
         // Essential user flow log - upscaling completed
-        error_log( 'SMI: Upscaling completed for job ' . $job->job_id . ' (customer: ' . $job->email . ')' );
+        error_log( 'SMI: Upscaling completed for job ' . $job->job_id . ' (customer: ' . ( $job->email ?: 'no-email' ) . ')' );
     }
     
     /**
@@ -300,7 +300,7 @@ Thank you for your understanding.
 Best regards,
 Sarai Chinwag
 %4$s Team', 'sell-my-images' ),
-            $job->email,
+            ( ! empty( $job->email ) ? $job->email : 'Customer' ),
             number_format( $job->amount_charged, 2 ),
             $error_message,
             get_bloginfo( 'name' ),
@@ -314,9 +314,12 @@ Sarai Chinwag
             'Content-Type: text/html; charset=UTF-8'
         );
         
-        // Send to customer
-        $email_sent = wp_mail( $job->email, $subject, $message, $headers );
-        
+        // Send to customer if valid email exists
+        $email_sent = false;
+        if ( ! empty( $job->email ) && is_email( $job->email ) ) {
+            $email_sent = wp_mail( $job->email, $subject, $message, $headers );
+        }
+
         // Send copy to admin
         $admin_email = get_option( 'admin_email' );
         if ( $admin_email && $admin_email !== $job->email ) {
@@ -324,8 +327,7 @@ Sarai Chinwag
             $admin_message = $message;
             wp_mail( $admin_email, $admin_subject, $admin_message, $headers );
         }
-        
-        
+
         return $email_sent;
     }
     

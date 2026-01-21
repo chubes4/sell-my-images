@@ -495,12 +495,17 @@
                 beforeSend: function(xhr) {
                     xhr.setRequestHeader('X-WP-Nonce', wpApiSettings.nonce);
                 },
-                data: {
-                    attachment_id: attachmentId,
-                    post_id: this.currentImageData.image_data.post_id,
-                    resolution: $selected.val(),
-                    email: email
-                },
+                data: (function() {
+                    var requestData = {
+                        attachment_id: attachmentId,
+                        post_id: self.currentImageData.image_data.post_id,
+                        resolution: $selected.val()
+                    };
+                    if (email) {
+                        requestData.email = email;
+                    }
+                    return requestData;
+                })(),
                 success: function(response) {
                     if (response.success && response.checkout_url) {
                         self.handleCheckoutSuccess(response);
