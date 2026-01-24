@@ -57,7 +57,7 @@ $.ajax({
 **Customer Selection**
 Modal presents options:
 - Standard Quality (4x): Web and print ready
-- Premium Quality (8x): Professional print quality
+- Premium Quality (8x): Higher resolution for large prints
 - Optional email input for delivery notification (obtained from Stripe if not provided)
 - Terms and conditions acknowledgment
 
@@ -138,7 +138,7 @@ Upsampler webhook triggers final steps:
 5. Update job status to 'completed'
 
 **Email Notification**
-Professional HTML email with:
+HTML email with:
 - Download link with secure token
 - Expiration information (24 hours)
 - Processing details and resolution

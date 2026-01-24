@@ -8,7 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Current Status
 
-**Version 1.2.1** - Production ready with automated cleanup system, enhanced modal for better conversions, and improved mobile UX.
+**Version 1.2.2** - Production ready with email flow edge case fixes and automated cleanup system.
 
 ## Architecture
 
@@ -35,6 +35,8 @@ All classes follow PSR-4 autoloading under the `SellMyImages\` namespace:
 - `JobManager` - Job lifecycle and status management
 - `DownloadManager` - Secure token-based downloads using `wp_generate_password()`
 - `AnalyticsTracker` - Post meta-based click tracking
+- `FileManager` - Secure file storage, MIME validation, and Upsampler download handling
+- `WebhookManager` - Shared webhook routing and security utilities using `parse_request`
 
 **Services Layer:**
 - `PaymentService` - Payment workflow coordination using StripeApi
@@ -121,7 +123,7 @@ stripe listen --forward-to=https://yoursite.local/smi-webhook/stripe/
 ## Configuration Constants
 
 ### Core Constants (`sell-my-images.php`)
-- `SMI_VERSION` (1.2.1), `SMI_PLUGIN_DIR`, `SMI_PLUGIN_URL`, `SMI_PLUGIN_BASENAME`
+- `SMI_VERSION` (1.2.2), `SMI_PLUGIN_DIR`, `SMI_PLUGIN_URL`, `SMI_PLUGIN_BASENAME`
 
 ### Constants Class (`src/Config/Constants.php`)
 - `UPSAMPLER_COST_PER_CREDIT` - 0.04 ($0.04/credit)

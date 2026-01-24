@@ -63,7 +63,7 @@ The jobs table (`wp_smi_jobs`) provides comprehensive tracking of the complete i
 - `failed_at` - Error occurrence
 
 **Customer Communication**
-- `email` - Customer email for notifications
+- `email` - Customer email for notifications (NOT NULL)
 - `email_sent` - Boolean delivery confirmation
 
 ## Database Indexes
@@ -84,7 +84,7 @@ KEY created_at (created_at)                   -- Time-based queries
 
 **Field Specifications**
 - `job_id` - VARCHAR(255) NOT NULL UNIQUE
-- `email` - VARCHAR(255) DEFAULT NULL
+- `email` - VARCHAR(255) NOT NULL
 - `amount_*` - DECIMAL(10,2) for financial precision
 - `*_at` - DATETIME for timestamp storage
 - `download_token` - VARCHAR(64) for secure access

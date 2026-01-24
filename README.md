@@ -4,7 +4,7 @@ Tags: images, monetization, ecommerce, ai, upscaling
 Requires at least: 5.0
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 1.2.1
+Stable tag: 1.2.2
 License: GPL v2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -12,23 +12,23 @@ Monetize website images with AI-upscaled versions via secure Stripe payments. Us
 
 == Description ==
 
-A professional WordPress plugin that monetizes website images by adding "Download Hi-Res" buttons to content images. Users can purchase AI-upscaled versions (4x, 8x) through secure payment processing with Stripe and AI enhancement via Upsampler.com.
+Monetize WordPress photography, art, and visual content with AI-powered image downloads. This plugin automatically adds "Download Hi-Res" buttons to your images, allowing visitors to purchase enhanced 4x or 8x resolution versions through secure Stripe payments. Perfect for photographers, artists, and content creators looking to generate revenue from their visual content.
 
-## 🚀 Key Features
+## Features
 
-- **Smart Image Detection**: Automatically detects Gutenberg image blocks and injects purchase buttons
-- **Professional Admin Interface**: Modern tabbed interface with API Configuration, Display Control, and Download Settings
-- **Granular Button Control**: Show buttons on all posts, or selectively include/exclude by post type, category, tag, or specific post IDs
-- **AI-Powered Upscaling**: Professional quality image enhancement via Upsampler.com API
-- **Secure Payment Processing**: Stripe integration with test/live mode support
-- **Real-time Analytics**: Track clicks, conversions, and revenue per post/image
-- **Webhook-Driven Workflow**: Automated payment verification and processing
-- **Protected Downloads**: Secure, token-based download system with expiration
-- **Mobile-Responsive Design**: Clean, professional buttons and admin interface optimized for all devices
-- **Performance-Optimized**: Smart asset loading - CSS/JS only loads when buttons will appear
-- **Theme Compatibility**: Advanced button detection works with diverse WordPress themes
-- **Timeout Handling**: Graceful management of long-running AI processing jobs
-- **Developer-Friendly**: Clean PSR-4 architecture with comprehensive documentation
+- Automatically detects Gutenberg image blocks and injects purchase buttons
+- Admin interface with API Configuration, Display Control, and Download Settings
+- Granular button control: show on all posts, or selectively include/exclude by post type, category, tag, or specific post IDs
+- AI-powered image upscaling via Upsampler.com API
+- Secure Stripe payment processing with test/live mode support
+- Real-time analytics tracking clicks, conversions, and revenue per post/image
+- Webhook-driven automated payment verification and processing
+- Secure token-based download system with expiration
+- Mobile-responsive design
+- Smart asset loading - CSS/JS only loads when buttons will appear
+- Button detection compatible with diverse WordPress themes
+- Handles long-running AI processing jobs
+- PSR-4 architecture with comprehensive documentation
 
 == Third Party Services ==
 
@@ -83,15 +83,11 @@ This plugin relies on external services to provide its core functionality. By us
 
 **User Control:** Customers provide explicit consent during checkout. No data is transmitted without user-initiated purchase action.
 
-## 📋 Current Status: **PRODUCTION READY** (Version 1.2.1)
+## Architecture Overview
 
-Complete feature-ready WordPress plugin with full payment processing, AI upscaling, and analytics. All core workflows operational.
+WordPress plugin with PSR-4 architecture. Technical details in `CLAUDE.md`.
 
-## 🏗️ Architecture Overview
-
-Professional WordPress plugin with clean PSR-4 architecture. Technical details in `CLAUDE.md`.
-
-## 🚀 Quick Start
+## Quick Start
 
 ### Installation
 
@@ -120,7 +116,7 @@ Professional WordPress plugin with clean PSR-4 architecture. Technical details i
 5. **Download Settings**: Configure expiry and pricing in Download Settings tab
 6. **Analytics**: Enable click tracking for conversion optimization
 
-## 📋 Requirements
+## Requirements
 
 - **WordPress**: 5.0+ (Gutenberg support required)
 - **PHP**: 7.4+ with cURL extension
@@ -128,7 +124,7 @@ Professional WordPress plugin with clean PSR-4 architecture. Technical details i
 - **APIs**: Stripe account + Upsampler.com account
 - **Server**: Public webhook endpoint accessibility
 
-## 🔧 Development
+## Development
 
 ### Local Development Setup
 ```bash
@@ -154,46 +150,45 @@ stripe listen --forward-to=https://yoursite.local/smi-webhook/stripe/
 
 See `CLAUDE.md` for comprehensive technical documentation.
 
-## 📊 Analytics Dashboard
+## Analytics Dashboard
 
-Track your image monetization performance:
-- **Revenue by Post**: Identify top-performing content
-- **Conversion Rates**: Click-to-purchase optimization
-- **Image Performance**: Most profitable individual images
-- **Profit Margins**: Real-time cost analysis with Upsampler pricing
+Track image monetization performance with comprehensive analytics:
+- Revenue by Post to identify top-performing content
+- Conversion rates for click-to-purchase optimization  
+- Image performance metrics showing most profitable individual images
+- Real-time profit margin analysis with Upsampler pricing integration
 
-## 🎨 Professional Admin Interface (New in v1.2.0)
+## Admin Interface (v1.2.0+)
 
-Experience a modern, organized settings interface with three dedicated tabs for comprehensive plugin management:
+Settings interface with three tabs for plugin management:
 
-### Tabbed Organization
+### Tabs
 
 **API Configuration Tab**
-- Upsampler API key setup with direct signup links
-- Complete Stripe configuration (test/live modes) 
-- Webhook endpoint documentation and guidance
+- Upsampler API key setup
+- Stripe configuration (test/live modes) 
+- Webhook endpoint documentation
 - Service integration instructions
 
 **Display Control Tab**
-- Button display mode selection with visual indicators
-- Comprehensive filter criteria table (always visible for clarity)
-- Real-time validation and contextual help
-- Professional responsive design
+- Button display mode selection
+- Filter criteria table
+- Real-time validation and help
+- Responsive design
 
 **Download Settings Tab**
 - Download link expiry configuration (1-168 hours)
-- Markup percentage control with live preview
+- Markup percentage control
 - Terms & Conditions integration
-- Business logic transparency
 
-### UX Improvements
-- **Progressive Enhancement**: Works with and without JavaScript
-- **Mobile Responsive**: Adapts seamlessly to all screen sizes  
-- **WordPress Integration**: Professional styling that matches WordPress admin
-- **Contextual Feedback**: Disabled states and visual cues for better understanding
-- **Single Form Submission**: Efficient processing while maintaining organization
+### UX Features
+- Works with and without JavaScript
+- Mobile responsive design
+- WordPress admin styling integration
+- Visual feedback for disabled states
+- Single form submission
 
-## 🎯 Button Display Control
+## Button Display Control
 
 Control exactly where download buttons appear on your site with three flexible display modes:
 
@@ -225,7 +220,7 @@ Combine any of these filtering options:
 
 ### Use Cases
 
-**Professional Photographers**
+**Photographers**
 - Include only "Portfolio" and "Gallery" categories
 - Exclude "Behind the Scenes" or "Blog" content
 
@@ -241,7 +236,7 @@ Combine any of these filtering options:
 - Include only posts tagged "Monetizable"
 - Exclude guest author content
 
-## ⚖️ Legal Disclaimer
+## Legal Disclaimer
 
 **Important**: You are responsible for ensuring you have proper rights to sell all images processed through this plugin. This includes copyright ownership, model releases, and licensing compliance. Use at your own legal risk.
 
@@ -289,8 +284,9 @@ Before using this plugin:
 - **Webhook Endpoint**: Must be publicly accessible for payment processing
 - **PHP 7.4+**: Required for Stripe SDK compatibility
 
-## 📄 License & Author
+## License & Author
 
 **License**: GPL v2 or later  
 **Author**: Chris Huber - [chubes.net](https://chubes.net)  
-**Documentation**: See `CLAUDE.md` for comprehensive developer guide
+**Documentation**: See `CLAUDE.md` for comprehensive developer guide  
+**Live Demo**: [Sarai Chinwag](https://saraichinwag.com)
