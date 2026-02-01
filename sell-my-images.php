@@ -89,6 +89,9 @@ class SellMyImages {
         if ( ! is_admin() || wp_doing_ajax() ) {
             $this->init_frontend();
         }
+        
+        // Initialize Abilities API integration
+        \SellMyImages\Abilities\InventoryAbilities::init();
     }
     
     private function init_admin() {
