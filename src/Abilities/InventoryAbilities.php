@@ -313,18 +313,34 @@ class InventoryAbilities {
      */
     private static function analyze_post( \WP_Post $post ): array {
         $content = $post->post_content;
+        $images = array();
+        
+        // Check for featured image first
+        $featured_id = get_post_thumbnail_id( $post->ID );
+        $has_featured = false;
+        if ( $featured_id ) {
+            $has_featured = true;
+            $featured_url = wp_get_attachment_url( $featured_id );
+            $featured_alt = get_post_meta( $featured_id, '_wp_attachment_image_alt', true );
+            $images[] = array(
+                'id'  => $featured_id,
+                'url' => $featured_url,
+                'alt' => $featured_alt ?: '',
+                'is_featured' => true,
+            );
+        }
         
         // Count images in content
         preg_match_all( '/<img[^>]+>/i', $content, $img_matches );
-        $image_count = count( $img_matches[0] );
+        $content_image_count = count( $img_matches[0] );
         
-        // Extract image details
-        $images = array();
+        // Extract image details from content
         preg_match_all( '/<img[^>]+src=["\']([^"\']+)["\'][^>]*(?:alt=["\']([^"\']*)["\'])?[^>]*>/i', $content, $matches, PREG_SET_ORDER );
         foreach ( $matches as $match ) {
             $img = array(
                 'url' => $match[1],
                 'alt' => isset( $match[2] ) ? $match[2] : '',
+                'is_featured' => false,
             );
             // Try to get attachment ID from URL
             $attachment_id = attachment_url_to_postid( $match[1] );
@@ -334,14 +350,19 @@ class InventoryAbilities {
             $images[] = $img;
         }
         
+        // Total image count = featured + content images
+        $image_count = ( $has_featured ? 1 : 0 ) + $content_image_count;
+        
         // Count words (strip HTML first)
         $text = wp_strip_all_tags( $content );
         $word_count = str_word_count( $text );
         
         return array(
-            'image_count' => $image_count,
-            'word_count'  => $word_count,
-            'images'      => $images,
+            'image_count'         => $image_count,
+            'content_image_count' => $content_image_count,
+            'has_featured'        => $has_featured,
+            'word_count'          => $word_count,
+            'images'              => $images,
         );
     }
 
