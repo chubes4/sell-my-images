@@ -126,6 +126,10 @@ class DownloadManager {
      * @return void Exits after serving file
      */
     private static function serve_file_direct( $file_path, $job_id ) {
+        // Remove execution time limit for large file downloads
+        // PHP default is 30s which isn't enough for 60MB+ files
+        set_time_limit( 0 );
+        
         // Validate file path security
         $uploads_dir = wp_upload_dir();
         $safe_path = realpath( $file_path );
@@ -157,9 +161,10 @@ class DownloadManager {
         header( 'Expires: Sat, 26 Jul 1997 05:00:00 GMT' );
         header( 'Pragma: no-cache' );
         
-        // Disable output buffering for large files
-        if ( ob_get_level() ) {
-            ob_end_clean();
+        // Disable ALL output buffering levels for large file streaming
+        // WordPress REST API creates multiple buffer levels that must all be cleared
+        while ( ob_get_level() > 0 ) {
+            @ob_end_clean();
         }
         
         // For file downloads, we need to use direct file operations for streaming
