@@ -10,7 +10,7 @@
 
 .smi-uploader-container {
     background: var(--color-background, #fff);
-    border: 3px solid var(--color-secondary, #ff6eb1);
+    border: 2px solid var(--color-border, #ddd);
     border-radius: 5px;
     padding: 2rem;
 }
@@ -37,7 +37,7 @@
 
 /* Dropzone */
 .smi-dropzone {
-    border: 3px dashed var(--color-primary, #1fc5e2);
+    border: 2px dashed var(--color-primary, #1fc5e2);
     border-radius: 5px;
     padding: 3rem 2rem;
     text-align: center;
@@ -47,8 +47,8 @@
 
     &:hover,
     &.smi-dragover {
-        border-color: var(--color-secondary, #ff6eb1);
-        background: rgba(31, 197, 226, 0.05);
+        border-color: var(--color-primary, #1fc5e2);
+        background: rgba(31, 197, 226, 0.08);
     }
 }
 
@@ -78,8 +78,8 @@
 .smi-browse-button {
     background-color: var(--color-primary, #1fc5e2);
     color: var(--color-background, #fff);
-    border: 3px solid var(--color-secondary, #ff6eb1);
-    padding: 10px 20px;
+    border: none;
+    padding: 12px 24px;
     border-radius: 5px;
     font-family: var(--font-heading, 'Gluten', sans-serif);
     font-size: inherit;
@@ -88,7 +88,7 @@
     text-transform: uppercase;
 
     &:hover {
-        background-color: var(--color-secondary, #ff6eb1);
+        background-color: #17a8c4;
     }
 }
 
@@ -113,7 +113,7 @@
         max-width: 100%;
         max-height: 300px;
         border-radius: 5px;
-        border: 3px solid var(--color-primary, #1fc5e2);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     }
 }
 
@@ -122,7 +122,7 @@
     top: -10px;
     right: -10px;
     background: var(--color-background, #fff);
-    border: 3px solid var(--color-secondary, #ff6eb1);
+    border: 2px solid var(--color-border, #ddd);
     border-radius: 50%;
     width: 32px;
     height: 32px;
@@ -131,10 +131,11 @@
     justify-content: center;
     cursor: pointer;
     transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 
     &:hover {
-        background: var(--color-secondary, #ff6eb1);
-        color: var(--color-background, #fff);
+        background: #f5f5f5;
+        border-color: var(--color-text-light, #666);
     }
 
     svg {
@@ -179,13 +180,13 @@
     }
 
     input:checked + .smi-resolution-card {
-        border-color: var(--color-secondary, #ff6eb1);
-        background: rgba(255, 110, 177, 0.1);
+        border-color: var(--color-primary, #1fc5e2);
+        background: rgba(31, 197, 226, 0.08);
     }
 }
 
 .smi-resolution-card {
-    border: 3px solid var(--color-primary, #1fc5e2);
+    border: 2px solid var(--color-border, #ddd);
     border-radius: 5px;
     padding: 1rem;
     text-align: center;
@@ -193,7 +194,7 @@
     transition: all 0.2s ease;
 
     &:hover {
-        border-color: var(--color-secondary, #ff6eb1);
+        border-color: var(--color-primary, #1fc5e2);
     }
 }
 
@@ -237,8 +238,8 @@
 
     input {
         width: 100%;
-        padding: 10px;
-        border: 3px solid var(--color-primary, #1fc5e2);
+        padding: 12px;
+        border: 2px solid var(--color-border, #ddd);
         border-radius: 5px;
         font-family: var(--font-body, 'Quicksand', sans-serif);
         font-size: inherit;
@@ -246,7 +247,7 @@
 
         &:focus {
             outline: none;
-            border-color: var(--color-secondary, #ff6eb1);
+            border-color: var(--color-primary, #1fc5e2);
         }
     }
 }
@@ -260,7 +261,7 @@
 .smi-checkout-button {
     background-color: var(--color-primary, #1fc5e2);
     color: var(--color-background, #fff);
-    border: 3px solid var(--color-secondary, #ff6eb1);
+    border: none;
     padding: 15px 30px;
     border-radius: 5px;
     font-family: var(--font-heading, 'Gluten', sans-serif);
@@ -273,7 +274,7 @@
     text-transform: uppercase;
 
     &:hover {
-        background-color: var(--color-secondary, #ff6eb1);
+        background-color: #17a8c4;
     }
 
     &:disabled {
@@ -292,7 +293,6 @@
         text-decoration: none;
 
         &:hover {
-            color: var(--color-secondary, #ff6eb1);
             text-decoration: underline;
         }
     }
@@ -324,15 +324,15 @@
 
 /* Error */
 .smi-error {
-    background: rgba(255, 110, 177, 0.1);
-    border: 3px solid var(--color-secondary, #ff6eb1);
+    background: #fff5f5;
+    border: 2px solid #e53e3e;
     border-radius: 5px;
     padding: 1rem;
     margin-top: 1rem;
 
     p {
         margin: 0;
-        color: var(--color-secondary, #ff6eb1);
+        color: #c53030;
         font-size: var(--font-size-small, 0.9rem);
     }
 }
