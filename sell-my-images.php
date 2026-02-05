@@ -3,16 +3,17 @@
  * Plugin Name: Sell My Images
  * Plugin URI: https://chubes.net/
  * Description: Monetize your website images by selling high-resolution versions with AI upscaling and secure payment processing. Perfect for photographers, bloggers, and content creators.
- * Version: 1.2.3
+ * Version: 1.3.0
  * Author: Chris Huber
  * Author URI: https://chubes.net/
  * License: GPL v2 or later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain: sell-my-images
  * Domain Path: /languages
- * Requires at least: 5.0
- * Tested up to: 6.8
- * Requires PHP: 7.4
+ * Requires at least: 6.9
+ * Tested up to: 6.9
+ * Requires PHP: 8.1
+ * Requires Plugins: stripe-integration
  */
 
 // Prevent direct access
@@ -21,7 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Define plugin constants
-define( 'SMI_VERSION', '1.2.3' );
+define( 'SMI_VERSION', '1.3.0' );
 define( 'SMI_PLUGIN_FILE', __FILE__ );
 define( 'SMI_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'SMI_PLUGIN_URL', plugin_dir_url( __FILE__ ) );

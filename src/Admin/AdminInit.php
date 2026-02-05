@@ -11,8 +11,8 @@
 namespace SellMyImages\Admin;
 
 use SellMyImages\Config\Constants;
-use SellMyImages\Api\StripeApi;
 use SellMyImages\Api\Upsampler;
+use StripeIntegration\StripeClient;
 
 // Prevent direct access
 if ( ! defined( 'ABSPATH' ) ) {
@@ -496,42 +496,34 @@ class AdminInit {
     
     /**
      * Validate Stripe configuration
-     * 
+     *
+     * Uses the shared stripe-integration plugin for configuration.
+     *
      * @return array Issues found
      */
     private function validate_stripe_config() {
         $issues = array();
-        
-        $test_mode = get_option( 'smi_stripe_test_mode', '1' );
-        
-        if ( $test_mode ) {
-            $secret_key = get_option( 'smi_stripe_test_secret_key', '' );
-            $publishable_key = get_option( 'smi_stripe_test_publishable_key', '' );
-            $mode_name = 'test';
-        } else {
-            $secret_key = get_option( 'smi_stripe_live_secret_key', '' );
-            $publishable_key = get_option( 'smi_stripe_live_publishable_key', '' );
-            $mode_name = 'live';
-        }
-        
-        if ( empty( $secret_key ) || empty( $publishable_key ) ) {
-            $issues[] = array(
-                'type' => 'error',
+
+        // Check if shared stripe-integration plugin is configured.
+        if ( ! stripe_integration_is_configured() ) {
+            $mode_name = stripe_integration_is_test_mode() ? 'test' : 'live';
+            $issues[]  = array(
+                'type'    => 'error',
                 /* translators: %s: mode name (test or live) */
-                'message' => sprintf( __( 'Stripe %s mode keys are not configured. Payments will not work.', 'sell-my-images' ), $mode_name ),
+                'message' => sprintf( __( 'Stripe %s mode keys are not configured. Go to Settings > Stripe Integration to configure.', 'sell-my-images' ), $mode_name ),
             );
         } else {
-            // Test Stripe configuration
-            $result = StripeApi::validate_configuration();
+            // Test Stripe configuration using shared plugin.
+            $result = StripeClient::validate_configuration();
             if ( is_wp_error( $result ) ) {
                 $issues[] = array(
-                    'type' => 'warning',
+                    'type'    => 'warning',
                     /* translators: %s: error message */
                     'message' => sprintf( __( 'Stripe configuration validation failed: %s', 'sell-my-images' ), $result->get_error_message() ),
                 );
             }
         }
-        
+
         return $issues;
     }
     
@@ -562,8 +554,8 @@ class AdminInit {
             );
         }
         
-        // Check if SSL is enabled for live mode
-        if ( ! get_option( 'smi_stripe_test_mode', '1' ) && ! is_ssl() ) {
+        // Check if SSL is enabled for live mode.
+        if ( ! stripe_integration_is_test_mode() && ! is_ssl() ) {
             $issues[] = array(
                 'type' => 'error',
                 'message' => __( 'SSL is required for live payment processing. Please enable HTTPS.', 'sell-my-images' ),

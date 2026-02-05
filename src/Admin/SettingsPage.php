@@ -49,42 +49,9 @@ class SettingsPage {
             'sanitize_callback' => 'sanitize_text_field'
         ) );
         
-        register_setting( 'smi_settings', 'smi_stripe_test_mode', array(
-            'type' => 'string',
-            'default' => '1',
-            'sanitize_callback' => 'sanitize_text_field'
-        ) );
-        
-        register_setting( 'smi_settings', 'smi_stripe_test_publishable_key', array(
-            'type' => 'string',
-            'default' => '',
-            'sanitize_callback' => 'sanitize_text_field'
-        ) );
-        
-        register_setting( 'smi_settings', 'smi_stripe_test_secret_key', array(
-            'type' => 'string',
-            'default' => '',
-            'sanitize_callback' => 'sanitize_text_field'
-        ) );
-        
-        register_setting( 'smi_settings', 'smi_stripe_live_publishable_key', array(
-            'type' => 'string',
-            'default' => '',
-            'sanitize_callback' => 'sanitize_text_field'
-        ) );
-        
-        register_setting( 'smi_settings', 'smi_stripe_live_secret_key', array(
-            'type' => 'string',
-            'default' => '',
-            'sanitize_callback' => 'sanitize_text_field'
-        ) );
-        
-        register_setting( 'smi_settings', 'smi_stripe_webhook_secret', array(
-            'type' => 'string',
-            'default' => '',
-            'sanitize_callback' => 'sanitize_text_field'
-        ) );
-        
+        // Note: Stripe settings are now managed by the stripe-integration plugin.
+        // Go to Settings > Stripe Integration to configure payment processing.
+
         register_setting( 'smi_settings', 'smi_download_expiry_hours', array(
             'type' => 'integer',
             'default' => 24,
@@ -236,85 +203,45 @@ class SettingsPage {
 
         <div class="smi-tab-section">
             <h3><?php esc_html_e( 'Stripe Payment Configuration', 'sell-my-images' ); ?></h3>
-            <p><?php esc_html_e( 'Configure your Stripe API keys for payment processing. Use test mode for development.', 'sell-my-images' ); ?></p>
-            <p><a href="https://dashboard.stripe.com/apikeys" target="_blank"><?php esc_html_e( 'Get your API keys from the Stripe Dashboard', 'sell-my-images' ); ?></a></p>
-            
+            <p><?php esc_html_e( 'Stripe payment processing is managed by the Stripe Integration plugin.', 'sell-my-images' ); ?></p>
+
+            <?php
+            $stripe_configured = stripe_integration_is_configured();
+            $is_test_mode      = stripe_integration_is_test_mode();
+            ?>
+
             <table class="form-table">
                 <tr>
-                    <th scope="row"><?php esc_html_e( 'Test Mode', 'sell-my-images' ); ?></th>
+                    <th scope="row"><?php esc_html_e( 'Status', 'sell-my-images' ); ?></th>
                     <td>
-                        <?php $test_mode = get_option( 'smi_stripe_test_mode', '1' ); ?>
-                        <input type="checkbox" id="smi_stripe_test_mode" name="smi_stripe_test_mode" value="1" <?php checked( $test_mode, '1' ); ?>>
-                        <label for="smi_stripe_test_mode"><?php esc_html_e( 'Enable test mode (recommended for development)', 'sell-my-images' ); ?></label>
-                        <p class="description">
-                            <?php esc_html_e( 'When enabled, all payments will be processed in test mode using your test API keys.', 'sell-my-images' ); ?>
-                        </p>
+                        <?php if ( $stripe_configured ) : ?>
+                            <span style="color: green;">✓ <?php esc_html_e( 'Configured', 'sell-my-images' ); ?></span>
+                            <?php if ( $is_test_mode ) : ?>
+                                <span class="description"> (<?php esc_html_e( 'Test Mode', 'sell-my-images' ); ?>)</span>
+                            <?php else : ?>
+                                <span class="description"> (<?php esc_html_e( 'Live Mode', 'sell-my-images' ); ?>)</span>
+                            <?php endif; ?>
+                        <?php else : ?>
+                            <span style="color: red;">✗ <?php esc_html_e( 'Not Configured', 'sell-my-images' ); ?></span>
+                        <?php endif; ?>
                     </td>
                 </tr>
                 <tr>
-                    <th scope="row">
-                        <label for="smi_stripe_test_publishable_key"><?php esc_html_e( 'Test Publishable Key', 'sell-my-images' ); ?></label>
-                    </th>
+                    <th scope="row"><?php esc_html_e( 'Webhook URL', 'sell-my-images' ); ?></th>
                     <td>
-                        <?php $value = get_option( 'smi_stripe_test_publishable_key', '' ); ?>
-                        <input type="text" id="smi_stripe_test_publishable_key" name="smi_stripe_test_publishable_key" value="<?php echo esc_attr( $value ); ?>" class="regular-text" placeholder="pk_test_..." />
+                        <code><?php echo esc_url( stripe_integration_get_webhook_url() ); ?></code>
                         <p class="description">
-                            <?php esc_html_e( 'Your Stripe test publishable key (starts with pk_test_)', 'sell-my-images' ); ?>
-                        </p>
-                    </td>
-                </tr>
-                <tr>
-                    <th scope="row">
-                        <label for="smi_stripe_test_secret_key"><?php esc_html_e( 'Test Secret Key', 'sell-my-images' ); ?></label>
-                    </th>
-                    <td>
-                        <?php $value = get_option( 'smi_stripe_test_secret_key', '' ); ?>
-                        <input type="password" id="smi_stripe_test_secret_key" name="smi_stripe_test_secret_key" value="<?php echo esc_attr( $value ); ?>" class="regular-text" placeholder="sk_test_..." />
-                        <p class="description">
-                            <?php esc_html_e( 'Your Stripe test secret key (starts with sk_test_)', 'sell-my-images' ); ?>
-                        </p>
-                    </td>
-                </tr>
-                <tr>
-                    <th scope="row">
-                        <label for="smi_stripe_live_publishable_key"><?php esc_html_e( 'Live Publishable Key', 'sell-my-images' ); ?></label>
-                    </th>
-                    <td>
-                        <?php $value = get_option( 'smi_stripe_live_publishable_key', '' ); ?>
-                        <input type="text" id="smi_stripe_live_publishable_key" name="smi_stripe_live_publishable_key" value="<?php echo esc_attr( $value ); ?>" class="regular-text" placeholder="pk_live_..." />
-                        <p class="description">
-                            <?php esc_html_e( 'Your Stripe live publishable key (starts with pk_live_)', 'sell-my-images' ); ?>
-                        </p>
-                    </td>
-                </tr>
-                <tr>
-                    <th scope="row">
-                        <label for="smi_stripe_live_secret_key"><?php esc_html_e( 'Live Secret Key', 'sell-my-images' ); ?></label>
-                    </th>
-                    <td>
-                        <?php $value = get_option( 'smi_stripe_live_secret_key', '' ); ?>
-                        <input type="password" id="smi_stripe_live_secret_key" name="smi_stripe_live_secret_key" value="<?php echo esc_attr( $value ); ?>" class="regular-text" placeholder="sk_live_..." />
-                        <p class="description">
-                            <?php esc_html_e( 'Your Stripe live secret key (starts with sk_live_)', 'sell-my-images' ); ?>
-                        </p>
-                    </td>
-                </tr>
-                <tr>
-                    <th scope="row">
-                        <label for="smi_stripe_webhook_secret"><?php esc_html_e( 'Webhook Secret', 'sell-my-images' ); ?></label>
-                    </th>
-                    <td>
-                        <?php $value = get_option( 'smi_stripe_webhook_secret', '' ); ?>
-                        <input type="password" id="smi_stripe_webhook_secret" name="smi_stripe_webhook_secret" value="<?php echo esc_attr( $value ); ?>" class="regular-text" placeholder="whsec_..." />
-                        <p class="description">
-                            <?php esc_html_e( 'Webhook endpoint secret from Stripe dashboard for secure webhook verification (optional but recommended).', 'sell-my-images' ); ?><br>
-                            <?php 
-                            /* translators: %s: webhook URL */
-                            printf( esc_html__( 'Webhook URL: %s', 'sell-my-images' ), '<code>' . esc_url( home_url( 'smi-webhook/stripe/' ) ) . '</code>' ); ?>
+                            <?php esc_html_e( 'Use this URL in your Stripe Dashboard under Developers > Webhooks.', 'sell-my-images' ); ?>
                         </p>
                     </td>
                 </tr>
             </table>
+
+            <p>
+                <a href="<?php echo esc_url( admin_url( 'options-general.php?page=stripe-integration' ) ); ?>" class="button">
+                    <?php esc_html_e( 'Configure Stripe Settings', 'sell-my-images' ); ?>
+                </a>
+            </p>
         </div>
         <?php
     }

@@ -72,15 +72,14 @@ class Constants {
     /**
      * Default Plugin Options
      */
+    /**
+     * Default Plugin Options
+     *
+     * Note: Stripe settings are now managed by the stripe-integration plugin.
+     */
     const DEFAULT_OPTIONS = array(
         'smi_enabled'                      => '1',
         'smi_upsampler_api_key'            => '',
-        'smi_stripe_test_mode'             => '1',
-        'smi_stripe_test_publishable_key'  => '',
-        'smi_stripe_test_secret_key'       => '',
-        'smi_stripe_live_publishable_key'  => '',
-        'smi_stripe_live_secret_key'       => '',
-        'smi_stripe_webhook_secret'        => '',
         'smi_download_expiry_hours'        => '24',
         'smi_failed_job_cleanup_days'      => '7',
         'smi_abandoned_job_cleanup_hours'  => '24',

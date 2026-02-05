@@ -246,10 +246,9 @@ class UpscalingService {
         }
         
         try {
-            // Use StripeApi to process refund
-            $stripe_api = new \SellMyImages\Api\StripeApi();
-            $refund_result = $stripe_api->create_refund( $job->stripe_payment_intent_id, $error_message );
-            
+            // Use shared stripe-integration plugin for refunds.
+            $refund_result = \StripeIntegration\StripeClient::create_refund( $job->stripe_payment_intent_id, null, $error_message );
+
             if ( ! is_wp_error( $refund_result ) ) {
                 // Update job with refund information
                 JobManager::update_job_status( $job->job_id, 'refunded', array(
