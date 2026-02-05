@@ -766,3 +766,22 @@ body.smi-modal-open {
     max-width: 100%;
     height: auto;
 }
+/* Upload link in modal footer */
+.smi-footer-links {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 15px;
+    text-align: center;
+}
+
+.smi-upload-link a {
+    color: #666;
+    font-size: 0.9rem;
+    text-decoration: none;
+}
+
+.smi-upload-link a:hover {
+    color: #0073aa;
+    text-decoration: underline;
+}
