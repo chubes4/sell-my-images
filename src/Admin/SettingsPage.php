@@ -206,6 +206,16 @@ class SettingsPage {
             <p><?php esc_html_e( 'Stripe payment processing is managed by the Stripe Integration plugin.', 'sell-my-images' ); ?></p>
 
             <?php
+            // Guard against stripe-integration being deactivated.
+            if ( ! function_exists( 'stripe_integration_is_configured' ) ) :
+            ?>
+                <div class="notice notice-error inline">
+                    <p><?php esc_html_e( 'Stripe Integration plugin is required but not active. Please activate it.', 'sell-my-images' ); ?></p>
+                </div>
+            <?php
+                return;
+            endif;
+
             $stripe_configured = stripe_integration_is_configured();
             $is_test_mode      = stripe_integration_is_test_mode();
             ?>

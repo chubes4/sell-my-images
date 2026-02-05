@@ -504,6 +504,15 @@ class AdminInit {
     private function validate_stripe_config() {
         $issues = array();
 
+        // Check if stripe-integration plugin functions are available.
+        if ( ! function_exists( 'stripe_integration_is_configured' ) ) {
+            $issues[] = array(
+                'type'    => 'error',
+                'message' => __( 'Stripe Integration plugin is required but not active. Please activate it.', 'sell-my-images' ),
+            );
+            return $issues;
+        }
+
         // Check if shared stripe-integration plugin is configured.
         if ( ! stripe_integration_is_configured() ) {
             $mode_name = stripe_integration_is_test_mode() ? 'test' : 'live';
@@ -555,7 +564,7 @@ class AdminInit {
         }
         
         // Check if SSL is enabled for live mode.
-        if ( ! stripe_integration_is_test_mode() && ! is_ssl() ) {
+        if ( function_exists( 'stripe_integration_is_test_mode' ) && ! stripe_integration_is_test_mode() && ! is_ssl() ) {
             $issues[] = array(
                 'type' => 'error',
                 'message' => __( 'SSL is required for live payment processing. Please enable HTTPS.', 'sell-my-images' ),

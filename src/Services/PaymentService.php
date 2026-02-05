@@ -216,23 +216,39 @@ class PaymentService {
 	/**
 	 * Handle charge refunded event
 	 *
+	 * Note: Stripe propagates metadata from checkout session → payment_intent → charge.
+	 * However, refunds created programmatically may not have job_id in metadata.
+	 * In that case, we look up the job by payment_intent_id.
+	 *
 	 * @param object|array $charge Stripe charge data.
 	 * @param object       $event  Full Stripe event.
 	 */
 	public function handle_charge_refunded( $charge, $event ): void {
 		$charge = is_object( $charge ) ? $charge->toArray() : (array) $charge;
 
-		// Only handle our events.
-		if ( ( $charge['metadata']['source'] ?? '' ) !== 'sell-my-images' ) {
+		// Only handle our events - check metadata source.
+		$source = $charge['metadata']['source'] ?? '';
+		$job_id = $charge['metadata']['job_id'] ?? null;
+
+		// If no source metadata, this might be a programmatic refund. Skip.
+		if ( $source !== 'sell-my-images' && $source !== '' ) {
+			return; // Explicitly from another plugin.
+		}
+
+		// If no job_id in metadata but we have payment_intent, look it up.
+		if ( ! $job_id && ! empty( $charge['payment_intent'] ) ) {
+			$job = JobManager::get_job_by_payment_intent( $charge['payment_intent'] );
+			if ( ! is_wp_error( $job ) ) {
+				$job_id = $job->job_id;
+			}
+		}
+
+		if ( ! $job_id ) {
 			return;
 		}
 
-		$job_id = $charge['metadata']['job_id'] ?? null;
-
-		if ( $job_id ) {
-			$this->update_job_payment_status( $job_id, 'refunded', null, null, ( $charge['amount'] ?? 0 ) / 100 );
-			JobManager::update_job_status( $job_id, 'refunded' );
-		}
+		$this->update_job_payment_status( $job_id, 'refunded', null, null, ( $charge['amount'] ?? 0 ) / 100 );
+		JobManager::update_job_status( $job_id, 'refunded' );
 	}
 
 	/**

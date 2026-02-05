@@ -200,6 +200,37 @@ class JobManager {
     }
     
     /**
+     * Get job by Stripe payment intent ID
+     *
+     * @param string $payment_intent_id Stripe payment intent ID.
+     * @return object|\WP_Error Job object or error.
+     */
+    public static function get_job_by_payment_intent( $payment_intent_id ) {
+        if ( empty( $payment_intent_id ) ) {
+            return new \WP_Error(
+                'invalid_payment_intent_id',
+                __( 'Payment intent ID is required', 'sell-my-images' ),
+                array( 'status' => 400 )
+            );
+        }
+
+        $job = DatabaseManager::get_row( array( 'stripe_payment_intent_id' => $payment_intent_id ) );
+
+        if ( is_wp_error( $job ) ) {
+            if ( $job->get_error_code() === 'record_not_found' ) {
+                return new \WP_Error(
+                    'job_not_found',
+                    __( 'Job not found for payment intent', 'sell-my-images' ),
+                    array( 'status' => 404 )
+                );
+            }
+            return $job;
+        }
+
+        return $job;
+    }
+
+    /**
      * Get job by Upsampler job ID
      * 
      * @param string $upsampler_job_id Upsampler's external job ID
