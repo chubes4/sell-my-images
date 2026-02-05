@@ -1,0 +1,52 @@
+{
+  "$schema": "https://schemas.wp.org/trunk/block.json",
+  "apiVersion": 3,
+  "name": "smi/image-uploader",
+  "version": "1.0.0",
+  "title": "Image Upscaler",
+  "category": "media",
+  "icon": "upload",
+  "description": "Allow visitors to upload and upscale any image with AI enhancement.",
+  "keywords": [
+    "upload",
+    "upscale",
+    "image",
+    "ai",
+    "enhance"
+  ],
+  "supports": {
+    "html": false,
+    "align": [
+      "wide",
+      "full"
+    ],
+    "spacing": {
+      "margin": true,
+      "padding": true
+    }
+  },
+  "attributes": {
+    "title": {
+      "type": "string",
+      "default": "Upscale Your Image"
+    },
+    "description": {
+      "type": "string",
+      "default": "Upload any image and we'll enhance it with AI to create a stunning high-resolution version."
+    },
+    "maxFileSize": {
+      "type": "number",
+      "default": 10
+    },
+    "showTermsLink": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "textdomain": "sell-my-images",
+  "editorScript": "file:./index.js",
+  "editorStyle": "file:./index.css",
+  "style": "file:./style-index.css",
+  "viewScript": "file:./view.js",
+  "render": "file:./render.php"
+}

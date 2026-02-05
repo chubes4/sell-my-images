@@ -27,4 +27,4 @@ error_log
 
 # Documentation sync
 /docs/.docs-sync.json
-/build/
+node_modules/
