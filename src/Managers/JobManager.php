@@ -78,6 +78,14 @@ class JobManager {
             $insert_data['image_height'] = $sanitized_data['image_height'];
         }
         
+        if ( isset( $sanitized_data['source_type'] ) ) {
+            $insert_data['source_type'] = $sanitized_data['source_type'];
+        }
+        
+        if ( isset( $sanitized_data['upload_file_path'] ) ) {
+            $insert_data['upload_file_path'] = $sanitized_data['upload_file_path'];
+        }
+        
         $result = DatabaseManager::insert( $insert_data );
         
         if ( is_wp_error( $result ) ) {
@@ -479,9 +487,13 @@ class JobManager {
      */
     private static function validate_job_data( $job_data ) {
         // Check required fields
-    $required_fields = array( 'image_url', 'resolution', 'post_id' );
+        $required_fields = array( 'image_url', 'resolution', 'post_id' );
         
         foreach ( $required_fields as $field ) {
+            // Allow post_id to be 0 for uploads
+            if ( $field === 'post_id' && isset( $job_data['post_id'] ) && $job_data['post_id'] === 0 ) {
+                continue;
+            }
             if ( empty( $job_data[ $field ] ) ) {
                 return new \WP_Error(
                     'missing_required_field',
@@ -510,8 +522,9 @@ class JobManager {
             );
         }
         
-        // Validate image URL
-        if ( ! filter_var( $job_data['image_url'], FILTER_VALIDATE_URL ) ) {
+        // Validate image URL (unless it's an upload with a local file path)
+        $is_upload = isset( $job_data['source_type'] ) && $job_data['source_type'] === 'upload';
+        if ( ! $is_upload && ! filter_var( $job_data['image_url'], FILTER_VALIDATE_URL ) ) {
             return new \WP_Error(
                 'invalid_image_url',
                 __( 'Invalid image URL', 'sell-my-images' ),
@@ -519,8 +532,8 @@ class JobManager {
             );
         }
         
-        // Validate post ID
-        if ( ! is_numeric( $job_data['post_id'] ) || intval( $job_data['post_id'] ) <= 0 ) {
+        // Validate post ID (allow 0 for uploads)
+        if ( ! is_numeric( $job_data['post_id'] ) || intval( $job_data['post_id'] ) < 0 ) {
             return new \WP_Error(
                 'invalid_post_id',
                 __( 'Invalid post ID', 'sell-my-images' ),
@@ -539,7 +552,9 @@ class JobManager {
      */
     private static function sanitize_job_data( $job_data ) {
         $sanitized = array(
-            'image_url'  => esc_url_raw( $job_data['image_url'] ),
+            'image_url'  => isset( $job_data['source_type'] ) && $job_data['source_type'] === 'upload' 
+                ? sanitize_text_field( $job_data['image_url'] ) 
+                : esc_url_raw( $job_data['image_url'] ),
             'resolution' => sanitize_text_field( $job_data['resolution'] ),
             'email'      => isset( $job_data['email'] ) ? sanitize_email( $job_data['email'] ) : '',
             'post_id'    => intval( $job_data['post_id'] ),
@@ -556,6 +571,14 @@ class JobManager {
         
         if ( isset( $job_data['image_height'] ) ) {
             $sanitized['image_height'] = intval( $job_data['image_height'] );
+        }
+        
+        if ( isset( $job_data['source_type'] ) ) {
+            $sanitized['source_type'] = sanitize_text_field( $job_data['source_type'] );
+        }
+        
+        if ( isset( $job_data['upload_file_path'] ) ) {
+            $sanitized['upload_file_path'] = sanitize_text_field( $job_data['upload_file_path'] );
         }
         
         return $sanitized;

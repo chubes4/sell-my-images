@@ -338,6 +338,21 @@ Sarai Chinwag
      * @return array Image data array
      */
     private function get_image_data_for_upscaling( $job ) {
+        // Handle uploaded images (source_type='upload')
+        if ( isset( $job->source_type ) && $job->source_type === 'upload' ) {
+            // For uploads, convert local file path to URL
+            $file_path = ! empty( $job->upload_file_path ) ? $job->upload_file_path : $job->image_url;
+            $file_url = $this->convert_file_path_to_url( $file_path );
+            
+            return array(
+                'url' => $file_url,
+                'width' => $job->image_width ?? 0,
+                'height' => $job->image_height ?? 0,
+                'attachment_id' => null,
+                'source_type' => 'upload',
+            );
+        }
+        
         // Try to get attachment data if we have attachment_id
         if ( ! empty( $job->attachment_id ) ) {
             $attachment_data = wp_get_attachment_metadata( $job->attachment_id );
@@ -360,6 +375,23 @@ Sarai Chinwag
             'height' => $job->image_height ?? 0,
             'attachment_id' => $job->attachment_id ?? null
         );
+    }
+    
+    /**
+     * Convert local file path to accessible URL
+     * 
+     * @param string $file_path Local file path
+     * @return string URL
+     */
+    private function convert_file_path_to_url( $file_path ) {
+        $wp_upload_dir = wp_upload_dir();
+        $base_dir = $wp_upload_dir['basedir'];
+        $base_url = $wp_upload_dir['baseurl'];
+        
+        // Replace local path with URL
+        $file_url = str_replace( $base_dir, $base_url, $file_path );
+        
+        return $file_url;
     }
     
     /**

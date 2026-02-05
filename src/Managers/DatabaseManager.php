@@ -56,6 +56,8 @@ class DatabaseManager {
             attachment_id bigint(20) unsigned DEFAULT NULL,
             image_width int unsigned DEFAULT NULL,
             image_height int unsigned DEFAULT NULL,
+            source_type varchar(20) DEFAULT 'attachment',
+            upload_file_path varchar(500) DEFAULT NULL,
             status varchar(20) DEFAULT 'pending',
             upsampler_job_id varchar(255) DEFAULT NULL,
             upscaled_url text DEFAULT NULL,
@@ -89,7 +91,8 @@ class DatabaseManager {
             KEY stripe_checkout_session_id (stripe_checkout_session_id),
             KEY upsampler_job_id (upsampler_job_id),
             KEY email (email),
-            KEY created_at (created_at)
+            KEY created_at (created_at),
+            KEY source_type (source_type)
         ) {$wpdb->get_charset_collate()};";
         
         require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
@@ -397,6 +400,40 @@ class DatabaseManager {
         return intval( $cleaned_count );
     }
 
+    /**
+     * Cleanup expired uploads associated with abandoned/failed jobs
+     * 
+     * @return int Number of upload files cleaned up
+     */
+    public static function cleanup_job_uploads() {
+        global $wpdb;
+        
+        $table = self::get_jobs_table();
+        $cleaned_count = 0;
+        
+        // Get jobs with uploads that are abandoned or failed
+        $jobs_with_uploads = $wpdb->get_results( $wpdb->prepare(
+            "SELECT job_id, upload_file_path FROM $table 
+             WHERE source_type = %s 
+             AND upload_file_path IS NOT NULL 
+             AND status IN (%s, %s)",
+            'upload',
+            'abandoned',
+            'failed'
+        ) );
+        
+        foreach ( $jobs_with_uploads as $job ) {
+            // Delete physical file
+            if ( file_exists( $job->upload_file_path ) ) {
+                if ( wp_delete_file( $job->upload_file_path ) ) {
+                    $cleaned_count++;
+                }
+            }
+        }
+        
+        return intval( $cleaned_count );
+    }
+    
     /**
      * Detect format array from data types
      *
