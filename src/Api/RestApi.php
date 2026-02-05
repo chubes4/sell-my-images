@@ -13,6 +13,7 @@ namespace SellMyImages\Api;
 use SellMyImages\Managers\JobManager;
 use SellMyImages\Managers\DownloadManager;
 use SellMyImages\Managers\AnalyticsTracker;
+use SellMyImages\Managers\UploadManager;
 
 // Prevent direct access
 if ( ! defined( 'ABSPATH' ) ) {
@@ -141,6 +142,39 @@ class RestApi {
                     'required'    => true,
                     'type'        => 'string',
                     'description' => 'Job ID to check status for',
+                ),
+            ),
+        ) );
+        
+        // Upload image endpoint
+        register_rest_route( self::NAMESPACE, '/upload-image', array(
+            'methods'             => 'POST',
+            'callback'            => array( $this, 'upload_image' ),
+            'permission_callback' => '__return_true', // Public endpoint
+        ) );
+        
+        // Create checkout for uploaded image
+        register_rest_route( self::NAMESPACE, '/create-checkout-upload', array(
+            'methods'             => 'POST',
+            'callback'            => array( $this, 'create_checkout_upload' ),
+            'permission_callback' => '__return_true', // Public endpoint
+            'args'                => array(
+                'upload_id' => array(
+                    'required'    => true,
+                    'type'        => 'string',
+                    'description' => 'Upload ID from /upload-image endpoint',
+                ),
+                'resolution' => array(
+                    'required'    => true,
+                    'type'        => 'string',
+                    'enum'        => array( '4x', '8x' ),
+                    'description' => 'Resolution multiplier',
+                ),
+                'email'      => array(
+                    'required'    => false,
+                    'type'        => 'string',
+                    'format'      => 'email',
+                    'description' => 'Email address for notification (optional; backfilled from Stripe if not provided)',
                 ),
             ),
         ) );
@@ -473,5 +507,160 @@ class RestApi {
             'width'         => $image_meta['width'],
             'height'        => $image_meta['height'],
         );
+    }
+    
+    /**
+     * Upload image endpoint
+     * 
+     * @param WP_REST_Request $request Request object
+     * @return WP_REST_Response|WP_Error Response or error
+     */
+    public function upload_image( $request ) {
+        // Check if plugin is enabled
+        if ( ! get_option( 'smi_enabled', '1' ) ) {
+            return new \WP_Error(
+                'plugin_disabled',
+                __( 'Plugin is currently disabled', 'sell-my-images' ),
+                array( 'status' => 503 )
+            );
+        }
+        
+        // Get uploaded file from request
+        $files = $request->get_file_params();
+        
+        if ( empty( $files['image'] ) ) {
+            return new \WP_Error(
+                'no_file_provided',
+                __( 'No image file was uploaded', 'sell-my-images' ),
+                array( 'status' => 400 )
+            );
+        }
+        
+        // Upload and validate image
+        $upload_result = UploadManager::upload_image( $files['image'] );
+        
+        if ( is_wp_error( $upload_result ) ) {
+            return $upload_result;
+        }
+        
+        // Calculate pricing for all resolutions
+        $image_data = array(
+            'width' => $upload_result['width'],
+            'height' => $upload_result['height'],
+        );
+        
+        $resolutions = array( '4x', '8x' );
+        $pricing_data = array();
+        
+        foreach ( $resolutions as $resolution ) {
+            $cost_data = CostCalculator::calculate_cost_detailed( $image_data, $resolution );
+            $pricing_data[$resolution] = $cost_data;
+        }
+        
+        return new \WP_REST_Response( array(
+            'success' => true,
+            'upload_id' => $upload_result['upload_id'],
+            'pricing' => $pricing_data,
+            'image_info' => array(
+                'width' => $upload_result['width'],
+                'height' => $upload_result['height'],
+                'file_size' => $upload_result['file_size'],
+            ),
+        ), 200 );
+    }
+    
+    /**
+     * Create checkout session for uploaded image
+     * 
+     * @param WP_REST_Request $request Request object
+     * @return WP_REST_Response|WP_Error Response or error
+     */
+    public function create_checkout_upload( $request ) {
+        // Check if plugin is enabled
+        if ( ! get_option( 'smi_enabled', '1' ) ) {
+            return new \WP_Error(
+                'plugin_disabled',
+                __( 'Plugin is currently disabled', 'sell-my-images' ),
+                array( 'status' => 503 )
+            );
+        }
+        
+        // Check if Stripe is configured using PaymentService
+        $payment_service = new \SellMyImages\Services\PaymentService();
+        $stripe_config = $payment_service->validate_configuration();
+        if ( is_wp_error( $stripe_config ) ) {
+            return new \WP_Error(
+                'payment_not_configured',
+                __( 'Payment system not configured: ', 'sell-my-images' ) . $stripe_config->get_error_message(),
+                array( 'status' => 500 )
+            );
+        }
+        
+        $upload_id = $request->get_param( 'upload_id' );
+        $resolution = $request->get_param( 'resolution' );
+        $email = $request->get_param( 'email' );
+        if ( $email ) {
+            $email = sanitize_email( $email );
+        } else {
+            $email = null;
+        }
+        
+        // Get upload data
+        $upload = UploadManager::get_upload( $upload_id );
+        if ( is_wp_error( $upload ) ) {
+            return $upload;
+        }
+        
+        // Convert upload data to image data format
+        $image_data = array(
+            'width' => $upload['width'],
+            'height' => $upload['height'],
+        );
+        
+        // Create job record with source_type='upload'
+        $job_data = JobManager::create_job( array(
+            'image_url'         => $upload['file_path'], // Store local path as image_url
+            'resolution'        => $resolution,
+            'email'             => $email,
+            'post_id'           => 0, // No post associated with uploads
+            'attachment_id'     => null,
+            'image_width'       => $upload['width'],
+            'image_height'      => $upload['height'],
+            'source_type'       => 'upload',
+            'upload_file_path'  => $upload['file_path'],
+        ) );
+        
+        if ( is_wp_error( $job_data ) ) {
+            return $job_data;
+        }
+        
+        // Store cost data in job record
+        $cost_data = CostCalculator::calculate_cost_detailed( $image_data, $resolution );
+        JobManager::update_cost_data( $job_data['job_id'], $cost_data );
+        
+        // Create Stripe checkout session using PaymentService
+        $checkout_result = $payment_service->create_checkout_session( 
+            $image_data, 
+            $resolution, 
+            $email, 
+            $job_data['job_id'] 
+        );
+        
+        if ( is_wp_error( $checkout_result ) ) {
+            // Clean up job record on failure
+            JobManager::delete_job( $job_data['job_id'] );
+            return $checkout_result;
+        }
+        
+        // Update job with checkout session ID
+        JobManager::update_checkout_session( $job_data['job_id'], $checkout_result['session_id'] );
+        
+        return new \WP_REST_Response( array(
+            'success' => true,
+            'job_id' => $job_data['job_id'],
+            'checkout_url' => $checkout_result['checkout_url'],
+            'amount' => $checkout_result['amount'],
+            'message' => __( 'Redirecting to payment...', 'sell-my-images' ),
+        ), 200 );
     }
 }

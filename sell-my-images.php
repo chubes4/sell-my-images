@@ -245,6 +245,8 @@ class SellMyImages {
         \SellMyImages\Managers\DatabaseManager::cleanup_expired_downloads();
         \SellMyImages\Managers\DatabaseManager::cleanup_failed_jobs();
         \SellMyImages\Managers\DatabaseManager::cleanup_abandoned_jobs();
+        \SellMyImages\Managers\DatabaseManager::cleanup_job_uploads();
+        \SellMyImages\Managers\UploadManager::cleanup_expired_uploads();
     }
 }
 
