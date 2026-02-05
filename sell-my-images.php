@@ -92,6 +92,20 @@ class SellMyImages {
         
         // Initialize Abilities API integration
         \SellMyImages\Abilities\InventoryAbilities::init();
+        
+        // Register blocks
+        $this->register_blocks();
+    }
+    
+    /**
+     * Register Gutenberg blocks
+     */
+    private function register_blocks() {
+        // Register the image uploader block if build exists
+        $block_path = SMI_PLUGIN_DIR . 'build/blocks/image-uploader';
+        if ( file_exists( $block_path . '/block.json' ) ) {
+            register_block_type( $block_path );
+        }
     }
     
     private function init_admin() {
