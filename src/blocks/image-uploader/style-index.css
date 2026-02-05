@@ -1,0 +1,14 @@
+
+/* Responsive width - don't go edge-to-edge on mobile */
+.wp-block-smi-image-uploader {
+    width: 92%;
+    max-width: 92%;
+    margin-left: auto;
+    margin-right: auto;
+}
+@media (min-width: 992px) {
+    .wp-block-smi-image-uploader {
+        width: 100%;
+        max-width: 100%;
+    }
+}
