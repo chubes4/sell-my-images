@@ -94,6 +94,7 @@ class SellMyImages {
         // Initialize Abilities API integration
         \SellMyImages\Abilities\InventoryAbilities::init();
         \SellMyImages\Abilities\UploadAbilities::init();
+        \SellMyImages\Abilities\AnalyticsAbilities::init();
         
         // Register blocks
         $this->register_blocks();
